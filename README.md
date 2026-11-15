@@ -44,6 +44,5 @@ Selected DSP work uses open Mutable Instruments code by Emilie Gillet and contri
 - [Mutable Dreams](https://kidbee85-beep.github.io/mutable-dreams/) — generative instruments and a Web Studio for the M-VAVE FM-1.
 - [Performance Garden](https://github.com/kidbee85-beep/mutable-dreams-performance-garden) — the Mutable Dreams instrument for VIBE FM.
 - [bazillOS](https://kidbee85-beep.github.io/bazillOS/) — independent firmware for the Polyend Tracker Mini.
-- [Cut-A-Dor](https://github.com/kidbee85-beep/cut-a-dor-release) — rhythm firmware and a browser beat dojo for the FM-1.
 
 [Optional donations](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF) support firmware updates, new firmware and synthesizer software.
