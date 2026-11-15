@@ -2,8 +2,7 @@
   "version": "1.1.0",
   "version_code": 101004,
   "reviewed_application_commit": "3c2f41ff25c2ec208835df85a52663274b8288c2",
-  "source_export_commit": "affd28d34a1bac40ffaee27ce60a985dab31eb34",
-  "compiled_files_changed_in_export": false,
+  "compiled_files_changed_in_export": true,
   "non_build_changes_after_compile": [
     "shell/brick/TrackWerk.sh",
     "tests/brick-launcher/check_launcher.py",
@@ -12,7 +11,7 @@
   "excluded_non_build_documents": 3,
   "documentation_overlay": [],
   "files": 8259,
-  "manifest_sha256": "865506aa516dd89a12ada7c317f3d1a36e116d01e75f93da2739f2794be8ac45",
+  "manifest_sha256": "794d995a148437070d89c0f8298736c88e5f64e4802d1529fd6c240815cd5fb7",
   "source_entries": [
     {
       "path": ".github/FUNDING.yml",
@@ -160,6 +159,56 @@
       "sha256": "5a0608a3ed3225433adb311321f9edf7ab4b687313cc97d74ac5620191910793"
     },
     {
+      "path": "app/src/main/assets/themes/amiga/bg_branding_panel.png",
+      "bytes": 55120,
+      "sha256": "f94a3012a72df5d58e36b01b90c554c46fae9a126c774a7fc6c7a90afd130f33"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/bg_button_backing.png",
+      "bytes": 576058,
+      "sha256": "10a2be1ce73c3d63a85e91889b02ded846feef5647b836e5b95b0814d7b98e29"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/bg_screen_bezel.png",
+      "bytes": 168765,
+      "sha256": "f13d800e67cbb87d5ca21f0c641be3ce1a679fd86a078c16d3cdfd1eaee44b52"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/bg_top_panel.png",
+      "bytes": 381812,
+      "sha256": "fef5b491f6f23a1ab5778cd517e07a2377abdb89e1d29a5f7bbc43d3d81e16b5"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_square_normal.png",
+      "bytes": 92494,
+      "sha256": "bc88b22c73ffb1632046f5e3c7bcb68e7176044f860e3ed795c034864b00bdd8"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_square_normal_dark.png",
+      "bytes": 90537,
+      "sha256": "02a2402bc91376bbe5c834f0cfea95cd9de42681a48c64879aa5ca28da9710f2"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_square_pressed.png",
+      "bytes": 87195,
+      "sha256": "0037d64354740928bad642a3e50fc98b863727f89816b25282fb7371ee864fd2"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_square_pressed_dark.png",
+      "bytes": 78373,
+      "sha256": "f224ec68d4b85a01cc3325e6282a0af62a3fc96d872f77a04bb13a8462dd3add"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_wide_normal.png",
+      "bytes": 202828,
+      "sha256": "7383f4a26c1bfe406905994e3bf26fdc807c048749c7e93a82681916847926d1"
+    },
+    {
+      "path": "app/src/main/assets/themes/amiga/btn_wide_pressed.png",
+      "bytes": 186545,
+      "sha256": "6580c14c932416f93964402ca08a8e266dbdae6afa212d5d30355147604196c7"
+    },
+    {
       "path": "app/src/main/assets/themes/amiga-2/bg_branding_panel.png",
       "bytes": 55021,
       "sha256": "9962429d3c6d74c3917f2b5e648c9542b49eb8c8e77f563e7e8ca0e5e32e3bb2"
@@ -228,56 +277,6 @@
       "path": "app/src/main/assets/themes/amiga-transparent/btn_wide_pressed.png",
       "bytes": 4116,
       "sha256": "c7eb40dbd4880f8cef6af78a41b08503d163e103057a78ab7b41de33c38c8b7d"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/bg_branding_panel.png",
-      "bytes": 55120,
-      "sha256": "f94a3012a72df5d58e36b01b90c554c46fae9a126c774a7fc6c7a90afd130f33"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/bg_button_backing.png",
-      "bytes": 576058,
-      "sha256": "10a2be1ce73c3d63a85e91889b02ded846feef5647b836e5b95b0814d7b98e29"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/bg_screen_bezel.png",
-      "bytes": 168765,
-      "sha256": "f13d800e67cbb87d5ca21f0c641be3ce1a679fd86a078c16d3cdfd1eaee44b52"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/bg_top_panel.png",
-      "bytes": 381812,
-      "sha256": "fef5b491f6f23a1ab5778cd517e07a2377abdb89e1d29a5f7bbc43d3d81e16b5"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_square_normal.png",
-      "bytes": 92494,
-      "sha256": "bc88b22c73ffb1632046f5e3c7bcb68e7176044f860e3ed795c034864b00bdd8"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_square_normal_dark.png",
-      "bytes": 90537,
-      "sha256": "02a2402bc91376bbe5c834f0cfea95cd9de42681a48c64879aa5ca28da9710f2"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_square_pressed.png",
-      "bytes": 87195,
-      "sha256": "0037d64354740928bad642a3e50fc98b863727f89816b25282fb7371ee864fd2"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_square_pressed_dark.png",
-      "bytes": 78373,
-      "sha256": "f224ec68d4b85a01cc3325e6282a0af62a3fc96d872f77a04bb13a8462dd3add"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_wide_normal.png",
-      "bytes": 202828,
-      "sha256": "7383f4a26c1bfe406905994e3bf26fdc807c048749c7e93a82681916847926d1"
-    },
-    {
-      "path": "app/src/main/assets/themes/amiga/btn_wide_pressed.png",
-      "bytes": 186545,
-      "sha256": "6580c14c932416f93964402ca08a8e266dbdae6afa212d5d30355147604196c7"
     },
     {
       "path": "app/src/main/ic_launcher-playstore.png",
@@ -380,26 +379,6 @@
       "sha256": "9132c3540dc79bc0fd3e65e7e83fed43a5d2aeaad00c79e4473687e23505dddc"
     },
     {
-      "path": "app/src/main/res/drawable-hdpi/ic_splash_logo.png",
-      "bytes": 17363,
-      "sha256": "7a5dcf8646fea1bff02e5a7229c2d6c6fae337bf994c1259ed8898dfad93e0c3"
-    },
-    {
-      "path": "app/src/main/res/drawable-mdpi/ic_splash_logo.png",
-      "bytes": 9558,
-      "sha256": "eec7f7953a184155fcd1b60c2d3dbfdd133a1e531f9db6119aa8d0e60c5c6835"
-    },
-    {
-      "path": "app/src/main/res/drawable-xhdpi/ic_splash_logo.png",
-      "bytes": 26544,
-      "sha256": "e63961d4a346b011b5c9c1dc63ff8ea866139aea1047d38a02104e9aaa4ccf1e"
-    },
-    {
-      "path": "app/src/main/res/drawable-xxhdpi/ic_splash_logo.png",
-      "bytes": 50360,
-      "sha256": "4fb102e3d39db703431cca1b2bcf40c0ad22b105d27d73bb621f81b582fb8cdc"
-    },
-    {
       "path": "app/src/main/res/drawable/ic_launcher_background.xml",
       "bytes": 170,
       "sha256": "539d1538c8b7837ecf79c24fed32ac96ce0c3fd5bbe9d79a22a1f53158ce91a1"
@@ -418,6 +397,26 @@
       "path": "app/src/main/res/drawable/ic_notification_play.xml",
       "bytes": 435,
       "sha256": "a7f7ae24486f0a7503a87e9a74d6a72b77da2c137814db84663675dfcbba17d9"
+    },
+    {
+      "path": "app/src/main/res/drawable-hdpi/ic_splash_logo.png",
+      "bytes": 17363,
+      "sha256": "7a5dcf8646fea1bff02e5a7229c2d6c6fae337bf994c1259ed8898dfad93e0c3"
+    },
+    {
+      "path": "app/src/main/res/drawable-mdpi/ic_splash_logo.png",
+      "bytes": 9558,
+      "sha256": "eec7f7953a184155fcd1b60c2d3dbfdd133a1e531f9db6119aa8d0e60c5c6835"
+    },
+    {
+      "path": "app/src/main/res/drawable-xhdpi/ic_splash_logo.png",
+      "bytes": 26544,
+      "sha256": "e63961d4a346b011b5c9c1dc63ff8ea866139aea1047d38a02104e9aaa4ccf1e"
+    },
+    {
+      "path": "app/src/main/res/drawable-xxhdpi/ic_splash_logo.png",
+      "bytes": 50360,
+      "sha256": "4fb102e3d39db703431cca1b2bcf40c0ad22b105d27d73bb621f81b582fb8cdc"
     },
     {
       "path": "app/src/main/res/font/quinque_five.ttf",
@@ -1445,11 +1444,6 @@
       "sha256": "b7853f1e460e1c26a5fcf244d6a0976ef3568038be216d2db9979af7dbea5e5f"
     },
     {
-      "path": "external/apple-usb-deps/libplist-2.8.1/test-driver",
-      "bytes": 5215,
-      "sha256": "05d9c1057354db27b965fcd154860f938186324ccd72fdb8c5767083194c8b5a"
-    },
-    {
       "path": "external/apple-usb-deps/libplist-2.8.1/test/Makefile.am",
       "bytes": 3527,
       "sha256": "8ad7b2a9b066c81792b700cd9399741f3352d3ccfd8f5193a77bcb3ffc961845"
@@ -1985,6 +1979,11 @@
       "sha256": "d8694b2128f31a40f510c55f74284cad369b59ad5c8ab2b59d34bd68f5fb026a"
     },
     {
+      "path": "external/apple-usb-deps/libplist-2.8.1/test-driver",
+      "bytes": 5215,
+      "sha256": "05d9c1057354db27b965fcd154860f938186324ccd72fdb8c5767083194c8b5a"
+    },
+    {
       "path": "external/apple-usb-deps/libplist-2.8.1/tools/Makefile.am",
       "bytes": 339,
       "sha256": "88222fdd395041981ef5f28f64675f21bc93d87d1ff2c616de8c530d4c643614"
@@ -2255,11 +2254,6 @@
       "sha256": "3d7488bebd0cfc9b5c440c55d5b44f1c6e2e3d3e19894821bae4a27f9307f1d2"
     },
     {
-      "path": "external/apple-usb-deps/libusb-1.0.30/libusb-1.0.pc.in",
-      "bytes": 312,
-      "sha256": "57d8b0cb3a642e2bbcecbc26bd555f864eb1d9390c01d0cb355d4fa5d2b2c4ab"
-    },
-    {
       "path": "external/apple-usb-deps/libusb-1.0.30/libusb/Makefile.am",
       "bytes": 2589,
       "sha256": "9fd9d63c9ecc678f3c4de2b40365ed5b79cce790184658c678335826466dad3d"
@@ -2500,6 +2494,11 @@
       "sha256": "243da8ad18f946e4ee896b296ac56834bf6b50c6211af1b62603483b60f58d50"
     },
     {
+      "path": "external/apple-usb-deps/libusb-1.0.30/libusb-1.0.pc.in",
+      "bytes": 312,
+      "sha256": "57d8b0cb3a642e2bbcecbc26bd555f864eb1d9390c01d0cb355d4fa5d2b2c4ab"
+    },
+    {
       "path": "external/apple-usb-deps/libusb-1.0.30/ltmain.sh",
       "bytes": 333053,
       "sha256": "579a1445e6a9a8b0809a44aa9f908387d4a43a2a440c9b84ea979f2b4f17816c"
@@ -2590,11 +2589,6 @@
       "sha256": "38a27c1876071ba3f14ee1828915cb7c80e4a66f339caace156e5c1f52cbb25f"
     },
     {
-      "path": "external/apple-usb-deps/libusb-1.0.30/msvc/getopt.vcxproj",
-      "bytes": 1955,
-      "sha256": "064c0f47aa91fdf287e2ad25c6f4e3412f24ce81cb9d9062bcdf6cf4228ad30c"
-    },
-    {
       "path": "external/apple-usb-deps/libusb-1.0.30/msvc/getopt/bits/getopt_core.h",
       "bytes": 3667,
       "sha256": "238ff9f16662d515d6b191662965bb27e208b04dc929d04a69399de41bcd7d45"
@@ -2638,6 +2632,11 @@
       "path": "external/apple-usb-deps/libusb-1.0.30/msvc/getopt/unistd.h",
       "bytes": 127,
       "sha256": "ee245dcff04aa7803f7103e4b80f1b6517d1d959484cb06fc71fe3dd1490a0ff"
+    },
+    {
+      "path": "external/apple-usb-deps/libusb-1.0.30/msvc/getopt.vcxproj",
+      "bytes": 1955,
+      "sha256": "064c0f47aa91fdf287e2ad25c6f4e3412f24ce81cb9d9062bcdf6cf4228ad30c"
     },
     {
       "path": "external/apple-usb-deps/libusb-1.0.30/msvc/hotplugtest.vcxproj",
@@ -20460,11 +20459,6 @@
       "sha256": "cc62f06ad24682e6fe1e726f0e4a324734250fdcf1beac3923227e70e72d291a"
     },
     {
-      "path": "gradle.properties",
-      "bytes": 1624,
-      "sha256": "7b58d918ef7d2cfa7e8fb6e24302df1ecfde6f64601a0ffaf07771fb6ec87b93"
-    },
-    {
       "path": "gradle/libs.versions.toml",
       "bytes": 926,
       "sha256": "d0e958d88f0f76855f125215da2dadea56ef36804441889b050e13e6e582b1dc"
@@ -20478,6 +20472,11 @@
       "path": "gradle/wrapper/gradle-wrapper.properties",
       "bytes": 283,
       "sha256": "862f832efd28da0a8d9f28f78169eeea5d400be36823f76d844d8d99a52253f3"
+    },
+    {
+      "path": "gradle.properties",
+      "bytes": 1624,
+      "sha256": "7b58d918ef7d2cfa7e8fb6e24302df1ecfde6f64601a0ffaf07771fb6ec87b93"
     },
     {
       "path": "gradlew",
@@ -21576,8 +21575,8 @@
     },
     {
       "path": "native/studio/sid_chip.h",
-      "bytes": 16163,
-      "sha256": "5dd01c96b18a5ddec8fe6e5d2b7d477a76b2a63382ab85457e78db52a044b36c"
+      "bytes": 16183,
+      "sha256": "b4b30ca9c55564acfa723081a5142e68bcfa0f265bb4f9ac74df4f5379f8ef77"
     },
     {
       "path": "native/studio/spectral_additive.h",
@@ -29430,16 +29429,6 @@
       "sha256": "4a034ae06bd93297d9392f74c07459d7d2307a356aaa2a61cdc41d8ab62af948"
     },
     {
-      "path": "native/vendor/mutable/braids/resources.cc",
-      "bytes": 388743,
-      "sha256": "b28a075193e7568e53621361ba95e3c9ff952b350eafe02e47dfb070b76f6b53"
-    },
-    {
-      "path": "native/vendor/mutable/braids/resources.h",
-      "bytes": 6940,
-      "sha256": "740135940b70a1d26f965c7c80e92aae03ae7f9d843dc81706284e0adef97327"
-    },
-    {
       "path": "native/vendor/mutable/braids/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -29468,6 +29457,16 @@
       "path": "native/vendor/mutable/braids/resources/waveshapers.py",
       "bytes": 2286,
       "sha256": "c201dc2039699fb4ef2f0dc259b65e4329e732b2f57c297403eb8906309d6235"
+    },
+    {
+      "path": "native/vendor/mutable/braids/resources.cc",
+      "bytes": 388743,
+      "sha256": "b28a075193e7568e53621361ba95e3c9ff952b350eafe02e47dfb070b76f6b53"
+    },
+    {
+      "path": "native/vendor/mutable/braids/resources.h",
+      "bytes": 6940,
+      "sha256": "740135940b70a1d26f965c7c80e92aae03ae7f9d843dc81706284e0adef97327"
     },
     {
       "path": "native/vendor/mutable/braids/settings.cc",
@@ -29790,16 +29789,6 @@
       "sha256": "455a66d89bd81c9fe833a173604e61a55fd9c0a96c9ceeecfb43cb68be136cce"
     },
     {
-      "path": "native/vendor/mutable/clouds/resources.cc",
-      "bytes": 213152,
-      "sha256": "167b5371080dfd1c8c493cdbb9ea8170cada7153fafea333e6d5657dd70f3568"
-    },
-    {
-      "path": "native/vendor/mutable/clouds/resources.h",
-      "bytes": 2962,
-      "sha256": "5935cca20a9e4df6cfd73b93fd40477154e761e724901fc42d4853eb0945b634"
-    },
-    {
       "path": "native/vendor/mutable/clouds/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -29818,6 +29807,16 @@
       "path": "native/vendor/mutable/clouds/resources/src_filters.py",
       "bytes": 2914,
       "sha256": "7c1ee04002d6c3a25fb578e9226981002c8c9b543f6f87c51ad88b122cd725c5"
+    },
+    {
+      "path": "native/vendor/mutable/clouds/resources.cc",
+      "bytes": 213152,
+      "sha256": "167b5371080dfd1c8c493cdbb9ea8170cada7153fafea333e6d5657dd70f3568"
+    },
+    {
+      "path": "native/vendor/mutable/clouds/resources.h",
+      "bytes": 2962,
+      "sha256": "5935cca20a9e4df6cfd73b93fd40477154e761e724901fc42d4853eb0945b634"
     },
     {
       "path": "native/vendor/mutable/clouds/settings.cc",
@@ -30110,16 +30109,6 @@
       "sha256": "b8fe4b2496cbc77e1803545f1b31d416f2190f2ad56294a5c74f7627340482c7"
     },
     {
-      "path": "native/vendor/mutable/elements/resources.cc",
-      "bytes": 1599351,
-      "sha256": "21352e0f4ad57028434194a30d337dcd8e6396d0e27492c1b28f38126b371203"
-    },
-    {
-      "path": "native/vendor/mutable/elements/resources.h",
-      "bytes": 4225,
-      "sha256": "51dd331d43320f69689bb978f6d81d877338d6db3edef33dc19afbb4c0279a45"
-    },
-    {
       "path": "native/vendor/mutable/elements/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -30143,6 +30132,16 @@
       "path": "native/vendor/mutable/elements/resources/samples.py",
       "bytes": 1712,
       "sha256": "eed1142a3f09ce78fcf0727a1667ec9439b9de3399fd149f8b769777e4e80dd8"
+    },
+    {
+      "path": "native/vendor/mutable/elements/resources.cc",
+      "bytes": 1599351,
+      "sha256": "21352e0f4ad57028434194a30d337dcd8e6396d0e27492c1b28f38126b371203"
+    },
+    {
+      "path": "native/vendor/mutable/elements/resources.h",
+      "bytes": 4225,
+      "sha256": "51dd331d43320f69689bb978f6d81d877338d6db3edef33dc19afbb4c0279a45"
     },
     {
       "path": "native/vendor/mutable/elements/test/elements_test.cc",
@@ -30855,16 +30854,6 @@
       "sha256": "0f66668cfb003585a23e08df553ef02cf2fd67fcb1a9288422e8ae1ff3fea188"
     },
     {
-      "path": "native/vendor/mutable/plaits/resources.cc",
-      "bytes": 378421,
-      "sha256": "de2b2adf661c0623a5ddf74326d7d3b88d7b3554c3aa0d710bf8ebd1c4cd18ef"
-    },
-    {
-      "path": "native/vendor/mutable/plaits/resources.h",
-      "bytes": 3656,
-      "sha256": "a7ee997d0c951e968af91625f43d0876b260cb809d22345703f2656589d95bb3"
-    },
-    {
       "path": "native/vendor/mutable/plaits/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -30978,6 +30967,16 @@
       "path": "native/vendor/mutable/plaits/resources/wavetables.py",
       "bytes": 8881,
       "sha256": "d5d226218013c6a88050206ca01d82d151183f762adfc587d2db543867ed393b"
+    },
+    {
+      "path": "native/vendor/mutable/plaits/resources.cc",
+      "bytes": 378421,
+      "sha256": "de2b2adf661c0623a5ddf74326d7d3b88d7b3554c3aa0d710bf8ebd1c4cd18ef"
+    },
+    {
+      "path": "native/vendor/mutable/plaits/resources.h",
+      "bytes": 3656,
+      "sha256": "a7ee997d0c951e968af91625f43d0876b260cb809d22345703f2656589d95bb3"
     },
     {
       "path": "native/vendor/mutable/plaits/settings.cc",
@@ -31305,16 +31304,6 @@
       "sha256": "9ac73c52e02a71fe92a2474a18a5cbedc68101adaa8867eed5f4bfce34fe8849"
     },
     {
-      "path": "native/vendor/mutable/rings/resources.cc",
-      "bytes": 113303,
-      "sha256": "e9fd699ee57a596c7ee28db6207d76ec1389030e956b5ec0b214068e4820eb2d"
-    },
-    {
-      "path": "native/vendor/mutable/rings/resources.h",
-      "bytes": 2224,
-      "sha256": "0bd2344f4acc9aa3e8f82ab6d20c1d54a1030d673c8ef04f5b1fa6884a249a7e"
-    },
-    {
       "path": "native/vendor/mutable/rings/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -31328,6 +31317,16 @@
       "path": "native/vendor/mutable/rings/resources/resources.py",
       "bytes": 3235,
       "sha256": "5f107de7cc3b776c8acb0d6b51f3b3c6a50bd0debea0fa67e2d9e6558807ba49"
+    },
+    {
+      "path": "native/vendor/mutable/rings/resources.cc",
+      "bytes": 113303,
+      "sha256": "e9fd699ee57a596c7ee28db6207d76ec1389030e956b5ec0b214068e4820eb2d"
+    },
+    {
+      "path": "native/vendor/mutable/rings/resources.h",
+      "bytes": 2224,
+      "sha256": "0bd2344f4acc9aa3e8f82ab6d20c1d54a1030d673c8ef04f5b1fa6884a249a7e"
     },
     {
       "path": "native/vendor/mutable/rings/rings.cc",
@@ -36255,16 +36254,6 @@
       "sha256": "f616fef583e2e5c7e1e4907a43c100c22c6b86f32b54bd6fe8af72c0b1d0a105"
     },
     {
-      "path": "native/vendor/mutable/warps/resources.cc",
-      "bytes": 248009,
-      "sha256": "21ff2afc5121061899e5ad895b66130113b0cb289d52f9782b0332523375d18d"
-    },
-    {
-      "path": "native/vendor/mutable/warps/resources.h",
-      "bytes": 4727,
-      "sha256": "03aa073162f185036ae898b778229e48aba15bd17f5930a74026f2ec6abecbb7"
-    },
-    {
       "path": "native/vendor/mutable/warps/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -36293,6 +36282,16 @@
       "path": "native/vendor/mutable/warps/resources/waveforms.py",
       "bytes": 2414,
       "sha256": "b7196c6f9814b918fe0d2d42e8bc9bb1c8cd1889bac1b39cdd3facad497c58ad"
+    },
+    {
+      "path": "native/vendor/mutable/warps/resources.cc",
+      "bytes": 248009,
+      "sha256": "21ff2afc5121061899e5ad895b66130113b0cb289d52f9782b0332523375d18d"
+    },
+    {
+      "path": "native/vendor/mutable/warps/resources.h",
+      "bytes": 4727,
+      "sha256": "03aa073162f185036ae898b778229e48aba15bd17f5930a74026f2ec6abecbb7"
     },
     {
       "path": "native/vendor/mutable/warps/settings.cc",
@@ -41308,6 +41307,18 @@
       "path": "vendor/newpipe-extractor/timeago-parser/src/main/java/org/schabi/newpipe/extractor/timeago/patterns/zu.java",
       "bytes": 1034,
       "sha256": "7f6bc2018576d9db8ef9c357c442e407346ac71d0320c00e6feb38e20355fa01"
+    }
+  ],
+  "released_source_manifest_sha256": "865506aa516dd89a12ada7c317f3d1a36e116d01e75f93da2739f2794be8ac45",
+  "release_source_export_commit": "affd28d34a1bac40ffaee27ce60a985dab31eb34",
+  "post_release_changes": [
+    {
+      "path": "native/studio/sid_chip.h",
+      "change": "Explicit iterator header required by standalone GCC 15 builds; no DSP operations changed"
+    },
+    {
+      "path": "fastlane/metadata/android/en-US/changelogs/101004.txt",
+      "change": "Match the published APK version code and inventory filename"
     }
   ]
 }

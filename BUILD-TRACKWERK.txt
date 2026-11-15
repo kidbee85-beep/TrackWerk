@@ -33,3 +33,10 @@ Linux handheld profiles
 Update packages retain the established launcher and user-data directories. Follow START-HERE.
 Do not overwrite a music card with a full system image to update an application.
 All third-party notices remain in source/LICENSE, source/CREDITS.md and source/docs/licenses/.
+
+Post-release portability fix
+The current main branch explicitly includes <iterator> in the SID header for GCC 15 standalone
+checks. This adds the required standard-library declaration and changes no DSP operations.
+The v1.1.0 tag and distributed binaries remain the verified release bytes. When building the
+release Source ZIP with GCC 15, apply release-tools/patches/TrackWerk-1.1.0-gcc15-header.patch.
+Current main also names the Android store changelog for the shipped versionCode 101004.

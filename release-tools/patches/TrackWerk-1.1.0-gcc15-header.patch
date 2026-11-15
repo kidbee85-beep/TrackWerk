@@ -1,0 +1,12 @@
+diff --git a/native/studio/sid_chip.h b/native/studio/sid_chip.h
+index 6fb469a..3498b6c 100644
+--- a/native/studio/sid_chip.h
++++ b/native/studio/sid_chip.h
+@@ -22,6 +22,7 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <cstdint>
++#include <iterator>
+ 
+ namespace studio {
+ 
