@@ -2,7 +2,7 @@
 
 **Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch the walkthrough](https://kidbee85-beep.github.io/TrackWerk/#film) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch on YouTube](https://youtu.be/RA0bE7sNRhA) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
 ![TrackWerk 1.1 / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
 
@@ -38,3 +38,12 @@ Networking, MIDI and external audio inputs depend on the platform and hardware. 
 TrackWerk is a GPL-3.0-or-later fork of [PocketTracker by conanizer and contributors](https://github.com/conanizer/pockettracker). The upstream tracker, sample engine and button workflow are its foundation. See [BUILD-TRACKWERK.txt](BUILD-TRACKWERK.txt), [source](source/) and the [credits](https://kidbee85-beep.github.io/TrackWerk/credits.html). The release provides complete corresponding application source, licences and the exact Miyoo SDL source archive.
 
 Selected DSP work uses open Mutable Instruments code by Emilie Gillet and contributors, alongside the other components listed in source/CREDITS.md and source/docs/licenses. Interface captures are genuine native renders; the film's navigation is scripted and device frames are illustrations. Soundtrack production credits identify the recordings and sample libraries used.
+
+## More music tools by Kid Bunka
+
+- [Mutable Dreams](https://kidbee85-beep.github.io/mutable-dreams/) — generative instruments and a Web Studio for the M-VAVE FM-1.
+- [Performance Garden](https://github.com/kidbee85-beep/mutable-dreams-performance-garden) — the Mutable Dreams instrument for VIBE FM.
+- [bazillOS](https://kidbee85-beep.github.io/bazillOS/) — independent firmware for the Polyend Tracker Mini.
+- [Cut-A-Dor](https://github.com/kidbee85-beep/cut-a-dor-release) — rhythm firmware and a browser beat dojo for the FM-1.
+
+[Optional donations](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF) support firmware updates, new firmware and synthesizer software.
