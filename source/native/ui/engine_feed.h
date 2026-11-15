@@ -23,6 +23,7 @@ public:
         poll_soundfont_presets(host, state);
         poll_soundfont_reload(host, state, now_ms);
         poll_peaks(engine, state, now_ms);
+        poll_perform(engine, state, now_ms);
         poll_eq_spectrum(host, state, now_ms);
         poll_sample_editor(host, state);
         poll_sample_ram(engine, state);
@@ -106,7 +107,9 @@ private:
         state.waveform = waveform_;
 
         const VisualizerType vt = state.theme.visualizerType;
-        const bool octa     = (vt == VisualizerType::OCTA || vt == VisualizerType::OCTA_FULL);
+        // COPPER reads each track's signal as OCTA does.
+        const bool octa     = (vt == VisualizerType::OCTA || vt == VisualizerType::OCTA_FULL ||
+                               vt == VisualizerType::COPPER || state.showActive);
         const bool spectrum = (vt == VisualizerType::SPECTRUM || vt == VisualizerType::SPECTRUM_PEAKS);
 
         // Ask only for what the mode draws: the engine fills these only while they are read.
@@ -152,6 +155,23 @@ private:
                 break;
             }
         }
+    }
+
+    // PERFORM's CPU figures and filter, four times a second while it is on screen. The dropout count
+    // starts from the moment PERFORM is opened.
+    void poll_perform(AudioEngine& engine, AppState& state, long long now_ms) {
+        auto& p = state.perform;
+        if (state.currentScreen != ScreenType::PERFORM) { p.lateAtOpen = -1; return; }
+        if (p.lateAtOpen >= 0 && now_ms - p.polledMs < 250) return;
+        p.polledMs = now_ms;
+        const auto timing = engine.getBlockTiming();
+        const auto lanes = engine.getLaneLoads();
+        for (int i = 0; i < AudioEngine::kLoadLanes && i < 10; ++i) p.laneLoad[i] = lanes.load[i];
+        p.meanLoad = timing.meanLoad;
+        p.worstLoad = timing.worstLoad;
+        p.lateBlocks = timing.lateBlocks;
+        if (p.lateAtOpen < 0) p.lateAtOpen = timing.lateBlocks;
+        p.filter = engine.performFilterValue();
     }
 
     // The MIXER's meters, only on MIXER (the read takes a mutex the audio callback takes).

@@ -32,6 +32,13 @@ auto push_studio_synth_params(Engine& engine,const Instrument& ins,int)
 template <typename Engine>
 void push_studio_synth_params(Engine&,const Instrument&,long) {}
 template <typename Engine>
+auto push_studio_fm_voice(Engine& engine,const Instrument& ins,int)
+    -> decltype(engine.setStudioFmVoice(ins.sampleId,nullptr),void()) {
+    engine.setStudioFmVoice(ins.sampleId,ins.fmVoice?ins.fmVoice->data():nullptr);
+}
+template <typename Engine>
+void push_studio_fm_voice(Engine&,const Instrument&,long) {}
+template <typename Engine>
 auto push_studio_voice_defaults(Engine& engine,const Instrument& ins,int)
     -> decltype(engine.setStudioVoiceDefaults(ins.sampleId,ins.volume,ins.pan,ins.detune),void()) {
     engine.setStudioVoiceDefaults(ins.sampleId,ins.volume,ins.pan,ins.detune);
@@ -62,6 +69,7 @@ void push_instrument_params(Engine& engine, const Instrument& ins, const Routing
     push_instrument_playback_params(engine, ins);
     push_instrument_mod_eq_sends(engine, ins, tempo, sampleRate);
     push_studio_synth_params(engine,ins,0);
+    push_studio_fm_voice(engine,ins,0);
     push_studio_voice_defaults(engine,ins,0);
     push_sample_granular(engine,ins,routing,0);
     // The SF ADSR override — a live key is scheduled with no push, so the engine's copy must be current.
@@ -349,8 +357,11 @@ MediaLoadResult load_project_media(Engine& engine, Project& project, const Media
             }
             if (pt::load_cancelled()) break;
         } else if (ins.sampleFilePath.has_value()) {
+            // The resolution counts "<path>.ptbak" as the file being there (media_present), so it
+            // stops where the file belongs; an original left only in that backup then goes back.
             const std::string path = resolve_media_path(*ins.sampleFilePath, roots);
             const auto span = slice();
+            recover_interrupted_save(path);
             const int fileRate = load_sample_file(engine, ins.id, path);
             loadedSoFar++;
             if (fileRate > 0) {
@@ -585,6 +596,7 @@ bool load_instrument_sample(Engine* engine, Project& project, int id, const std:
     // instrument, otherwise preview + load temporarily holds two complete PCM copies.
     // The target's existing PCM/path remain intact if the new decode is refused.
     clear_preview_slots(*engine);
+    recover_interrupted_save(path);   // an original left only at "<path>.ptbak" goes back first
     const int fileRate = load_sample_file(*engine, id, path);
     if (fileRate <= 0) return false;
 

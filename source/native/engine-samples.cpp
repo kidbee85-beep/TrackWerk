@@ -4,7 +4,9 @@
 #include "vendor/tsf/tsf.h"    // tsf_get_fontsamplecount, for the memory count
 #include "audio-decoders.h"
 #include "common/byte_source.h"       // pt_fopen
-#include "common/platform_memory.h"   // load_budget_bytes
+#include "common/platform_memory.h"
+#include <memory>
+#include <new>   // load_budget_bytes
 #include "common/load_progress.h"     // load_tick / load_cancelled
 #include "common/sample_formats.h"    // sample_decoder_for
 #include <cstdio>
@@ -29,13 +31,11 @@ bool AudioEngine::loadSample(int id, const float* data, int length) {
     std::lock_guard<std::mutex> lock(sampleEditMutex);
 
     // Undo would restore the previous file's audio onto this one.
-    delete[] sampleBackups[id];        sampleBackups[id] = nullptr;
-    delete[] sampleBackupsRight[id];   sampleBackupsRight[id] = nullptr;
-    sampleBackupLengths[id] = 0;
+    freeSampleUndo(id);   // every part of the backup, its RATE basis too
     // A float buffer carries no depth; a loader that knows sets it afterwards.
     setSampleSourceFormat(id, 16, false);
 
-    setSampleBuffers(id, newL, nullptr, length);   // voices on the old one end at the next mix
+    setSampleBuffers(id, newL, nullptr, length, SAMPLE_RATE);   // voices on the old one end at the next mix
 
     LOGD("Sample %d: %d frames (mono)", id, length);
     return true;
@@ -80,7 +80,10 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     if (code >= 0) {
         const float placeholder[64] = {};
         if (!loadSample(id, placeholder, 64)) return 0;
-        setStudioSynthParams(id,studio::default_synth_params());
+        // Row (model + parameters) first, then the slot flag: see setLiveStudioSynth.
+        auto& row = studioSynthParams.edit(id);
+        row = StudioSynthRow{studio::default_synth_params(), code, sampleGen[id].load()};   // after loadSample's touchSample
+        studioSynthParams.publish(id);
         studioCodes[id].store(code, std::memory_order_release);
         return SAMPLE_RATE;
     }
@@ -175,28 +178,30 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
         }
     }
 
-    float* newL = new (std::nothrow) float[totalFrames];
-    float* newR = (channels == 2) ? new (std::nothrow) float[totalFrames] : nullptr;
-    if (!newL || (channels == 2 && !newR)) {
-        delete[] newL;
-        delete[] newR;
+    // Owned until the slot takes them: every early return below frees them (and closes the file).
+    std::unique_ptr<float[]> ownL(new (std::nothrow) float[totalFrames]);
+    std::unique_ptr<float[]> ownR((channels == 2) ? new (std::nothrow) float[totalFrames] : nullptr);
+    // Whole-frame blocks, so no sample splits across a read.
+    const int BLOCK_FRAMES = 16384;
+    std::unique_ptr<uint8_t[]> ownBlk(new (std::nothrow) uint8_t[(size_t)BLOCK_FRAMES * bytesPerFrame]);
+    if (!ownL || (channels == 2 && !ownR) || !ownBlk) {
         fclose(f);
+        lastLoadFailure_ = LoadFailure::OUT_OF_MEMORY;
         LOGE("loadSampleFromWavFile: OOM allocating %d frames", totalFrames);
         return 0;
     }
-
-    // Whole-frame blocks, so no sample splits across a read.
-    const int BLOCK_FRAMES = 16384;
-    std::vector<uint8_t> blk((size_t)BLOCK_FRAMES * bytesPerFrame);
+    float* const newL = ownL.get();
+    float* const newR = ownR.get();
+    uint8_t* const blkData = ownBlk.get();
     int  frameIdx  = 0;
     bool cancelled = false;
     while (frameIdx < totalFrames) {
         int want = totalFrames - frameIdx;
         if (want > BLOCK_FRAMES) want = BLOCK_FRAMES;
-        size_t got = fread(blk.data(), 1, (size_t)want * bytesPerFrame, f);
+        size_t got = fread(blkData, 1, (size_t)want * bytesPerFrame, f);
         int framesGot = (int)(got / (size_t)bytesPerFrame);
         for (int i = 0; i < framesGot; i++) {
-            const uint8_t* p = blk.data() + (size_t)i * bytesPerFrame;
+            const uint8_t* p = blkData + (size_t)i * bytesPerFrame;
             newL[frameIdx + i] = decodeWavSample(p, audioFormat, bitsPerSample);
             if (channels == 2)
                 newR[frameIdx + i] = decodeWavSample(p + bytesPerSample, audioFormat, bitsPerSample);
@@ -208,9 +213,7 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     fclose(f);
 
     // On a cancel the slot keeps its sample; the fresh buffers are still ours alone.
-    if (cancelled) {
-        delete[] newL;
-        delete[] newR;
+    if (cancelled) {   // the owners free both buffers
         lastLoadFailure_ = LoadFailure::CANCELLED;
         LOGD("loadSampleFromWavFile: cancelled at %d/%d frames: %s", frameIdx, totalFrames, path);
         return 0;
@@ -225,11 +228,9 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     // As loadSample; every stale per-slot buffer (undo, rate cache) goes.
     {
         std::lock_guard<std::mutex> lock(sampleEditMutex);
-        delete[] sampleBackups[id];        sampleBackups[id] = nullptr;
-        delete[] sampleBackupsRight[id];   sampleBackupsRight[id] = nullptr;
-        sampleBackupLengths[id] = 0;
+        freeSampleUndo(id);   // every part of the backup, its RATE basis too
         setSampleSourceFormat(id, bitsPerSample, isFloat);
-        setSampleBuffers(id, newL, newR, totalFrames);
+        setSampleBuffers(id, ownL.release(), ownR.release(), totalFrames, sampleRate);
     }
 
     lastLoadFailure_ = LoadFailure::NONE;
@@ -316,11 +317,9 @@ int AudioEngine::loadSampleFromCompressed(int id, const char* path) {
     pcm.release(newL, newR);
     {
         std::lock_guard<std::mutex> lock(sampleEditMutex);
-        delete[] sampleBackups[id];        sampleBackups[id] = nullptr;
-        delete[] sampleBackupsRight[id];   sampleBackupsRight[id] = nullptr;
-        sampleBackupLengths[id] = 0;
+        freeSampleUndo(id);   // every part of the backup, its RATE basis too
         setSampleSourceFormat(id, bits, false);
-        setSampleBuffers(id, newL, newR, frames);
+        setSampleBuffers(id, newL, newR, frames, sr);
     }
 
     lastLoadFailure_ = LoadFailure::NONE;
@@ -350,9 +349,19 @@ int64_t AudioEngine::audio_memory_bytes() const {
         total += pcm(level.activeLeft.get(), level.activeRight.get(), level.activeCount, 4);
         total += pcm(originalSamples[id], originalSamplesRight[id], originalSampleLengths[id], 2);
         total += pcm(originalSamplesF[id], originalSamplesRightF[id], originalSampleLengths[id], 4);
+        const auto& held = heldBackup[id];   // a replaced backup, held until its edit is settled
+        total += pcm(held.left, held.right, held.length, 4);
+        total += pcm(held.basis.left16.get(), held.basis.right16.get(), held.basis.length, 2);
+        total += pcm(held.basis.leftF.get(), held.basis.rightF.get(), held.basis.length, 4);
+        total += pcm(held.levelUndo.sourceLeft.get(), held.levelUndo.sourceRight.get(), held.levelUndo.sourceCount, 4);
+        total += pcm(held.levelUndo.activeLeft.get(), held.levelUndo.activeRight.get(), held.levelUndo.activeCount, 4);
+        const auto& basis = sampleBackupBasis[id];   // the RATE original kept with an Undo backup
+        total += pcm(basis.left16.get(), basis.right16.get(), basis.length, 2);
+        total += pcm(basis.leftF.get(), basis.rightF.get(), basis.length, 4);
     }
     total += pcm(fxPreviewBackup, fxPreviewBackupRight, fxPreviewBackupLen,    4);
     total += pcm(sampleClipboard, sampleClipboardRight, sampleClipboardLength, 4);
+    total += pcm(stagedClipLeft.get(), stagedClipRight.get(), stagedClipLength, 4);
 
     // tsf holds 16-bit samples; counted once per loaded font, not per instrument.
     for (int slot = 0; slot < MAX_SOUNDFONTS; ++slot) {
@@ -367,10 +376,8 @@ void AudioEngine::clearSample(int id) {
     std::lock_guard<std::mutex> lock(sampleEditMutex);
     // Every per-slot buffer, so nothing lingers once the slot is repurposed.
     setSampleBuffers(id, nullptr, nullptr, 0);
-    delete[] sampleBackups[id];        sampleBackups[id] = nullptr;
-    delete[] sampleBackupsRight[id];   sampleBackupsRight[id] = nullptr;
+    freeSampleUndo(id);   // every part of the backup, its RATE basis too
     setSampleSourceFormat(id, 16, false);
-    sampleBackupLengths[id]  = 0;
     LOGD("Sample %d cleared from memory", id);
 }
 
@@ -385,8 +392,28 @@ void AudioEngine::clearAllSamples() {
 
     for (int i = 0; i < 256; i++) {
         setSampleBuffers(i, nullptr, nullptr, 0);   // voices end at the next mix
+        freeSampleUndo(i);   // a backup would restore the old project's audio into the new one
         setSampleSourceFormat(i, 16, false);
     }
     resetStudioState();
     LOGD("All samples cleared");
+}
+
+// The slot made the one channel a mono save wrote (`mode` as SOURCE: 0 LEFT, 1 RIGHT, 3 MONO), in
+// place, without allocating — for when the reload of that file cannot be had.
+bool AudioEngine::collapseToChannel(int id, int mode) {
+    if (id < 0 || id >= 256 || !samples[id]) return false;
+    std::lock_guard<std::mutex> lock(sampleEditMutex);
+    if (!samplesRight[id]) return true;
+    float* const left = samples[id];
+    float* const right = samplesRight[id];
+    const int len = sampleLengths[id];
+    if (mode == 3) for (int i = 0; i < len; ++i) left[i] = (left[i] + right[i]) * 0.5f;
+    // setSampleBuffers frees what the slot holds: hand it only what goes.
+    float* const keep = mode == 1 ? right : left;
+    float* const drop = mode == 1 ? left : right;
+    samples[id] = drop;
+    samplesRight[id] = nullptr;
+    setSampleBuffers(id, keep, nullptr, len);
+    return true;
 }

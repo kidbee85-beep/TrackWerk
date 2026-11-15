@@ -17,6 +17,8 @@ inline constexpr int DRUMLAB_LANES = 8;
 inline constexpr int DRUMLAB_MAX_STEPS = 64;
 inline constexpr int DRUMLAB_ROWS = 20;
 inline constexpr int DRUMLAB_EUCLIDEAN = 8;
+// A Grids-style map: X/Y blend between rhythm nodes, a fill density per lane, Chaos (drumlab_map.h).
+inline constexpr int DRUMLAB_MAP = 9;
 inline constexpr int DRUMLAB_STEP_HISTORY = 32;
 
 struct DrumLabStep {
@@ -33,6 +35,7 @@ struct DrumLabLane {
     int period = 16;
     int hits = 4;
     int rotation = 0;
+    int mapDensity = 50;        // Map style: this lane's fill, 0..100 %
 };
 
 struct DrumLabStepEdit {
@@ -45,10 +48,11 @@ struct DrumLabState {
     int genre = 0, activeLanes = 8, steps = 32;
     int density = 65, variation = 35, swing = 18, humanize = 12, fill = 35;
     uint32_t seed = 1;
-    std::array<DrumLabLane, DRUMLAB_LANES> lanes = {{{0,false,16,4,0}, {1,false,8,2,4},
-                                                    {2,false,8,5,0}, {3,false,12,3,1},
-                                                    {4,false,7,2,2}, {5,false,11,3,1},
-                                                    {6,false,16,1,14}, {7,false,16,1,0}}};
+    std::array<DrumLabLane, DRUMLAB_LANES> lanes = {{{0,false,16,4,0,60}, {1,false,8,2,4,55},
+                                                    {2,false,8,5,0,65}, {3,false,12,3,1,45},
+                                                    {4,false,7,2,2,45}, {5,false,11,3,1,40},
+                                                    {6,false,16,1,14,30}, {7,false,16,1,0,25}}};
+    int mapX = 50, mapY = 50, chaos = 15;   // Map style, 0..100 %
     std::array<std::array<DrumLabStep, DRUMLAB_MAX_STEPS>, DRUMLAB_LANES> grid{};
     bool generated = false, dirty = true, confirmApply = false, showHelp = false, aUsed = false;
     int generatedSteps = 0, gridPage = 0;

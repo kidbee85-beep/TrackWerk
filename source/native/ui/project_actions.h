@@ -19,6 +19,8 @@ struct ActionResult {
 };
 
 // `<dir>/<name>_0001.wav`, counting up until free.
+// "<dir>/<name>_NNNN.wav" for the first number taken neither by a WAV nor by its .ptbak; empty when
+// all 9 999 are taken.
 std::string unique_render_path(FileSystem& fs, const std::string& dir, const std::string& safeName);
 
 // Writes `<Projects>/<name>.ptp` and marks the document clean.

@@ -19,12 +19,13 @@ SoundfontVoice sfVoices[SF_VOICE_COUNT];
 AudioEngine::AudioEngine() {
     for (int i = 0; i < 256; i++) {
         studioCodes[i].store(-1);
-        studioSynthParams.edit(i)=studio::default_synth_params();
+        studioSynthParams.edit(i)=StudioSynthRow{studio::default_synth_params(),kStudioParamsAnyCode,0};
         studioSynthParams.publish(i);
         samples[i] = nullptr;
         samplesRight[i] = nullptr;
         sampleLengths[i] = 0;
         sampleGen[i] = 0;
+        sampleFileRate[i] = SAMPLE_RATE;
         sampleBitDepth[i] = 16;
     }
     resetTic00Cursors();
@@ -65,6 +66,7 @@ AudioEngine::~AudioEngine() {
         if (samplesRight[i])         delete[] samplesRight[i];
         if (sampleBackups[i])        delete[] sampleBackups[i];
         if (sampleBackupsRight[i])   delete[] sampleBackupsRight[i];
+        freeHeldBackup(i);
         freeRateCache(i);
     }
     delete[] sampleClipboard;
@@ -300,17 +302,58 @@ void AudioEngine::syncInstrumentData() {
     eqPresetHex.sync();
 }
 
+// The voice's model and its parameters travel together in one StudioSynthRow, published as one
+// seqlock record and taken by the callback in syncInstrumentData. A callback that has not yet taken
+// a new row keeps playing the previous model with the previous parameters; it can never combine a
+// new code with an old row (CSAW → MORPH starting on default parameters). `studioCodes` still says
+// whether the slot is a synth at all, and gives control-thread readers the current code.
 bool AudioEngine::setLiveStudioCode(int id,int code) {
     if(id<0||id>=256||!studio::valid_code(code))return false;
-    int previous=studioCodes[id].load(std::memory_order_acquire);
-    while(previous>=0)if(studioCodes[id].compare_exchange_weak(previous,code,std::memory_order_release,std::memory_order_acquire))return true;
-    return false;
+    return setLiveStudioSynth(id,code,studioSynthParams.staged(id).params);
 }
 void AudioEngine::setStudioSynthParams(int id,const studio::SynthParams& params) {
     if(id<0||id>=256)return;
-    auto& staged=studioSynthParams.edit(id);
-    for(int i=0;i<studio::kSynthParams;++i)staged[i]=std::clamp(params[i],-1,255);
+    auto& staged=studioSynthParams.edit(id);   // keeps its code: these parameters join that model
+    for(int i=0;i<studio::kSynthParams;++i)staged.params[i]=std::clamp(params[i],-1,255);
     studioSynthParams.publish(id);
+}
+bool AudioEngine::setLiveStudioSynth(int id,int code,const studio::SynthParams& params) {
+    if(id<0||id>=256||!studio::valid_code(code))return false;
+    int previous=studioCodes[id].load(std::memory_order_acquire);
+    if(previous<0)return false;   // not a synth slot (any more)
+    auto& staged=studioSynthParams.edit(id);
+    for(int i=0;i<studio::kSynthParams;++i)staged.params[i]=std::clamp(params[i],-1,255);
+    staged.code=code;
+    staged.gen=sampleGen[id].load(std::memory_order_acquire);
+    studioSynthParams.publish(id);
+    while(previous>=0)if(studioCodes[id].compare_exchange_weak(previous,code,std::memory_order_release,std::memory_order_acquire))return true;
+    return false;   // the slot stopped being a synth meanwhile; the row is ignored while studioCodes < 0
+}
+int AudioEngine::liveStudioCode(int id) const {
+    const int slot=studioCodes[id].load(std::memory_order_acquire);
+    if(slot<0)return -1;
+    const auto& row=studioSynthParams[id];
+    // A row for an earlier source of this slot, or none yet: the slot's own code (see the header).
+    if(row.code==kStudioParamsAnyCode||row.gen!=sampleGen[id].load(std::memory_order_acquire))return slot;
+    return row.code;
+}
+// Built before main, not on first use: a function-local static would take a guard on the audio thread.
+static const studio::SynthParams kFactoryStudioParams=studio::default_synth_params();
+const studio::SynthParams& AudioEngine::liveStudioParams(int id) const {
+    const auto& row=studioSynthParams[id];
+    return row.code!=kStudioParamsAnyCode&&row.gen!=sampleGen[id].load(std::memory_order_acquire)?kFactoryStudioParams:row.params;
+}
+void AudioEngine::setStudioFmVoice(int id,const uint8_t* packed) {
+    if(id<0||id>=256)return;
+    auto& staged=studioSynthParams.edit(id);   // keeps code and parameters
+    if(packed)std::memcpy(staged.fmVoice.data(),packed,staged.fmVoice.size());
+    staged.fmVoiceSet=packed!=nullptr;
+    studioSynthParams.publish(id);
+}
+const uint8_t* AudioEngine::liveStudioFmVoice(int id) const {
+    const auto& row=studioSynthParams[id];
+    if(!row.fmVoiceSet)return nullptr;
+    return row.code!=kStudioParamsAnyCode&&row.gen!=sampleGen[id].load(std::memory_order_acquire)?nullptr:row.fmVoice.data();
 }
 void AudioEngine::setStudioVoiceDefaults(int id,int volume,int pan,int detune){
     if(id<0||id>=256)return;

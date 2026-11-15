@@ -32,7 +32,7 @@ struct StudioSynthModelGroup {
 
 // Sample Granular is a UI choice outside the stable oscillator ID range.
 inline constexpr int kSampleGranularModel = -1;
-const std::array<StudioSynthModelGroup, 8>& studio_synth_model_groups();
+const std::array<StudioSynthModelGroup, 11>& studio_synth_model_groups();
 int studio_synth_model_group_count();
 int studio_synth_model_group(int model);
 std::string studio_synth_preset_label(int model, int variation);

@@ -61,6 +61,8 @@ void TableModule::draw(Canvas& c, int x, int y, const TableState& s) const {
         draw_row(c, x, y, i, s.table.rows[static_cast<size_t>(i)], s, rampCells, stepX, transposeX,
                  volX, fx1NameX, fx1ValueX, fx2NameX, fx2ValueX, fx3NameX, fx3ValueX);
     }
+    // The table's playback row glides like PHRASE's (draw_playhead_glide).
+    draw_playhead_glide(c, 0x7000002u, x, y + ROW_HEIGHT + 14 + ROW_HEIGHT, WIDTH, ROW_HEIGHT, s.playbackRows[0], s.theme);
 }
 
 void TableModule::draw_row(Canvas& c, int x, int y, int index, const TableRow& row,
@@ -73,6 +75,7 @@ void TableModule::draw_row(Canvas& c, int x, int y, int index, const TableRow& r
     const int dataRowY = y + ROW_HEIGHT + 14 + ROW_HEIGHT + (index * ROW_HEIGHT);
 
     c.fill_rect(x, dataRowY, WIDTH, ROW_HEIGHT, row_bg_color(index, t));
+    if (s.playbackRows[0] == index) draw_playback_row(c, x, dataRowY, WIDTH, ROW_HEIGHT, t);
 
     const int textY = dataRowY + TEXT_PADDING;
 

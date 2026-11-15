@@ -1,6 +1,7 @@
 // TrackWerk's deterministic, silent demoscene introduction.
 // Draw-only: timing, skip input and startup ownership remain with the shell.
 #pragma once
+#include "ui/demo_fx.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -138,11 +139,21 @@ inline void draw_extreme_splash(Canvas& c, const Theme& theme, float progress) {
     static const std::string identity = "SYNTHESIS  /  SAMPLES  /  SEQUENCES";
     static const std::string skip = "PRESS ANY KEY TO SKIP";
     c.draw_label(header, (DESIGN_W - Canvas::label_width(header, 12)) / 2, 31, alpha(violet, .78f), 12);
-    c.draw_label(title, (DESIGN_W - Canvas::label_width(title, 18)) / 2, 233, white, 18);
+    c.draw_label(title, (DESIGN_W - Canvas::label_width(title, 28)) / 2, 228, white, 28);   // the title size
     // Keep the main mark clean against the floor while allowing the grid to show through its gaps.
     c.fill_rect(94, 260, 452, 83, alpha(ground, .53f));
     logo(c, 94, 267, mint, violet, p);
     c.draw_label(identity, (DESIGN_W - Canvas::label_width(identity, 12)) / 2, 355, alpha(white, .66f), 12);
+
+    // Copper bars behind the ribbon, in the splash's own colours: the cracktro's raster band.
+    {
+        Theme copperTheme = theme;
+        copperTheme.background = ground; copperTheme.rowEvery4th = mix(ground, violet, .45f);
+        copperTheme.rowCursor = mint; copperTheme.textValue = white;
+        Canvas::ClipScope band(c, 20, 372, 600, 44);
+        demo_fx::copper(c, 20, 372, 600, 44, copperTheme, uint64_t(p * 5200.f));
+        c.fill_rect(20, 372, 600, 44, alpha(ground, .45f));
+    }
 
     // A compact animated ribbon closes the artwork. Its waveform is explicitly decorative.
     int previousX = 160, previousY = 394;
@@ -157,5 +168,19 @@ inline void draw_extreme_splash(Canvas& c, const Theme& theme, float progress) {
     c.fill_rect(240, 418, 160, 1, alpha(violet, .18f));
     c.fill_rect(240, 418, std::max(1, int(160.f * p)), 1, alpha(mint, .72f));
     c.draw_label(skip, (DESIGN_W - Canvas::label_width(skip, 12)) / 2, 434, alpha(violet, .58f), 12);
+
+    // Scanlines over everything, and at the very end a tube switching over: the picture folds to a
+    // bright line in the middle, and the tracker appears behind it.
+    for (int py = 1; py < DESIGN_H; py += 2) c.fill_rect(0, py, DESIGN_W, 1, 0x1c000000u);
+    if (p > .9f) {
+        const float fold = (p - .9f) / .1f;                       // 0 … 1
+        const int open = int((1.f - fold * fold) * DESIGN_H / 2);  // half height still visible
+        c.fill_rect(0, 0, DESIGN_W, DESIGN_H / 2 - open, 0xff000000u);
+        c.fill_rect(0, DESIGN_H / 2 + open, DESIGN_W, DESIGN_H / 2 - open, 0xff000000u);
+        // A thin bright line with a soft halo, brighter as it closes.
+        c.fill_rect(0, DESIGN_H / 2 - 6, DESIGN_W, 12, alpha(mint, .10f + .15f * fold));
+        c.fill_rect(0, DESIGN_H / 2 - 2, DESIGN_W, 4, alpha(white, .30f + .40f * fold));
+        c.fill_rect(0, DESIGN_H / 2 - 1, DESIGN_W, 2, alpha(white, .70f + .30f * fold));
+    }
 }
 }

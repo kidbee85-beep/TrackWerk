@@ -256,7 +256,7 @@ void AudioEngine::triggerSamplerNote(const ScheduledNote& note, int frame, int64
                               note.volume, note.phraseVolume, note.pan, instrumentParams[note.sampleId],
                               sampleRate, note.startPointOverride, note.endPointOverride,
                               note.tableId, effectiveTicRates, note.noteOctave, note.notePitch, startRows);
-            studioVoices[v].start(studioCodes[note.sampleId].load(std::memory_order_acquire));
+            studioVoices[v].start(liveStudioCode(note.sampleId));
             if(studioVoices[v].active())voices[v].studioTuneRatio=songcore::detune_multiplier(instrumentParams[note.sampleId].studioDetune);
             voices[v].setChord(chordSemis, studioVoices[v].active() ? 0 : chordCount, strumWait);
             voices[v].instrId = note.sampleId;
@@ -409,8 +409,13 @@ void AudioEngine::processAudioBlock(float* output, int numFrames, int channelCou
     mixSoundfontVoices(b);
     carryFadesToNextBlock();
     captureTrackScopes(b);
-    mixBuses(b);
-    mixMaster(b);
+    {
+        const auto busStart = b.offlineRender ? std::chrono::steady_clock::time_point{} : std::chrono::steady_clock::now();
+        mixBuses(b);
+        mixMaster(b);
+        if (!b.offlineRender)
+            laneBusyNs[9] += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - busStart).count();
+    }
 
     globalFrameCounter.store(b.startFrame + numFrames, std::memory_order_relaxed);
 }
@@ -815,6 +820,10 @@ void AudioEngine::mixSamplerVoices(BlockMix& b) {
     std::unique_lock<std::mutex> editLock(sampleEditMutex, std::try_to_lock);
     for (int v = 0; v < MAX_VOICES; v++) {
         Voice& voice = voices[v];
+        if (!voice.isActive) continue;
+        // Per-lane cost (getLaneLoads): two clock reads per sounding voice and block.
+        const auto voiceStart = b.offlineRender ? std::chrono::steady_clock::time_point{} : std::chrono::steady_clock::now();
+        const int lane = std::clamp(voice.trackId, 0, 8);
         for (int from = 0; from < numFrames && voice.isActive; ) {
             int to = numFrames;
             if (voice.tableId >= 0) {
@@ -825,6 +834,8 @@ void AudioEngine::mixSamplerVoices(BlockMix& b) {
             if (editLock.owns_lock() && voice.isActive) mixSamplerPiece(voice, b, from, to);
             from = to;
         }
+        if (!b.offlineRender)
+            laneBusyNs[lane] += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - voiceStart).count();
     }
 }
 
@@ -927,7 +938,28 @@ void AudioEngine::mixSamplerPieceAs(Voice& voice, const BlockMix& b, int from, i
         voice.stop();
         return;
     }
-    if(synth.active())synth.update(studioCodes[voice.instrId].load(std::memory_order_acquire),studioSynthParams[voice.instrId]);
+    // Model and parameters from the same synced row (setLiveStudioSynth): never one without the other.
+    // SP FREEZE reads another slot's PCM: lent for this piece only. mixSamplerVoices holds the
+    // sample-edit lock for every piece it mixes; the loan ends when this function returns, however
+    // it returns, so no voice keeps a pointer past the lock.
+    const float* loanData=nullptr;int loanLength=0;uint32_t loanGeneration=0;int loanRate=0;
+    if(synth.active()){
+        const int code=liveStudioCode(voice.instrId);
+        if(code>=0&&studio::preset_model(code)==studio::kSpectralFreezeModel){
+            const int raw=liveStudioParams(voice.instrId)[studio::kFreezeSourceParam];
+            const int src=std::clamp(raw<0?studio::synth_param_default(studio::kSpectralFreezeModel,studio::kFreezeSourceParam):raw,0,255);
+            if(studioCodes[src].load(std::memory_order_acquire)<0){   // a sample slot, not a synth
+                // Generation first: setSampleBuffers stores rate and buffers before bumping it, so what
+                // is read here belongs to this generation or a newer one (then the next piece recaptures).
+                loanGeneration=sampleGen[src].load(std::memory_order_acquire);
+                loanRate=sampleFileRate[src].load(std::memory_order_acquire);
+                loanData=samples[src].load(std::memory_order_acquire);
+                loanLength=sampleLengths[src].load(std::memory_order_acquire);
+            }
+        }
+    }
+    const studio::Synth::SourceLoan sourceLoan(synth,loanData,loanLength,loanGeneration,loanRate);
+    if(synth.active()){synth.set_fm_voice(liveStudioFmVoice(voice.instrId));synth.update(liveStudioCode(voice.instrId),liveStudioParams(voice.instrId));}
     const bool generated = synth.active();
     const int granularIndex=int(&voice-voices);
     const bool granular=configureGranularVoice(granularIndex,b.sampleRate);
@@ -1284,6 +1316,9 @@ void AudioEngine::mixSamplerPieceAs(Voice& voice, const BlockMix& b, int from, i
     voice.fadeOut          = fadeOut;
     voice.isFadingOut      = isFadingOut;
     voice.isActive         = isActive;
+    // A struck synth model that has rung out keeps no sound for this note: release the voice
+    // instead of rendering silence until the next note (the CPU of the Brick's A53 is shared).
+    if (generated && isActive && synth.decayed()) ranOut = true;
     if (ranOut) voice.startFadeOut();   // no-op if already fading
     if (chainIdle && chainRan) chain.touch();
     if (metered) {
@@ -1301,6 +1336,11 @@ void AudioEngine::mixSoundfontVoices(BlockMix& b) {
     for (int t = 0; t < SF_VOICE_COUNT; t++) {
         SoundfontVoice& sv = sfVoices[t];
         if (!sv.isActive) continue;
+        const auto sfStart = b.offlineRender ? std::chrono::steady_clock::time_point{} : std::chrono::steady_clock::now();
+        struct LaneClock {   // attributes the voice's time on every way out of this iteration
+            AudioEngine& e; int lane; bool on; std::chrono::steady_clock::time_point start;
+            ~LaneClock() { if (on) e.laneBusyNs[lane] += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count(); }
+        } sfClock{*this, std::clamp(t, 0, 8), !b.offlineRender, sfStart};
 
         const int slot = sv.sfSlot;
         // Valid until this block ends.
@@ -1612,6 +1652,9 @@ void AudioEngine::mixMaster(const BlockMix& b) {
         if (studioLock.owns_lock()) studioRack.process(output, numFrames, channelCount, b.sampleRate);
     }
 
+    // PERFORM's filter sweep, live only, ahead of the limiter so a resonant sweep cannot clip.
+    if (stemsMode == 0 && !b.offlineRender) applyPerformFilter(output, numFrames, channelCount, b.sampleRate);
+
     // Master EQ → bus FX → limiter; a stems render takes the limiter only.
     if (stemsMode == 0)
         masterChain.process(output, numFrames, channelCount,
@@ -1773,9 +1816,56 @@ void AudioEngine::recordBlockTiming(std::chrono::steady_clock::time_point start,
     timingPubRate.store((int)sampleRate, std::memory_order_relaxed);
     timingPubMean.store(load(timingBusyNs, timingFrames), std::memory_order_relaxed);
     timingPubWorst.store(timingWorst, std::memory_order_relaxed);
+    for (int lane = 0; lane < kLoadLanes; ++lane) {
+        lanePubLoad[lane].store(load(laneBusyNs[lane], timingFrames), std::memory_order_relaxed);
+        laneBusyNs[lane] = 0;
+    }
     timingBusyNs = 0;
     timingFrames = 0;
     timingWorst  = 0;
+}
+
+AudioEngine::LaneLoads AudioEngine::getLaneLoads() const {
+    LaneLoads l;
+    for (int lane = 0; lane < kLoadLanes; ++lane) l.load[lane] = lanePubLoad[lane].load(std::memory_order_relaxed);
+    return l;
+}
+
+// A state-variable filter (TPT) over the master, steered by one bipolar control. The position glides
+// (≈ 20 ms) so a jump from closed to open sweeps rather than clicks; at the centre, once the glide has
+// arrived, the filter is bypassed and its state cleared — the master then stays bit for bit as it was.
+void AudioEngine::applyPerformFilter(float* output, int numFrames, int channelCount, float sampleRate) {
+    const int value = performFilter.load(std::memory_order_relaxed);
+    const float target = value == 128 ? 0.f : (value - 128) / (value < 128 ? 128.f : 127.f);
+    const float glide = 1.f - std::exp(-float(numFrames) / (0.02f * sampleRate));
+    performPosition += (target - performPosition) * glide;
+    if (target == 0.f && std::fabs(performPosition) < 0.002f) {
+        performPosition = 0.f;
+        performS1[0] = performS1[1] = performS2[0] = performS2[1] = 0.f;
+        return;
+    }
+    const bool lowPass = performPosition < 0.f;
+    const float amount = std::fabs(performPosition);
+    // Low-pass: 20 kHz → 80 Hz; high-pass: 20 Hz → 6 kHz, both exponential in the control.
+    const float hz = lowPass ? 20000.f * std::pow(80.f / 20000.f, amount) : 20.f * std::pow(6000.f / 20.f, amount);
+    const float g = std::tan(3.14159265f * std::min(hz, sampleRate * .45f) / sampleRate);
+    const float k = 1.1f;   // a little resonance, as on a DJ filter
+    const float h = 1.f / (1.f + g * (g + k));
+    const int channels = std::min(channelCount, 2);
+    for (int i = 0; i < numFrames; ++i)
+        for (int ch = 0; ch < channels; ++ch) {
+            float& s1 = performS1[ch];
+            float& s2 = performS2[ch];
+            const float x = output[i * channelCount + ch];
+            const float hp = (x - (k + g) * s1 - s2) * h;
+            const float bp = g * hp + s1;
+            s1 = g * hp + bp;
+            const float lp = g * bp + s2;
+            s2 = g * bp + lp;
+            output[i * channelCount + ch] = lowPass ? lp : hp;
+        }
+    for (int ch = 0; ch < 2; ++ch)
+        if (!std::isfinite(performS1[ch]) || !std::isfinite(performS2[ch])) performS1[ch] = performS2[ch] = 0.f;
 }
 
 AudioEngine::BlockTiming AudioEngine::getBlockTiming() const {

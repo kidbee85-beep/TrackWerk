@@ -1,5 +1,7 @@
 #include "ui/studio.h"
 #include "ui/studio_synth_picker.h"
+#include "ui/fm_library.h"
+#include <cstring>
 #include "studio/synth_params.h"
 #include "songcore/note_tables.h"
 #include "songcore/engine_setup.h"
@@ -29,16 +31,58 @@ songcore::ModSlot* edit_envelope(songcore::Instrument& ins){
  for(auto& m:ins.modSlots)if(m.type==songcore::ModType::NONE){m=songcore::ModSlot{};m.type=songcore::ModType::ADSR;m.dest=songcore::ModDest::VOLUME;return &m;}
  return nullptr;
 }
+// FM SYSEX: the bank and voice the draft plays — its parameters, else its named sound's.
+std::array<int,2> fm_selection(const AppState& s){
+ const auto& p=s.studioDraft.studioSynthParams;
+ if(p[studio::kFmBankParam]<0&&p[studio::kFmVoiceParam]<0&&!s.studioSynthCustom)return studio::fm_preset_voice(s.studioVariation);
+ return {studio::fm_bank_index(p[studio::kFmBankParam]),studio::fm_voice_index(p[studio::kFmVoiceParam])};
+}
+// The name stored in the voice the draft plays.
+std::string fm_voice_label(const AppState& s){
+ studio::fm_sysex::PackedVoice v{};
+ const auto sel=fm_selection(s);
+ if(s.studioDraft.fmVoice)v=*s.studioDraft.fmVoice;
+ else studio::fm_builtin_voice(sel[0]<studio::kFmFactoryBanks?sel[0]:0,sel[1],v.data());
+ return std::to_string(sel[1]+1)+" "+studio::fm_sysex::voice_name(v);
+}
+std::string fm_bank_label(const AppState& s){
+ const int bank=fm_selection(s)[0];
+ if(bank>=studio::kFmFactoryBanks&&!s.fmLibrary.scanned)return "File bank "+std::to_string(bank-studio::kFmFactoryBanks+1);
+ return fm_library_bank_label(s.fmLibrary,bank);
+}
+// One step through banks or voices. A file bank's voice is copied into the draft (the song keeps it);
+// a built-in one needs no copy. Rescans the SysEx folder on every bank step, so new files appear.
+void fm_step(AppState& s,FileSystem* fs,int param,int direction,bool coarse){
+ auto& lib=s.fmLibrary;
+ if(fs&&(!lib.scanned||param==studio::kFmBankParam))fm_library_scan(lib,*fs);
+ auto sel=fm_selection(s);
+ const int banks=fm_library_bank_count(lib);
+ int bank=std::clamp(sel[0],0,banks-1),voice=sel[1];
+ if(param==studio::kFmBankParam)bank=std::clamp(bank+direction*(coarse?4:1),0,banks-1);
+ const int voices=std::max(1,fm_library_voice_count(lib,bank));
+ voice=param==studio::kFmVoiceParam?std::clamp(voice+direction*(coarse?8:1),0,voices-1):std::min(voice,voices-1);
+ auto& p=s.studioDraft.studioSynthParams;
+ p[studio::kFmBankParam]=studio::fm_index_value(bank);
+ p[studio::kFmVoiceParam]=studio::fm_index_value(voice);
+ studio::fm_sysex::PackedVoice v{};
+ if(bank<studio::kFmFactoryBanks||!fm_library_voice(lib,bank,voice,v))s.studioDraft.fmVoice.reset();
+ else s.studioDraft.fmVoice=v;
+ s.studioMessage=fm_library_bank_label(lib,bank)+": "+fm_voice_label(s);
+ if(banks==studio::kFmFactoryBanks&&param==studio::kFmBankParam&&direction>0)
+  s.studioMessage="No .syx banks found. Put DX7 bank files into the SysEx folder.";
+ else if(lib.skipped>0&&param==studio::kFmBankParam)
+  s.studioMessage+=" ("+std::to_string(lib.skipped)+" unreadable file"+(lib.skipped==1?")":"s)");
+}
 std::string percent(int v){return std::to_string(static_cast<int>(std::lround(v*100./255)))+" %";}
 int filter_index(const songcore::Instrument& ins){return ins.filterType=="lp"?1:ins.filterType=="hp"?2:ins.filterType=="bp"?3:0;}
 bool publish(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,bool common,const songcore::Instrument* oldDraft=nullptr){
  if(studio_synth_live(s)){
   const auto before=host.project().instruments[s.currentInstrument];
   const int oldCode=studio::uri_code(before.sampleFilePath->c_str());
-  const auto oldAutoName=(oldCode&(1<<30))?std::string(studio::model_name(studio::preset_model(oldCode)))+" / CUSTOM":studio::preset_name(oldCode);
+  const auto oldAutoName=(oldCode&studio::kCustomFlag)?std::string(studio::model_name(studio::preset_model(oldCode)))+" / CUSTOM":studio::preset_name(oldCode);
   const bool autoName=before.name==oldAutoName||songcore::instrument_has_default_name(before);
   const auto uri=patch_uri(s);
-  if(!host.update_studio_synth(s.currentInstrument,uri,s.studioDraft.studioSynthParams)){
+  if(!host.update_studio_synth(s.currentInstrument,uri,s.studioDraft.studioSynthParams,&s.studioDraft.fmVoice)){
    s.studioLiveBound=false;s.studioBoundUri.clear();
    s.studioMessage="Synth source unavailable. Apply the draft to reload the slot.";return false;
   }
@@ -102,6 +146,7 @@ void select_model(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,i
  }
  s.studioModel=model;
  s.studioDraft.studioSynthParams.fill(-1);
+ s.studioDraft.fmVoice.reset();
  macros(s);
  s.studioSynthPage=std::min(s.studioSynthPage,studio_synth_page_count(s)-1);
  publish(s,host,engine,false);
@@ -111,6 +156,7 @@ void select_preset(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,
  if(variation==s.studioVariation&&!s.studioSynthCustom)return;
  s.studioVariation=variation;
  s.studioDraft.studioSynthParams.fill(-1);
+ s.studioDraft.fmVoice.reset();
  macros(s);
  publish(s,host,engine,false);
 }
@@ -137,9 +183,12 @@ void preview_picker_choice(AppState& s,songcore::SongcoreHost& host){
 }
 }
 
-const std::array<StudioSynthModelGroup,8>& studio_synth_model_groups(){
+const std::array<StudioSynthModelGroup,11>& studio_synth_model_groups(){
  constexpr int gravityStart=studio::kOctaveOrbitModel+1;
- static const std::array<StudioSynthModelGroup,8> groups{{
+ constexpr int spectralStart=studio::kSpectralFirstModel;
+ constexpr int voiceStart=studio::kVoiceFirstModel;
+ constexpr int vintageStart=studio::kVintageFirstModel;
+ static const std::array<StudioSynthModelGroup,11> groups{{
   {"Sample Granular",kSampleGranularModel,1},
   {"Plaits",0,24},
   {"Braids",24,48},
@@ -147,7 +196,11 @@ const std::array<StudioSynthModelGroup,8>& studio_synth_model_groups(){
   {"Elements",78,16},
   {"Grain Oscillators",94,8},
   {"Studio DSP",102,std::min(studio::model_count(),gravityStart)-102},
-  {"Gravity",gravityStart,std::max(0,studio::model_count()-gravityStart)},
+  {"Gravity",gravityStart,std::max(0,std::min(studio::model_count(),spectralStart)-gravityStart)},
+  {"Spectral",spectralStart,std::max(0,std::min(studio::model_count(),voiceStart)-spectralStart)},
+  {"Voice",voiceStart,std::max(0,std::min(studio::model_count(),vintageStart)-voiceStart)},
+  // New engines register after the Vintage models; the tab appears once the first one exists.
+  {"Vintage",vintageStart,std::max(0,studio::model_count()-vintageStart)},
  }};
  return groups;
 }
@@ -230,8 +283,13 @@ bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::Songc
     studio_synth_model_groups()[picker.group].firstModel+picker.item:picker.item;
    studio_synth_stop_audition(s,host);
    studio_synth_close_picker(s);
-   if(mode==StudioSynthPickerMode::Model)select_model(s,host,engine,chosen);
-   else select_preset(s,host,engine,chosen);
+   if(mode==StudioSynthPickerMode::Model){
+    select_model(s,host,engine,chosen);
+    if(chosen!=kSampleGranularModel){
+     s.studioRow=2;
+     studio_synth_open_picker_for_row(s,host);
+    }
+   }else select_preset(s,host,engine,chosen);
   }
   return true;
  }
@@ -297,6 +355,8 @@ std::string studio_synth_control_value(const AppState& s,int i){
   if(rate==0.f)return "Hold";
   char out[32];std::snprintf(out,sizeof(out),"%+.2f oct/s",rate);return out;
  }
+ if(kind(s)==1&&s.studioModel==studio::kFmSysexModel&&extra_index(s,i)==studio::kFmBankParam)return fm_bank_label(s);
+ if(kind(s)==1&&s.studioModel==studio::kFmSysexModel&&extra_index(s,i)==studio::kFmVoiceParam)return fm_voice_label(s);
  if(kind(s)==1)return studio::synth_param_value(s.studioModel,extra_index(s,i),s.studioDraft.studioSynthParams[extra_index(s,i)]);
  if(kind(s)==2&&i==0){const char* n[]={"Off","Low pass","High pass","Band pass"};return n[filter_index(s.studioDraft)];}
  if(kind(s)==3&&i==1){if(std::abs(v-128)<=1)return "Center";return std::to_string(std::abs(v-128)*100/128)+(v<128?" % L":" % R");}
@@ -316,7 +376,7 @@ void open_studio_synth(AppState& s,const songcore::Instrument& ins){
  if(ins.granularEnabled&&ins.instrumentType==songcore::InstrumentType::SAMPLER&&code<0){s.studioLiveBound=false;s.studioBoundUri.clear();sample_granular_open(s,ins);return;}
  s.studioLiveBound=code>=0&&ins.instrumentType==songcore::InstrumentType::SAMPLER;s.studioBoundUri=s.studioLiveBound?*ins.sampleFilePath:"";
  if(s.studioLiveBound){s.studioDraft=ins;
-  if(code&(1<<30)){s.studioModel=code&127;s.studioHarmonics=((code>>7)&127)*2;s.studioTimbre=((code>>14)&127)*2;s.studioMorph=((code>>21)&127)*2;s.studioSynthCustom=true;}
+  if(code&studio::kCustomFlag){s.studioModel=studio::custom_model(code);s.studioHarmonics=studio::custom_macro(code,0)*2;s.studioTimbre=studio::custom_macro(code,1)*2;s.studioMorph=studio::custom_macro(code,2)*2;s.studioSynthCustom=true;}
   else{s.studioModel=studio::preset_model(code);s.studioVariation=studio::preset_variation(code);macros(s);}
  }else{
   s.studioDraft=new_synth_draft(s.currentInstrument);macros(s);
@@ -368,9 +428,9 @@ void studio_synth_audition(AppState& s,songcore::SongcoreHost& host,bool on){
  if(studio_synth_live(s)){host.preview_instrument(s.currentInstrument);s.studioAuditionHeld=true;}
  else{s.studioAuditionHeld=host.preview_studio_synth(s.studioDraft,patch_uri(s),true);if(!s.studioAuditionHeld)s.studioMessage="Audition unavailable";}
 }
-void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,int row,int direction,bool coarse){
+void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,int row,int direction,bool coarse,FileSystem* fs){
  studio_synth_sync_target(s);s.studioConfirm=false;
- if(row==0){const bool held=s.studioAuditionHeld;studio_synth_stop_audition(s,host);s.currentInstrument=std::clamp(s.currentInstrument+direction,0,127);studio_synth_sync_target(s);if(held)studio_synth_audition(s,host,true);return;}
+ if(row==0){const bool held=s.studioAuditionHeld;studio_synth_stop_audition(s,host);s.currentInstrument=std::clamp(s.currentInstrument+direction*(coarse?16:1),0,127);studio_synth_sync_target(s);if(held)studio_synth_audition(s,host,true);return;}
  if(row==1){
   // UI-only selector entry0 is Sample Granular. Old oscillator IDs and URIs never move.
   const bool wasGranular=sample_granular_studio(s);const int old=wasGranular?0:s.studioModel+1;
@@ -386,6 +446,8 @@ void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& eng
  const int i=row-3;if(i<0||i>=studio_synth_control_count(s))return;int* value=nullptr;auto& p=s.studioDraft;const int k=kind(s);
  const auto previousDraft=p;
  if(k==0){int* v[]={&s.studioHarmonics,&s.studioTimbre,&s.studioMorph};value=v[i];s.studioSynthCustom=true;}
+ else if(k==1&&s.studioModel==studio::kFmSysexModel&&(extra_index(s,i)==studio::kFmBankParam||extra_index(s,i)==studio::kFmVoiceParam)){
+  fm_step(s,fs,extra_index(s,i),direction,coarse);publish(s,host,engine,false);return;}
  else if(k==1){const int x=extra_index(s,i);p.studioSynthParams[x]=studio::synth_param_adjust(s.studioModel,x,p.studioSynthParams[x],direction,coarse);publish(s,host,engine,false);return;}
  else if(k==2){if(i==0){const char* n[]={"off","lp","hp","bp"};p.filterType=n[std::clamp(filter_index(p)+direction,0,3)];if(p.filterType!="off"&&!p.filterCut)p.filterCut=255;}else{int* v[]={&p.filterCut,&p.filterRes,&p.drive};value=v[i-1];}}
  else if(k==3){int* v[]={&p.volume,&p.pan,&p.detune};value=v[i];}

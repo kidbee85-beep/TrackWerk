@@ -1,4 +1,5 @@
 #include "studio.h"
+#include "ui/scene_picker.h"
 #include "ui/studio_help.h"
 #include "ui/studio_navigation.h"
 #include "ui/studio_synth_picker.h"
@@ -23,6 +24,7 @@ constexpr const char* kWorkspaceDescriptions[] = {
     "Record an input or resample the mix",
     "Generate and arrange drum patterns",
     "Find, preview and sample recordings",
+    "Play chords, vary a progression and write an editable phrase",
 };
 static_assert(std::size(kWorkspaceDescriptions) == kStudioMusicTabs.size());
 
@@ -32,6 +34,8 @@ uint16_t button_bit(Button button) {
 
 void change_studio_tab(AppState& s, songcore::SongcoreHost& host, AudioEngine& engine,
                        int tab) {
+    harmony_stop(s.harmony, host);
+    s.harmony.confirm = false;
     studio_synth_stop_audition(s, host);
     studio_synth_close_picker(s);
     sample_granular_close_preset_picker(s);
@@ -48,6 +52,7 @@ void change_studio_tab(AppState& s, songcore::SongcoreHost& host, AudioEngine& e
     if (tab == 4) studio_capture_refresh(s, false);
     if (tab == 7) {
         s.sourceSampler.hasPolled = false;
+        s.sourceSampler.youtubeEnabled = s.settings.sourceYoutube;
         source_sampler_poll(s.sourceSampler, 0);
     }
 }
@@ -112,7 +117,7 @@ void restore_appearance_context(AppState& s) {
 }
 const char* controls[]={"ACTIVE","MUTABLE EFFECT","WET / DRY","COLOR","TEXTURE","FEEDBACK","SATURATION","COMP THRESHOLD","COMP RATIO","ATTACK","RELEASE","STEREO WIDTH","OUTPUT GAIN","PEAK CEILING","HIGH PASS"};
 int masterKey(int row){static const int keys[]={studio::ENABLE,studio::DRIVE,studio::THRESHOLD,studio::RATIO,studio::ATTACK,studio::RELEASE,studio::WIDTH,studio::OUTPUT,studio::CEILING,studio::HIGH_PASS};return keys[std::clamp(row-1,0,9)];}
-int rows(int tab){return tab==0?7:tab==1?11:tab==2?15:tab==4?7:tab==5?20:tab==6?3:tab==7?source_sampler_row_count():2;}
+int rows(int tab){return tab==0?7:tab==1?11:tab==2?15:tab==4?7:tab==5?20:tab==6?4:tab==7?source_sampler_row_count():2;}
 void changed(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){++s.projectVersion;auto& p=host.edit_project();for(int i=0;i<studio::COUNT;++i)engine.setStudioControl(i,p.studioMaster[i]);engine.studioRack.tempo.store(p.tempo);}
 // FX and mastering have independent parameter groups. Loading one must not erase the other.
 void apply_preset(bool effect,const std::array<int,studio::COUNT>& source,songcore::Project& project){
@@ -168,8 +173,8 @@ bool draw_studio_workspace(Canvas& c, const AppState& s) {
         const auto& tab = kStudioMusicTabs[i];
         const bool selected = i == s.studioWorkspace.selected;
         const bool current = tab.id == s.studioTab;
-        const int y = 148 + i * 38;
-        c.panel_rect(42, y, 556, 34, selected ? theme.rowSelection : theme.rowEvery4th,
+        const int y = 145 + i * 33;
+        c.panel_rect(42, y, 556, 30, selected ? theme.rowSelection : theme.rowEvery4th,
                      with_alpha(selected ? accent : theme.textParam, selected ? .95f : .18f), 4);
         if (selected) c.fill_rect(44, y + 6, 3, 22, accent);
         const auto titleInk = selected ? theme.rowEvery4th : theme.textTitle;
@@ -188,6 +193,14 @@ void open_studio_appearance(AppState& s){
  s.studioHelp=false;s.studioConfirm=false;s.studioAUsed=false;s.studioBUsed=false;
  s.studioTabNavHeld=0;s.studioMessage.clear();
 }
+// The Sources screen's YouTube opt-in is a saved setting; the sampler edits a mirror of it.
+static bool studio_source_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){
+ s.sourceSampler.youtubeEnabled=s.settings.sourceYoutube;
+ const bool handled=source_sampler_button(e,s.sourceSampler,host,engine);
+ s.settings.sourceYoutube=s.sourceSampler.youtubeEnabled;
+ return handled;
+}
+
 bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,FileSystem& fs){
  const uint16_t modalReturnBit=e.button==Button::A?1u:e.button==Button::B?2u:0u;
  const auto buttonMask=button_bit(e.button);
@@ -252,6 +265,23 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
   return true;
  }
  if(s.localSampleRange.isOpen)return false;
+ // B together with A or R (the tracker's delete / mute reflexes) is a combo, not "leave Studio": its
+ // release must not close the page, whichever of the two went down first, on every page.
+ if(e.action==ButtonAction::PRESSED&&((e.button==Button::B&&(e.mods.a||e.mods.r))||
+    ((e.button==Button::A||e.button==Button::R_SHIFT)&&e.mods.b)))
+  s.studioBUsed=true;
+ {
+  const uint8_t bit=e.button==Button::L_SHIFT?1:e.button==Button::R_SHIFT?2:0;
+  if(e.action==ButtonAction::PRESSED){
+   const bool other=bit==1?e.mods.r:bit==2?e.mods.l:false;
+   if(bit&&!e.mods.a&&!e.mods.b&&!e.mods.select&&!other)s.studioShoulderSolo|=bit;
+   else s.studioShoulderSolo=0;   // a combo: no shoulder held so far acts alone on its release
+  }else if(e.action==ButtonAction::RELEASED&&bit){
+   const bool solo=(s.studioShoulderSolo&bit)!=0;
+   s.studioShoulderSolo&=static_cast<uint8_t>(~bit);
+   if(!solo&&s.studioOpen&&(s.studioTab==5||s.studioTab==7||s.studioTab==8))return true;
+  }
+ }
  if(is_live_resample_chord(e)){
   if(s.currentScreen==ScreenType::FILE_BROWSER&&s.fileBrowser.mode==BrowserMode::DELETE)return true;
   if(e.action==ButtonAction::PRESSED){
@@ -262,11 +292,17 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
   return true;
  }
  if(s.qwerty.isOpen)return false;
+ if(s.studioOpen&&s.studioTab==6&&s.scenePicker>=0){
+  if(e.button==Button::START)return false;
+  if(e.cancelled)return true;
+  const bool applyOrBack=e.button==Button::A||e.button==Button::B;
+  if((e.action==ButtonAction::RELEASED)==applyOrBack)scene_picker_button(e.button,s.scenePicker,s.theme);
+  return true;
+ }
  if(s.studioShortcutRelease&&e.button==Button::SELECT&&e.action==ButtonAction::RELEASED){s.studioShortcutRelease=false;return true;}
  if(e.button==Button::SELECT&&studio_help_button(e,s,host,engine))return true;
  if(studio_workspace_button(e,s,host,engine))return true;
  if(!s.studioOpen)return false;
- if(s.studioTab==7&&s.sourceSampler.collectionOpen)return source_sampler_button(e,s.sourceSampler,host,engine);
  if(sample_granular_preset_picker_button(e,s,host))return true;
  if(studio_synth_picker_button(e,s,host,engine))return true;
  // An external stop/panic may have released DSP without a physical A-up event.
@@ -297,9 +333,15 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
  if(s.studioTab==0&&e.action==ButtonAction::PRESSED&&e.mods.r&&!e.mods.b&&!grainEditDuringAudition&&(e.button==Button::DPAD_LEFT||e.button==Button::DPAD_RIGHT)){
   s.studioSynthPage=(s.studioSynthPage+studio_synth_page_count(s)+(e.button==Button::DPAD_RIGHT?1:-1))%studio_synth_page_count(s);s.studioRow=3;s.studioAUsed|=e.mods.a;s.studioConfirm=false;s.studioMessage.clear();return true;
  }
+ if(s.studioTab==8 && e.button==Button::START)harmony_stop(s.harmony,host);
  if(e.button==Button::START){studio_synth_stop_audition(s,host);drumlab_stop(s.drumLab,host,engine);source_sampler_stop(s.sourceSampler);engine.studioRack.punch.store(0);s.studioPunchBankHeld=0;if(s.studioTab==3)s.studioAUsed=false;s.studioConfirm=false;return false;}
+ // The Sources browser after the Studio-wide chords: R + SELECT leaves, L + SELECT opens Punch and START
+ // keeps the transport (source_sampler_stop above also closes the browser), as on every other page.
+ if(s.studioTab==7&&s.sourceSampler.collectionOpen)return studio_source_button(e,s,host,engine);
+ if(s.studioTab==8&&e.button!=Button::B&&!(is_dpad(e.button)&&e.mods.b))
+  return harmony_button(e,s,host,engine);
  if(s.studioTab==7&&s.sourceSampler.listFocused&&!s.studioBUsed&&e.button==Button::B)
-  return source_sampler_button(e,s.sourceSampler,host,engine);
+  return studio_source_button(e,s,host,engine);
  if(s.studioTab==5&&s.drumLab.gridFocused&&!s.studioBUsed&&
     (e.button==Button::B||e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN))
   return drumlab_button(e,s.drumLab,host,engine);
@@ -312,7 +354,7 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
  }
  if(s.studioTab==7&&e.button!=Button::B&&!(is_dpad(e.button)&&e.mods.b)){
   if(e.button==Button::A&&e.action==ButtonAction::RELEASED&&s.studioAUsed){s.studioAUsed=false;s.sourceSampler.aUsed=false;return true;}
-  const bool handled=source_sampler_button(e,s.sourceSampler,host,engine);
+  const bool handled=studio_source_button(e,s,host,engine);
   source_sampler_bind_import_context(s);
   source_sampler_apply_import(s,host,engine,fs);
   return handled;
@@ -332,6 +374,7 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
  }
  if(e.action==ButtonAction::RELEASED){
   if(e.button==Button::A){engine.studioRack.punch.store(0);if(s.studioAUsed){s.studioAUsed=false;return true;}
+   if(s.studioTab==6&&s.studioRow==0){s.scenePicker=scene_picker_start(s.theme);return true;}
    if(sample_granular_open_preset_picker(s)){studio_synth_stop_audition(s,host);return true;}
    if(sample_granular_studio(s)&&s.studioRow==kGranularWaveRow)return sample_granular_wave_action(s);
    if(studio_synth_open_picker_for_row(s,host))return true;
@@ -355,8 +398,10 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
    }else if(e.button==Button::B){if(s.studioBUsed)s.studioBUsed=false;else{studio_synth_stop_audition(s,host);drumlab_stop(s.drumLab,host,engine);s.drumLab.gridFocused=false;source_sampler_stop(s.sourceSampler);if(s.captureBackend&&s.capture.active())s.captureBackend->stop();s.studioOpen=false;s.studioConfirm=false;s.studioMessage.clear();engine.studioRack.punch.store(0);host.stop_preview();restore_appearance_context(s);}}
   return true;
  }
+ if(e.button==Button::B&&e.action==ButtonAction::PRESSED&&(e.mods.a||e.mods.r))return true;
  if(s.studioTab==3){
   if(is_dpad(e.button)&&!e.mods.b){
+   s.studioPunchBankHeld=0;   // R + D-pad moved the pad: R's release is no bank change
    const int pad=studio::punch_pad(s.studioPunch),x=pad%4,y=pad/4;
    const int nx=std::clamp(x+(e.button==Button::DPAD_RIGHT?1:e.button==Button::DPAD_LEFT?-1:0),0,3);
    const int ny=std::clamp(y+(e.button==Button::DPAD_DOWN?1:e.button==Button::DPAD_UP?-1:0),0,1);
@@ -388,15 +433,24 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
   if(!e.mods.a&&s.studioTab==4&&(e.button==Button::DPAD_LEFT||e.button==Button::DPAD_RIGHT)){studio_capture_edit(s,e.button==Button::DPAD_RIGHT?1:-1);return true;}
   if(!e.mods.a){if(e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN){s.studioConfirm=false;s.studioMessage.clear();const int delta=e.button==Button::DPAD_UP?-1:1;s.studioRow=std::clamp(s.studioRow+delta,0,(s.studioTab==0?studio_synth_apply_row(s)+1:rows(s.studioTab))-1);if(s.studioTab==0&&s.studioRow>=3+studio_synth_control_count(s)&&s.studioRow<studio_synth_apply_row(s))s.studioRow=delta>0?studio_synth_apply_row(s):2+studio_synth_control_count(s);}return true;}
   s.studioAUsed=true;s.studioConfirm=false;auto& p=host.edit_project();
-  if(s.studioTab==0)studio_synth_edit(s,host,engine,s.studioRow,dir,e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN);
-  else if(s.studioTab==1){if(s.studioRow==0)s.studioEffectPreset=std::clamp(s.studioEffectPreset+dir,0,studio::effect_preset_count()-1);else if(s.studioRow==7)s.studioFxUserSlot=std::clamp(s.studioFxUserSlot+dir,0,15);else if(s.studioRow<7){int key=s.studioRow==1?studio::FX:s.studioRow==2?studio::FX_MIX:s.studioRow==3?studio::COLOR:s.studioRow==4?studio::TEXTURE:s.studioRow==5?studio::FEEDBACK:studio::ENABLE;p.studioMaster[key]=std::clamp(p.studioMaster[key]+dir,0,key==studio::FX?19:key==studio::ENABLE?1:255);changed(s,host,engine);}}
-  else if(s.studioTab==2){if(s.studioRow==0)s.studioMasterPreset=std::clamp(s.studioMasterPreset+dir,0,studio::master_preset_count()-1);else if(s.studioRow==11)s.studioMasterUserSlot=std::clamp(s.studioMasterUserSlot+dir,0,15);else if(s.studioRow<11){int key=masterKey(s.studioRow);p.studioMaster[key]=std::clamp(p.studioMaster[key]+dir,0,key==studio::ENABLE?1:255);changed(s,host,engine);}}
+  // A + Up / Down is the coarse step on 0…255 values (±16), as on the tracker screens.
+  const bool coarse=e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN;
+  if(s.studioTab==0)studio_synth_edit(s,host,engine,s.studioRow,dir,e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN,&fs);
+  else if(s.studioTab==1){if(s.studioRow==0)s.studioEffectPreset=std::clamp(s.studioEffectPreset+dir,0,studio::effect_preset_count()-1);else if(s.studioRow==7)s.studioFxUserSlot=std::clamp(s.studioFxUserSlot+dir,0,15);else if(s.studioRow<7){int key=s.studioRow==1?studio::FX:s.studioRow==2?studio::FX_MIX:s.studioRow==3?studio::COLOR:s.studioRow==4?studio::TEXTURE:s.studioRow==5?studio::FEEDBACK:studio::ENABLE;const int range=key==studio::FX?19:key==studio::ENABLE?1:255;p.studioMaster[key]=std::clamp(p.studioMaster[key]+dir*(range==255&&coarse?16:1),0,range);changed(s,host,engine);}}
+  else if(s.studioTab==2){if(s.studioRow==0)s.studioMasterPreset=std::clamp(s.studioMasterPreset+dir,0,studio::master_preset_count()-1);else if(s.studioRow==11)s.studioMasterUserSlot=std::clamp(s.studioMasterUserSlot+dir,0,15);else if(s.studioRow<11){int key=masterKey(s.studioRow);const int range=key==studio::ENABLE?1:255;p.studioMaster[key]=std::clamp(p.studioMaster[key]+dir*(range==255&&coarse?16:1),0,range);changed(s,host,engine);}}
   
   else if(s.studioTab==4){studio_capture_edit(s,dir);
   }else if(s.studioTab==6){
    if(s.studioRow==0)theme_cycle_builtin(s.theme,dir);
    if(s.studioRow==1)s.theme.surfaceStyle=(s.theme.surfaceStyle+dir+kSurfaceStyleCount)%kSurfaceStyleCount;
-   if(s.studioRow==2)s.settings.fontStyle=(valid_demo_font_style(s.settings.fontStyle)+dir+kDemoFontStyleCount)%kDemoFontStyleCount;
+   if(s.studioRow==2){
+    const int font=(valid_demo_font_style(theme_font(s.theme,s.settings.fontStyle))+dir+kDemoFontStyleCount)%kDemoFontStyleCount;
+    if(s.theme.sceneChrome)s.theme.fontOverride=font;
+    else {s.settings.fontStyle=font;s.theme.fontOverride=-1;}
+   }
+   // A two-item list, ON then OFF: Right sets OFF, Left sets ON. Direction-bound, so a held key's
+   // auto-repeat cannot flip it back (a toggle per PRESSED did).
+   if(s.studioRow==3)s.settings.sceneMotion=dir<0;
   }
  }
  return true;

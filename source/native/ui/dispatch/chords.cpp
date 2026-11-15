@@ -350,13 +350,20 @@ void InputDispatcher::on_l_r() {
 
 void InputDispatcher::on_select_a() { route(Gesture::SELECT_A); }
 void InputDispatcher::on_select_b() { route(Gesture::SELECT_B); }
+// SELECT + START: the show view, from a tracker screen without a dialog over it.
+void InputDispatcher::on_select_start() {
+    if (top_layer()) return;
+    s_.showActive = true;
+    s_.helpOpen = s_.helpFull = false;
+}
+
 void InputDispatcher::on_select_l() {
     if (top_layer()) return;
     switch (s_.currentScreen) {
         case ScreenType::SONG: case ScreenType::CHAIN: case ScreenType::PHRASE:
         case ScreenType::INSTRUMENT: case ScreenType::TABLE: case ScreenType::INST_POOL:
         case ScreenType::MODS: case ScreenType::GROOVE: case ScreenType::SCALE:
-        case ScreenType::MIXER: case ScreenType::EFFECTS: case ScreenType::PROJECT:
+        case ScreenType::MIXER: case ScreenType::EFFECTS: case ScreenType::PROJECT: case ScreenType::PERFORM:
             s_.studioOpen=true;s_.studioTab=3;s_.studioRow=0;s_.studioHelp=false;
             s_.studioAUsed=false;s_.studioBUsed=false;s_.studioConfirm=false;
             s_.studioMessage.clear();s_.studioShortcutRelease=true;
@@ -375,7 +382,7 @@ void InputDispatcher::on_select_r() {
         case ScreenType::SONG: case ScreenType::CHAIN: case ScreenType::PHRASE:
         case ScreenType::INSTRUMENT: case ScreenType::TABLE: case ScreenType::INST_POOL:
         case ScreenType::MODS: case ScreenType::GROOVE: case ScreenType::SCALE:
-        case ScreenType::MIXER: case ScreenType::EFFECTS: case ScreenType::PROJECT:
+        case ScreenType::MIXER: case ScreenType::EFFECTS: case ScreenType::PROJECT: case ScreenType::PERFORM:
             open_studio_synth(s_,host_.project().instruments[static_cast<size_t>(s_.currentInstrument)]);
             s_.studioShortcutRelease=true;
             return;

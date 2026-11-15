@@ -113,6 +113,10 @@ Copy-Item (Join-Path $repo 'native\vendor\opus\LICENSE_PLEASE_READ.txt') (Join-P
 # into the binary is adapted from it.
 Copy-Item (Join-Path $repo 'docs\licenses\OFL-1.1-LiberationSans.txt')   (Join-Path $lic 'OFL-1.1-LiberationSans.txt')
 Copy-Item (Join-Path $repo 'docs\licenses\OFL-1.1-QuinqueFive.txt')      (Join-Path $lic 'OFL-1.1-QuinqueFive.txt')
+Copy-Item (Join-Path $repo 'docs\licenses\Mutable-Instruments-MIT.txt') (Join-Path $lic 'Mutable-Instruments-MIT.txt')
+Copy-Item (Join-Path $repo 'docs\licenses\Mutable-Instruments-PROVENANCE.txt') (Join-Path $lic 'Mutable-Instruments-PROVENANCE.txt')
+Copy-Item (Join-Path $repo 'native\vendor\mutable\stmlib\LICENSE') (Join-Path $lic 'Mutable-stmlib-LICENSE')
+Copy-Item (Join-Path $repo 'docs\licenses\DaisySP-GPL-CONVERSION.txt') (Join-Path $lic 'DaisySP-GPL-CONVERSION.txt')
 
 # ⚠️ SDL's licence comes out of the SOURCE THAT WAS ACTUALLY COMPILED, not from a copy kept in this
 # repo. FetchContent put it in the build tree, so the licence that ships is the licence of the code
@@ -284,7 +288,11 @@ try {
                           'PocketTracker/licenses/libopus-COPYING',
                           'PocketTracker/licenses/libopus-LICENSE_PLEASE_READ.txt',
                           'PocketTracker/licenses/OFL-1.1-LiberationSans.txt',
-                          'PocketTracker/licenses/OFL-1.1-QuinqueFive.txt')) {
+                          'PocketTracker/licenses/OFL-1.1-QuinqueFive.txt',
+                          'PocketTracker/licenses/Mutable-Instruments-MIT.txt',
+                          'PocketTracker/licenses/Mutable-Instruments-PROVENANCE.txt',
+                          'PocketTracker/licenses/Mutable-stmlib-LICENSE',
+                          'PocketTracker/licenses/DaisySP-GPL-CONVERSION.txt')) {
         $e = $archive.GetEntry($needed)
         if (-not $e)            { throw "$needed is MISSING from the zip" }
         if ($e.Length -lt 100)  { throw "$needed is only $($e.Length) bytes inside the zip" }

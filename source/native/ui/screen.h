@@ -30,7 +30,8 @@ enum class ScreenType {
 
     // Appended; screens are named, never numbered.
     MIDI,       // reached from PROJECT > MIDI; not on the R+DPAD grid
-    MIDI_MAP    // …and from MIDI > MAPPING. Not on the grid either
+    MIDI_MAP,   // …and from MIDI > MAPPING. Not on the grid either
+    PERFORM     // live controls and CPU per track (ui/perform.h); row 0 of the grid, columns 0, 1, 4
 };
 
 inline const char* screen_label(ScreenType s) {
@@ -52,11 +53,57 @@ inline const char* screen_label(ScreenType s) {
         case ScreenType::SAMPLE_EDITOR: return "SAMPLE EDITOR";
         case ScreenType::MIDI:          return "MIDI";
         case ScreenType::MIDI_MAP:      return "MIDI MAPPING";
+        case ScreenType::PERFORM:       return "PERFORM";
     }
     return "";
 }
 
 // The navigation map's one-letter label. Not unique (SCALE and SONG are both "S"): the column tells.
+inline const char* screen_short_label(ScreenType s);
+
+// The full name, for the navigation map's arrival banner.
+inline const char* screen_long_label(ScreenType s) {
+    switch (s) {
+        case ScreenType::SONG:          return "SONG";
+        case ScreenType::CHAIN:         return "CHAIN";
+        case ScreenType::PHRASE:        return "PHRASE";
+        case ScreenType::INSTRUMENT:    return "INSTRUMENT";
+        case ScreenType::TABLE:         return "TABLE";
+        case ScreenType::PROJECT:       return "PROJECT";
+        case ScreenType::GROOVE:        return "GROOVE";
+        case ScreenType::SCALE:         return "SCALE";
+        case ScreenType::MODS:          return "MODS";
+        case ScreenType::INST_POOL:     return "INST. POOL";
+        case ScreenType::MIXER:         return "MIXER";
+        case ScreenType::EFFECTS:       return "EFFECTS";
+        case ScreenType::FILE_BROWSER:  return "BROWSER";
+        case ScreenType::SETTINGS:      return "SETTINGS";
+        case ScreenType::SAMPLE_EDITOR: return "SAMPLE EDITOR";
+        case ScreenType::MIDI:          return "MIDI";
+        case ScreenType::MIDI_MAP:      return "MIDI MAP";
+        case ScreenType::PERFORM:       return "PERFORM";
+    }
+    return "";
+}
+
+// Off the main row the map uses two letters, so no letter means two screens (S was SONG and SCALE,
+// P was PHRASE, PROJECT and the POOL). The main row keeps the familiar single letters.
+inline const char* screen_map_label(ScreenType s, bool mainRow) {
+    if (mainRow) return screen_short_label(s);
+    switch (s) {
+        case ScreenType::SCALE:      return "SC";
+        case ScreenType::INST_POOL:  return "PL";
+        case ScreenType::PROJECT:    return "PR";
+        case ScreenType::GROOVE:     return "GR";
+        case ScreenType::MODS:       return "MO";
+        case ScreenType::MIXER:      return "MX";
+        case ScreenType::EFFECTS:    return "FX";
+        case ScreenType::PERFORM:    return "PF";
+        case ScreenType::INSTRUMENT: return "IN";   // the pool's instrument cell
+        default:                     return screen_short_label(s);
+    }
+}
+
 inline const char* screen_short_label(ScreenType s) {
     switch (s) {
         case ScreenType::SONG:          return "S";
@@ -76,6 +123,7 @@ inline const char* screen_short_label(ScreenType s) {
         case ScreenType::SAMPLE_EDITOR: return "SE";
         case ScreenType::MIDI:          return "MI";
         case ScreenType::MIDI_MAP:      return "MM";
+        case ScreenType::PERFORM:       return "PF";
     }
     return "";
 }

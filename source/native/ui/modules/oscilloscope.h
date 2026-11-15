@@ -3,6 +3,8 @@
 // The 620×70 visualizer strip, six modes chosen by the theme. Stateful (peak dots, bar decay), so
 // it lives in the layout across frames. Reads no engine: samples are handed in; null is silence.
 
+#include <cstdint>
+
 #include "ui/canvas.h"
 #include "ui/theme.h"
 
@@ -29,6 +31,11 @@ struct OscilloscopeState {
     const float* spectrum = nullptr;
 
     Theme theme = theme_classic();
+
+    // Scene animations (ui/scene_animation.h): only while the sequencer plays.
+    bool     playing     = false;
+    uint64_t animationMs = 0;
+    int      bpm         = 120;
 };
 
 class OscilloscopeModule {
@@ -72,14 +79,25 @@ public:
     bool bars_at_rest() const;
 
 private:
-    void draw_scope(Canvas& c, int x, int y, const float* wave, const Theme& t) const;
+    void draw_scope(Canvas& c, int x, int y, const float* wave, const Theme& t);
+    void draw_demo(Canvas& c, int x, int y, const OscilloscopeState& s) const;
     void draw_flat(Canvas& c, int x, int y, const Theme& t) const;
+    void draw_graticule(Canvas& c, int x, int y, const Theme& t) const;
     void draw_octa(Canvas& c, int x, int y, const float* tracks, int mask, const Theme& t) const;
     void draw_bar_amps(Canvas& c, int x, int y, const float* amps, const Theme& t, bool peak_mode);
 
     // One waveform as pixel dots, one fill per column; SCOPE and each OCTA lane share it.
+    // `record`, if given, receives each block's dot row (the phosphor history below).
     void draw_wave_dots(Canvas& c, int scope_x, int scope_w, const float* wave, int center_y,
-                        int max_amplitude, Argb color) const;
+                        int max_amplitude, Argb color, int16_t* record = nullptr) const;
+
+    // SCOPE on a Scene look: the two previous traces glow on behind the current one, like phosphor
+    // on a tube. Only frames that are drawn anyway carry it (the strip redraws while audio sounds);
+    // silence, a classic theme or another mode clears it, so nothing is left to fade on an idle loop.
+    static constexpr int SCOPE_BLOCKS = WIDTH / SCOPE_PIXEL_BLOCK;
+    int16_t phosphor_[2][SCOPE_BLOCKS] = {};   // dot rows relative to the strip's top
+    int     phosphorFrames_ = 0;
+    int     phosphorX_ = -1, phosphorY_ = -1;  // where the history was drawn; a move discards it
 
     float peakValues_[NUM_BARS]        = {};
     int   peakDecayCounters_[NUM_BARS] = {};

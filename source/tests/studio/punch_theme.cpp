@@ -136,7 +136,10 @@ void ui(const std::filesystem::path& out){
   snapshot(out/("punch-"+std::to_string(bank)+"-active.ppm"),state);
   input.event(Button::A,ButtonAction::RELEASED);assert(engine->studioRack.punch==0&&!state.studioAUsed);
   snapshot(out/("punch-"+std::to_string(bank)+".ppm"),state);
-  input.event(Button::A,ButtonAction::PRESSED,a);input.event(Button::R_SHIFT,ButtonAction::PRESSED,a);
+  input.event(Button::A,ButtonAction::PRESSED,a);auto aAndR=a;aAndR.r=true;
+  input.event(Button::R_SHIFT,ButtonAction::PRESSED,aAndR);
+  assert(engine->studioRack.punch==studio::punch_id(bank,1));
+  input.event(Button::R_SHIFT,ButtonAction::RELEASED,a);
   assert(engine->studioRack.punch==0&&!state.studioAUsed&&studio::punch_bank(state.studioPunch)==(bank+1)%8);
   input.event(Button::A,ButtonAction::RELEASED);assert(engine->studioRack.punch==0);
  }
@@ -155,7 +158,7 @@ void ui(const std::filesystem::path& out){
  host.play_song(0);host.poll();
  input.event(Button::A,ButtonAction::PRESSED,a);input.event(Button::SELECT,ButtonAction::PRESSED);assert(engine->studioRack.punch==0);
  input.event(Button::SELECT,ButtonAction::RELEASED);assert(state.studioHelp);input.event(Button::A,ButtonAction::RELEASED);snapshot(out/"punch-help.ppm",state);
- input.event(Button::B,ButtonAction::RELEASED);assert(!state.studioHelp);
+ input.event(Button::B,ButtonAction::PRESSED);input.event(Button::B,ButtonAction::RELEASED);assert(!state.studioHelp);
  input.event(Button::DPAD_RIGHT,ButtonAction::PRESSED,a);assert(engine->studioRack.punch==0&&!state.studioAUsed);
  input.event(Button::A,ButtonAction::PRESSED,a);ButtonMods b;b.b=true;input.event(Button::DPAD_RIGHT,ButtonAction::PRESSED,b);assert(state.studioTab==4&&engine->studioRack.punch==0);input.event(Button::B,ButtonAction::RELEASED);
  state.studioTab=3;input.event(Button::A,ButtonAction::PRESSED,a);input.event(Button::B,ButtonAction::RELEASED);assert(!state.studioOpen&&engine->studioRack.punch==0);
@@ -163,7 +166,7 @@ void ui(const std::filesystem::path& out){
  input.event(Button::DPAD_RIGHT,ButtonAction::PRESSED,a);assert(engine->studioRack.punch==0&&!state.studioAUsed);
  assert(songcore::serialize_project(host.project())==original);
  state.studioOpen=true;state.studioTab=6;
- const auto themes=theme_builtins();assert(themes.size()==50);std::set<std::string> names;
+ const auto themes=theme_builtins();assert(themes.size()==54);std::set<std::string> names;
  const char* legacyThemes[]={"STUDIO","MIDNIGHT","PLUM","MOSS","COPPER","GLACIER","ROSE","GRAPHITE","ULTRAVIOLET","CLASSIC","AMBER","BLUE","MONO","BUBBLEGUM","BLUE OLED","AMBER OLED","CARBON","TITANIUM","SAHARA","DEEP CIRCUIT","VELVET","BLUEPRINT","EMBER","OBSIDIAN"};
  const int legacyStyles[]={0,5,6,3,1,5,6,1,4,7,1,5,7,6,7,7,2,1,3,4,6,5,0,2};
  for(int i=0;i<24;++i){assert(themes[i].name==legacyThemes[i]);assert(themes[i].surfaceStyle==legacyStyles[i]);}
@@ -173,6 +176,11 @@ void ui(const std::filesystem::path& out){
  const char* beta3Themes[]={"BUNKA LAB","VIOLET VECTOR","RASTER BLOOM","CHROME DUSK","ISO STATION","PIXEL GARDEN","COPPER ROUTES","NIGHT ASSEMBLY"};
  const int beta3Styles[]={12,14,13,12,15,16,17,17};
  for(int i=0;i<8;++i){assert(themes[i+32].name==beta3Themes[i]);assert(themes[i+32].surfaceStyle==beta3Styles[i]);}
+ // Appended light themes: light grounds, dark ink (theme_light).
+ const char* daylightThemes[]={"DAYLIGHT","NEWSPRINT","SUNNY LCD","HIGH CONTRAST"};
+ const int daylightStyles[]={6,3,7,7};
+ for(int i=0;i<4;++i){const auto& d=themes[i+50];assert(d.name==daylightThemes[i]&&d.surfaceStyle==daylightStyles[i]);
+  assert(light_ground(d.background)&&!light_ground(d.textValue));}
  assert(theme_default().name=="STUDIO"&&theme_default().surfaceStyle==0&&theme_default().visualizerType==VisualizerType::OCTA);
  for(size_t i=0;i<themes.size();++i){const auto& theme=themes[i];assert(names.insert(theme.name).second);Theme restoredTheme;
   assert(parse_theme(serialize_theme(theme),restoredTheme));assert(serialize_theme(theme)==serialize_theme(restoredTheme));

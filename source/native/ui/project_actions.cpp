@@ -1,4 +1,6 @@
 #include "ui/project_actions.h"
+#include "ui/source_credits.h"
+#include "songcore/wav_writer.h"   // the writer's backup suffix
 
 #include <algorithm>
 #include <cctype>
@@ -33,9 +35,11 @@ std::string pad4(int v) {
 std::string unique_render_path(FileSystem& fs, const std::string& dir, const std::string& safeName) {
     for (int index = 1; index < 10000; ++index) {
         const std::string path = dir + "/" + safeName + "_" + pad4(index) + ".wav";
-        if (!fs.file_exists(path)) return path;
+        // A number whose file survives only as the writer's backup (an interrupted replace) is taken
+        // too: a new export there would supersede, and so delete, the only copy of that mix.
+        if (!fs.file_exists(path) && !fs.file_exists(path + songcore::detail::kBackupSuffix)) return path;
     }
-    return dir + "/" + safeName + "_9999.wav";
+    return std::string();   // all 9 999 taken: no name — never the last one again
 }
 
 // ─── SAVE ────────────────────────────────────────────────────────────────────────────────────────
@@ -215,6 +219,9 @@ ActionResult collect_project(const songcore::SongcoreHost& host, FileSystem& fs,
                !fs.make_app_folder(songSub + "/" + c.rel.substr(0, slash)).empty();
         if (c.ok && fs.file_exists(dest)) c.ok = fs.delete_path(dest);
         c.ok = c.ok && copy_in_pieces(c.source, dest, onBytes);
+        // A found sound keeps its licence and source beside it (source_credits.h).
+        if (c.ok && fs.file_exists(c.source + ".source.json") && !fs.file_exists(dest + ".source.json"))
+            fs.copy_file(c.source + ".source.json", dest + ".source.json");
         // A file that failed, or measured wrong, still moves the bar by what it was counted as.
         onBytes(before + c.bytes - doneBytes);
         if (!c.ok) {
@@ -226,6 +233,7 @@ ActionResult collect_project(const songcore::SongcoreHost& host, FileSystem& fs,
 
     if (!fs.write_file(songDir + "/" + folder + ".ptp", songcore::serialize_project(copy)))
         return ActionResult{false, "COLLECT FAILED"};
+    source_credits_write(host.project(), host.media_roots(), fs, songDir + "/CREDITS.txt");
     fs.forget_listing(fs.songs_directory());
     fs.forget_listing(songDir);
 
@@ -261,18 +269,27 @@ ActionResult render_mix(songcore::SongcoreHost& host, FileSystem& fs, AppState& 
 
     const std::string safeName = songcore::safe_project_name(host.project().name);
     const std::string path     = unique_render_path(fs, fs.renders_directory(), safeName);
+    if (path.empty()) return ActionResult{false, "EXPORT FAILED: NO FREE NUMBER"};
 
     // With the master bus; the file runs on until the tails decay.
     songcore::RenderOptions opts;
     opts.stemsMode      = 0;
     opts.applyMasterBus = true;
+    opts.keepExisting   = true;   // the number was free when chosen; never take it over now
 
     const songcore::RenderStats stats =
         host.render_song_range_to_wav(bounds.startRow, bounds.endRow, path, opts, progress,
                                       range.repeat);
 
-    if (!stats.ok || stats.totalFrames <= 0) return ActionResult{false, "EXPORT FAILED"};
-    return ActionResult{true, "EXPORTED!"};
+    if (!stats.ok || stats.totalFrames <= 0) {
+        if (songcore::detail::last_publish_target_taken())
+            return ActionResult{false, "EXPORT FAILED: NUMBER TAKEN MEANWHILE"};
+        return ActionResult{false, "EXPORT FAILED"};
+    }
+    const int credited = source_credits_write(host.project(), host.media_roots(), fs,
+                                              path.substr(0, path.size() - 4) + "-CREDITS.txt");
+    if (credited < 0) return ActionResult{true, "EXPORTED, CREDITS NOT WRITTEN"};
+    return ActionResult{true, credited > 0 ? "EXPORTED + CREDITS" : "EXPORTED!"};
 }
 
 // ─── EXPORT → STEMS ──────────────────────────────────────────────────────────────────────────────
@@ -330,7 +347,10 @@ ActionResult render_stems(songcore::SongcoreHost& host, FileSystem& fs, AppState
     }
 
     if (progress) progress(1.0f);
-    return ActionResult{true, "STEMS EXPORTED!"};
+    const int credited = source_credits_write(host.project(), host.media_roots(), fs,
+                                              stemDir + "/" + safeName + "-CREDITS.txt");
+    if (credited < 0) return ActionResult{true, "STEMS EXPORTED, CREDITS NOT WRITTEN"};
+    return ActionResult{true, credited > 0 ? "STEMS + CREDITS" : "STEMS EXPORTED!"};
 }
 
 // ─── SONG selection → RESAMPLE ─────────────────────────────────────────────────────────────────
@@ -339,9 +359,10 @@ std::string resample_base_name(FileSystem& fs) {
     const std::string dir = fs.resampled_directory();
     for (int index = 1; index < 10000; ++index) {
         const std::string base = "Resample_" + pad4(index);
-        if (!fs.file_exists(dir + "/" + base + ".wav")) return base;
+        const std::string wav = dir + "/" + base + ".wav";
+        if (!fs.file_exists(wav) && !fs.file_exists(wav + songcore::detail::kBackupSuffix)) return base;
     }
-    return "Resample_9999";
+    return std::string();   // all taken: the field starts empty, and an empty name is refused below
 }
 
 ActionResult render_resample(songcore::SongcoreHost& host, FileSystem& fs,
@@ -354,6 +375,7 @@ ActionResult render_resample(songcore::SongcoreHost& host, FileSystem& fs,
     const std::string path = customBaseName.empty()
                                  ? unique_render_path(fs, dir, "Resample")
                                  : dir + "/" + songcore::safe_project_name(customBaseName) + ".wav";
+    if (path.empty()) return ActionResult{false, "RESAMPLE FAILED: NO FREE NUMBER"};
 
     // ⚠️ finish_render runs even when nothing was scheduled: prepare silenced the live stream.
     host.prepare_render(startRow, endRow);
@@ -365,7 +387,8 @@ ActionResult render_resample(songcore::SongcoreHost& host, FileSystem& fs,
 
     // A mix of the selected tracks, with the master bus.
     const songcore::RenderStats stats =
-        host.render_to_wav(path, songFrames, /*stemsMode=*/0, /*applyMasterBus=*/true, progress);
+        host.render_to_wav(path, songFrames, /*stemsMode=*/0, /*applyMasterBus=*/true, progress,
+                           /*keepExisting=*/customBaseName.empty());   // numbered: never over a newcomer
     host.finish_render();
 
     if (!stats.ok || stats.totalFrames <= 0) return ActionResult{false, "RESAMPLE FAILED"};

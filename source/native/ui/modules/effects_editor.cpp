@@ -5,6 +5,8 @@
 
 #include "ui/fx_preset_bank.h"
 #include "ui/helpers.h"
+#include <cstdint>
+#include <cmath>
 
 namespace pt::ui {
 
@@ -130,9 +132,38 @@ void draw_cells(Canvas& c, int x, int line1_y, const EffectsLayout& lay, int onl
         param("TYPE", EffectModule::ROW_MASTER_TYPE, p.masterBusFx == 0 ? "OTT" : "DUST");
     }
 
+    // A strip on a section's header line showing what it does to a hit (full page only): the
+    // reverb's tail, the delay's echoes. Sketches from the cells, not the engine's response.
+    const auto strip = [&](EffectsSection section, auto&& paint) {
+        if (only >= 0) return;
+        const int sx = x + 150, sw = 330, sh = ROW_HEIGHT - 4;
+        const int sy = rowY(lay.sectionHeaderLine[static_cast<int>(section)]) - 2;
+        const bool here = effects_row_section(static_cast<EffectsRow>(
+                              clamp(s.cursorRow, 0, EffectModule::MAX_CURSOR_ROW))) == section;
+        c.fill_rect(sx, sy, sw, sh, with_alpha(t.background, .6f));
+        c.stroke_rect(sx, sy, sw, sh, with_alpha(t.textParam, .3f));
+        paint(sx + 2, sy + 2, sw - 4, sh - 4, here ? t.rowCursor : t.textValue);
+    };
+
     // ── Reverb ───────────────────────────────────────────────────────────────────────────────────
     if (drawn(EffectsSection::REVERB)) {
         header(EffectsSection::REVERB);
+        // A hit, the pre-delay gap, then a grainy tail falling at DCAY's rate; DAMP thins it.
+        strip(EffectsSection::REVERB, [&](int ix, int iy, int iw, int ih, Argb ink) {
+            c.fill_rect(ix, iy, 2, ih, ink);
+            const int gap = 4 + (p.reverbPreDelay * iw) / (255 * 5);
+            const float tau = .08f + .9f * float(p.reverbFeedback) / 255.f;
+            const float thin = .55f + .45f * (1.f - float(p.reverbDamp) / 255.f);
+            uint32_t seed = 0xC0FFEEu;
+            for (int px = ix + gap; px < ix + iw; ++px) {
+                seed = seed * 1664525u + 1013904223u;
+                const float tt = float(px - ix - gap) / float(iw);
+                // Square-rooted so the quiet end of the tail stays visible in a 13-px strip.
+                const float a = std::sqrt(std::exp(-tt / tau)) * (.6f + .4f * float(seed >> 24) / 255.f);
+                const int hgt = int(a * float(ih));
+                if (hgt > 0) c.fill_rect(px, iy + ih - hgt, 1, hgt, with_alpha(ink, thin));
+            }
+        });
         preset_line(EffectModule::ROW_REV_TYPE, EffectModule::ROW_REV_SAVE, EffectModule::ROW_REV_LOAD,
                     reverb_preset_display_name(p), reverb_preset_differs_from_its_name(p));
 
@@ -154,6 +185,24 @@ void draw_cells(Canvas& c, int x, int line1_y, const EffectsLayout& lay, int onl
     // ── Delay ────────────────────────────────────────────────────────────────────────────────────
     if (drawn(EffectsSection::DELAY)) {
         header(EffectsSection::DELAY);
+        // The hit and its echoes, TIME apart and FDBK smaller each; PONG alternates the sides: left
+        // echoes stand on the floor, right ones hang from the top.
+        strip(EffectsSection::DELAY, [&](int ix, int iy, int iw, int ih, Argb ink) {
+            static constexpr float kSyncBeats[12] = {4.f, 2.f, 1.f, .5f, .25f, .125f,
+                                                     2.f / 3, 1.f / 3, 1.f / 6, 1.5f, .75f, .375f};
+            const float span = p.delaySync ? kSyncBeats[clamp(p.delayTime, 0, 11)] / 4.f
+                                           : float(std::max(p.delayTime, 1)) / 255.f;
+            const int step = std::max(7, int(span * float(iw) * .35f));
+            const float fb = float(p.delayFeedback) / 255.f;
+            float amp = 1.f;
+            for (int k = 0, px = ix; px < ix + iw - 3 && amp > .04f; ++k, px += step, amp *= fb) {
+                const int hgt = std::max(2, int(std::sqrt(amp) * float(ih)));
+                const Argb a = k == 0 ? ink : with_alpha(ink, .55f + .45f * amp);
+                if (p.delayPong && k % 2 == 1) c.fill_rect(px, iy, 4, hgt, a);
+                else c.fill_rect(px, iy + ih - hgt, 4, hgt, a);
+                if (fb <= 0.f) break;
+            }
+        });
         preset_line(EffectModule::ROW_DLY_TYPE, EffectModule::ROW_DLY_SAVE, EffectModule::ROW_DLY_LOAD,
                     delay_preset_display_name(p), delay_preset_differs_from_its_name(p));
 

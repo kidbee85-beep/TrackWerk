@@ -73,6 +73,7 @@ class InputDispatcher {
     void set_now(long long now_ms);
     // Studio's raw handler already marks the document version. It shares this debounce.
     void arm_studio_autosave();
+    void apply_harmony_phrase();
     void open_imported_sample_editor() {open_sample_editor();}
     // Long WAV browser entry. Public for native workflow checks and alternative frontends.
     bool open_large_sample(const std::string& path,const std::string& title,bool autoPlay=false,bool onlyIfNeeded=false);
@@ -196,6 +197,7 @@ class InputDispatcher {
     // R+SELECT: open Studio on musical screens; SELECT+R creates a folder in the browser.
     void on_select_r();
     void on_select_l();
+    void on_select_start();   // the show view (AppState::showActive)
     // Phrase SELECT chords are local to the editor, with no modal open.
     bool phrase_editor_context() const;
     bool on_phrase_history(Button direction, bool reclaimArrow);
@@ -671,7 +673,7 @@ class InputDispatcher {
         s_.themeEditor.isOpen = true;
         s_.themeEditor.seed ^= static_cast<uint32_t>(now_ms_);
     }
-    void close_theme_editor() { s_.themeEditor = ThemeEditorState{}; }
+    void close_theme_editor() { s_.themeEditor = ThemeEditorState{}; s_.scenePicker = -1; }
 
     // A backend can exist with no port open; "TEST SENT" into a closed one would lie.
     bool port_open() const { return s_.midiOut != nullptr && s_.midiOut->is_open(); }
@@ -967,6 +969,7 @@ class InputDispatcher {
     // ── MIXER and EFFECTS (ui/dispatch/screens/mixer.cpp) ────────────────────────────────────────
 
     GestureResult mixer_screen(Gesture g);
+    GestureResult perform_screen(Gesture g);
     GestureResult effects_screen(Gesture g);
     CursorContext mixer_context() const;
     bool          mixer_edit(const InputAction& action);
@@ -1082,7 +1085,7 @@ class InputDispatcher {
 
     // Bake the pending pitch into the buffer and rescale everything in frames — every save calls it,
     // since a sample is saved as it sounds.
-    void bake_pending_pitch();
+    bool bake_pending_pitch();   // false: refused (memory), nothing changed
 
     // The slice boundaries as WAV cue points: the markers, or DIVIDE's computed cuts.
     std::vector<int> compute_slice_cue_points() const;
@@ -1093,6 +1096,10 @@ class InputDispatcher {
 
     // SAVE / SAVE-AS / OVERWRITE: write the WAV, adopt it, leave the editor.
     void save_sample_to(const std::string& path, bool adopt_name);
+    // Take an Undo backup with the markers that belong to it (false: refused, message set), and
+    // settle it: kept (ok) or the previous backup and markers back.
+    bool begin_sample_backup(int instId, int64_t extraBytes, bool resizes);
+    void settle_sample_backup(int instId, bool ok);
 
     // CHOP: every slice to `Samples/Chops/<name>/` as its own WAV.
     void sample_editor_chop();

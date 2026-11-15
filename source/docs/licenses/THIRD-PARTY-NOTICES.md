@@ -72,7 +72,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## KissFFT — BSD-3-Clause
 
-Used for: FFT behind the spectrum analyzer and the transient detector (`native/kissfft/`).
+Used for: FFT behind the spectrum analyzer, the transient detector and the Studio synths (`native/kissfft/`,
+built once as the `pt-kissfft` library).
 
 > ⚠️ **The vendored copy of KissFFT arrived with its notice stripped** — no copyright line existed in
 > any of the five files. BSD-3-Clause requires the notice be retained in **source** redistributions
@@ -204,6 +205,42 @@ SOFTWARE.
 Used for: the parametric-EQ biquad (`native/effects/soundpipe/pareq.c`), a stub extracted from
 Soundpipe by Paul Batchelor (https://github.com/PaulBatchelor/Soundpipe). MIT text as above,
 copyright Paul Batchelor.
+
+---
+
+## Mutable Instruments (Plaits, Braids, Rings, Elements, Warps, Clouds) and stmlib — MIT
+
+Used for: the Studio synth models and rack effects (`native/studio/`, compiled from
+`native/vendor/mutable/`), DSP by Emilie Gillet (https://github.com/pichenettes/eurorack and
+https://github.com/pichenettes/stmlib). Vendor revisions are recorded in
+`native/vendor/mutable/PROVENANCE.json` (eurorack f4cfa76, stmlib e3bd7c9); local changes in
+`native/vendor/mutable/PT-LOCAL-PATCHES.md`.
+
+The 71 compiled upstream files carry this notice (Copyright 2012–2021 Emilie Gillet, per file):
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+The collected per-file notices ship as `Mutable-Instruments-MIT.txt`, the stmlib overview as
+`Mutable-stmlib-LICENSE` and the scope note as `Mutable-Instruments-PROVENANCE.txt`, beside this
+file in every artifact. The DaisySP licence conversion above ships as `DaisySP-GPL-CONVERSION.txt`.
+Per the upstream request, the name "Mutable Instruments" identifies the origin of the DSP only;
+TrackWerk is not a Mutable Instruments product.
 
 ---
 

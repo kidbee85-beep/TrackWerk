@@ -149,7 +149,8 @@ class SongcoreHost {
 
     RenderStats render_to_wav(const std::string& path, int64_t songFrames,
                               int stemsMode, bool applyMasterBus,
-                              const std::function<void(float)>& progress = nullptr);
+                              const std::function<void(float)>& progress = nullptr,
+                              bool keepExisting = false);
 
     void finish_render();
 
@@ -217,6 +218,9 @@ class SongcoreHost {
     // The audio callback's cost over the last second; zero without an engine.
     AudioEngine::BlockTiming block_timing() const;
     void clear_master_maximum() { if (engine_) engine_->clearMasterMaximum(); }
+    // PERFORM's master filter (AudioEngine::setPerformFilter): 128 off; 128 without an engine.
+    void set_perform_filter(int value) { if (engine_) engine_->setPerformFilter(value); }
+    int perform_filter() const { return engine_ ? engine_->performFilterValue() : 128; }
 
     // A mapped knob moved: write the value into the project at once and make it heard. Returns how
     // many mappings it drove. A mapping whose destination is gone is skipped, not deleted.
@@ -291,8 +295,12 @@ class SongcoreHost {
 
     // A sample file → instrument `id`.
     bool load_sample(int id, const std::string& path);
+    bool collapse_to_channel(int id, int mode) { return engine_ && engine_->collapseToChannel(id, mode); }
     // Only an already loaded Mutable sampler can be changed live; no media buffers or gate reset.
-    bool update_studio_synth(int id,const std::string& uri,const studio::SynthParams& params);
+    // `fmVoice`: FM SYSEX's voice to store with the instrument (an empty optional clears it); nullptr
+    // leaves the instrument's voice as it is.
+    bool update_studio_synth(int id,const std::string& uri,const studio::SynthParams& params,
+                             const std::optional<std::array<uint8_t,128>>* fmVoice=nullptr);
     // An isolated held audition in the reserved media slot. The draft never enters the project.
     bool preview_studio_synth(const Instrument& draft,const std::string& uri,bool restart);
     void update_studio_voice(const Instrument& before,const Instrument& after,int sampleSlot=-1);
@@ -350,15 +358,33 @@ class SongcoreHost {
 
     int clipboard_length() const { return engine_ ? engine_->getClipboardLength() : 0; }
 
-    bool backup_sample(int id) { return engine_ && engine_->backupSample(id); }
-    void undo_sample(int id) { if (engine_) engine_->undoSample(id); }
+    // The backup also keeps the playback ratio and RATE basis, so Undo restores them exactly.
+    bool backup_sample(int id, int64_t extraBytes = 0);
+    // Undo may bring back a buffer at another rate (taken before a RATE step): the pitch follows it.
+    // A level Undo, or none, leaves the ratio as it is.
+    // True when a backup buffer came back (a level Undo, or none, is false).
+    bool undo_sample(int id);
+    // Before a destructive edit off HIGH: the active buffer becomes the original (sample_edit.h).
+    void adopt_sample_as_original(int id) { if (engine_) engine_->adoptSampleAsOriginal(id); rateCache_.clear(id); }
+    // The RATE step (1, 2, 4) and BIT depth the buffer is at, for the editor's cells.
+    int  sample_rate_factor(int id) const { return engine_ ? engine_->getSampleRateFactor(id) : 1; }
+    int  sample_level_bits(int id) const { return engine_ ? engine_->getSampleLevelBits(id) : 0; }
     // The editor is closing: drop its undo copy.
     void free_sample_undo(int id) { if (engine_) engine_->freeSampleUndo(id); }
 
-    void crop_sample(int id, int start, int end) { if (engine_) engine_->cropSample(id, start, end); }
-    void delete_sample_region(int id, int start, int end) { if (engine_) engine_->deleteSampleRegion(id, start, end); }
-    void copy_region(int id, int start, int end) { if (engine_) engine_->copyRegion(id, start, end); }
-    void paste_region(int id, int insertAt) { if (engine_) engine_->pasteRegion(id, insertAt); }
+    bool crop_sample(int id, int start, int end) { return engine_ && engine_->cropSample(id, start, end); }
+    bool delete_sample_region(int id, int start, int end) { return engine_ && engine_->deleteSampleRegion(id, start, end); }
+    bool copy_region(int id, int start, int end) { return engine_ && engine_->copyRegion(id, start, end); }
+    bool stage_copy(int id, int start, int end) { return engine_ && engine_->stageCopy(id, start, end); }
+    void commit_copy() { if (engine_) engine_->commitStagedCopy(); }
+    void uncommit_copy() { if (engine_) engine_->uncommitStagedCopy(); }
+    void discard_copy() { if (engine_) engine_->discardStagedCopy(); }
+    // Settle the backup an edit took: kept (it went through) or the previous one back (it failed).
+    void commit_backup(int id) { if (engine_) engine_->commitBackup(id); }
+    void revert_backup(int id);
+    // Whether `bytes` more fit the load budget (0 = unknown, refuses nothing).
+    static bool edit_fits(int64_t bytes);
+    bool paste_region(int id, int insertAt) { return engine_ && engine_->pasteRegion(id, insertAt); }
 
     float sample_level_peak(int id, int start, int end) const {
         return engine_ ? engine_->sampleLevelPeak(id, start, end) : 0.f;
@@ -376,23 +402,24 @@ class SongcoreHost {
 
     // The FX row: START applies for real and plays, the next gesture restores this backup; only APPLY
     // keeps it. Separate from the undo slot.
-    void save_fx_preview_backup(int id) { if (engine_) engine_->saveFxPreviewBackup(id); }
+    bool save_fx_preview_backup(int id) { return engine_ && engine_->saveFxPreviewBackup(id); }
     void restore_fx_preview_backup() { if (engine_) engine_->restoreFxPreviewBackup(); }
 
     void apply_sample_fx(int id, int fxType, int fxValue);
 
     // The three that change the rate ratio, so live in songcore (sample_edit.h).
     void apply_rate_and_bits(int id, int factor, int bits);
-    void pitch_shift_sample(int id, float semitones);
+    bool pitch_shift_sample(int id, float semitones);   // false: refused, nothing changed
     void time_stretch_sample(int id, float ratio, float grainMs = sola::DEFAULT_GRAIN_MS);
     // The FX row's SYNC, for good.
-    void sync_sample(int id, const SampleSync& sync);
+    bool sync_sample(int id, const SampleSync& sync);   // false: refused, nothing changed
 
     // The editor's START: the sample dry at its root, through the SOURCE channel, windowed to the
     // selection. `sync` previews the FX row's SYNC from a copy.
     // ⚠️ The window goes in as FRAMES, not the 0-255 start/end grid — the audition must be exactly
     // what CROP keeps. It is read when the note fires, so `finish_sample_preview()` ends it later.
-    void preview_sample_editor(int id, int sourceMode, int64_t selStart, int64_t selEnd,
+    // False: the audition copy could not be had (memory); nothing plays.
+    bool preview_sample_editor(int id, int sourceMode, int64_t selStart, int64_t selEnd,
                                int totalFrames, int pitchSemitones, const SampleSync& sync = {});
     bool preview_sample_chop(int id, int sourceMode, int first, int end, float gain = 1.f);
 
@@ -435,7 +462,8 @@ class SongcoreHost {
     // ⚠️ It reaches the CABLE through `external_` directly: via `router_` it would land in the trace.
     // `durationFrames <= 0` rings until stop_preview(). `tableIdOverride`: the TABLE screen's table.
     void preview_note(int instrumentId, const Note& note, int64_t durationFrames,
-                      bool rootAudition = false, int tableIdOverride = -1);
+                      bool rootAudition = false, int tableIdOverride = -1,
+                      int chord = -1, int strumTicks = 0);
 
     // Audition an instrument at its own ROOT until the next button press.
     // ⚠️ A root audition: the SoundFont path must know, or its 60 − root transpose plays a flat C-4.
@@ -564,6 +592,14 @@ class SongcoreHost {
 
     // The RATE row's ratio cache (sample_edit.h), so LOFI → HIGH restores rather than compounds.
     RateCache rateCache_;
+    // At backup_sample: the ratio, the RATE cache entry and the buffer's rate (to recognise the backup).
+    float backupRatio_[POOL_INSTRUMENTS] = {};
+    float backupCacheOrig_[POOL_INSTRUMENTS] = {};
+    int   backupFileRate_[POOL_INSTRUMENTS] = {};
+    // The snapshot a new backup replaced, until the edit is settled (revert_backup puts it back).
+    float heldRatio_[POOL_INSTRUMENTS] = {};
+    float heldCacheOrig_[POOL_INSTRUMENTS] = {};
+    int   heldFileRate_[POOL_INSTRUMENTS] = {};
 
     MidiRouter       router_;
     Sequencer        seq_;

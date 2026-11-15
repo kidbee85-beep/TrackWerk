@@ -9,7 +9,8 @@
 #include <string>
 int main(){
  studio::Synth s;
- assert(studio::model_count()==116);
+ assert(studio::model_count()==123);
+ assert(std::string(studio::model_name(116))=="SP ADDITIVE"&&studio::is_spectral_model(116)&&std::string(studio::model_name(117))=="SP FREEZE"&&std::string(studio::model_name(118))=="SP MORPH"&&std::string(studio::model_name(119))=="FORMANT CHOIR"&&studio::is_voice_model(119)&&!studio::is_spectral_model(119)&&std::string(studio::model_name(120))=="SID CHIP"&&studio::is_vintage_model(120)&&std::string(studio::model_name(121))=="DCO POLY"&&studio::is_vintage_model(121)&&std::string(studio::model_name(122))=="FM SYSEX"&&studio::is_vintage_model(122));
  assert(std::string(studio::model_name(0))=="P VCF"&&std::string(studio::model_name(81))=="E OMINOUS");
  assert(std::string(studio::model_name(111))=="S WAVEFOLD");
  assert(studio::preset_code(81,3)==327&&studio::preset_code(0,4)==((1<<29)|4));
@@ -61,7 +62,7 @@ int main(){
  // All three motions make distinct, repeatable recordings from fresh voices.
  // Changing the scale affects subsequent impacts and leaves onset/root intact.
  std::vector<float> previousGravity;
- for(int model=studio::kGravityFirstModel;model<studio::model_count();++model){
+ for(int model=studio::kGravityFirstModel;model<studio::kGravityFirstModel+studio::kGravityModelCount;++model){
   assert(studio::synth_param_count(model)==3);
   assert(std::string(studio::synth_param_name(model,2))=="Pitch scale");
   const int code=studio::custom_code(model,255,185,255);

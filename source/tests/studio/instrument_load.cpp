@@ -7,6 +7,7 @@
 #include "ui/std_filesystem.h"
 #include "ui/studio.h"
 #include "studio/synth.h"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -41,7 +42,9 @@ int main(int argc,char**argv){
  preset.instrument.modSlots[0].attack=0;preset.instrument.modSlots[0].sustain=255;
  preset.tableRows=std::vector<songcore::TableRow>(16);(*preset.tableRows)[0].transpose=12;
  const auto pti=category+"/Lead.pti";assert(fs.write_file(pti,songcore::serialize_instrument_preset(preset)));
- open();assert(s.fileBrowser.sourceBookmarks.size()==4);
+ open();assert(s.fileBrowser.sourceBookmarks.size()==5);   // synth, Sample Granular, presets, samples, SoundFonts
+ assert(std::any_of(s.fileBrowser.sourceBookmarks.begin(),s.fileBrowser.sourceBookmarks.end(),
+     [](const auto& b){return b.path==std::string(SOURCE_BOOKMARK_PREFIX)+"sample-granular";}));
  for(const auto& ext:{"wav","pti","sf2","sf3"})assert(std::find(s.fileBrowser.fileExtensions.begin(),s.fileBrowser.fileExtensions.end(),ext)!=s.fileBrowser.fileExtensions.end());
  // Virtual source entries are navigation, never rename/delete/clipboard targets.
  for(size_t i=0;i<s.fileBrowser.items.size();++i)if(s.fileBrowser.items[i].path==std::string(SOURCE_BOOKMARK_PREFIX)+"synth")s.fileBrowser.cursor=int(i);

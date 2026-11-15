@@ -133,6 +133,17 @@ struct SampleEditorState {
     int manualKeyMethod = -1;
     int manualKeyParam  = -1;
 
+    // The markers as they were when the Undo backup was taken: an Undo that brings back that
+    // length (a SYNC, a cut) brings them back too. `length` < 0 = none.
+    struct UndoMarkers {
+        bool restoreOnUndo = false;   // the edit reset the markers (cut, crop, SYNC): Undo restores
+        int length = -1;
+        std::vector<int> fileMarkers;
+        std::vector<SliceMarker> manualMarkers;
+        int manualKeyMethod = -1, manualKeyParam = -1;
+    } undoMarkers;
+    UndoMarkers heldUndoMarkers;   // the snapshot a new backup replaced, until it is settled
+
     // ── Row 16: the FX row ───────────────────────────────────────────────────────────────────────
     int fxType   = 0;   // 0 = OTT, 1 = DUST, 2 = DRIVE, 3 = EQ, 4 = SYNC
     int fxValue  = 0;   // OTT / DUST / DRIVE: the amount. 0 = nothing to audition or apply
@@ -181,6 +192,9 @@ struct SampleEditorState {
 
     // (start, end) of slice `idx`. OFF = the whole sample.
     void slice_bounds(int idx, int64_t& start, int64_t& end) const;
+    // The selection a slice gives: its bounds, inside the buffer and at least one frame wide
+    // (16 slices of a 3-frame sample share frames). CHOP keeps using `slice_bounds` and skips empties.
+    void slice_selection(int idx, int64_t& start, int64_t& end) const;
 
     // Row 11's position: the start of the slice under the cursor.
     int64_t effective_slice_position() const;
@@ -302,7 +316,8 @@ public:
 
 private:
     // The wave, the S/E edges, slice boundaries and the playhead.
-    void draw_waveform(Canvas& c, int x, int y, const SampleEditorState& s, const Theme& t) const;
+    void draw_waveform(Canvas& c, int x, int y, int width, int height,
+                       const SampleEditorState& s, const Theme& t) const;
 
     // B on a modified sample.
     void draw_confirm_dialog(Canvas& c, int x, int y, const Theme& t) const;

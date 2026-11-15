@@ -63,6 +63,7 @@ void InputDispatcher::on_start() {
         // dialled against a playing song.
         case ScreenType::MIXER:
         case ScreenType::EFFECTS:
+        case ScreenType::PERFORM:
         case ScreenType::PROJECT:
         case ScreenType::SETTINGS:
         case ScreenType::MIDI:

@@ -44,6 +44,9 @@ void SongEditorModule::draw(Canvas& c, int x, int y, const SongEditorState& s) c
     for (int rowIndex = 0; rowIndex < VISIBLE_ROWS; ++rowIndex) {
         draw_row(c, x, y, rowIndex, s.scrollPosition + rowIndex, s, stepX, trackColumns);
     }
+    // The rows scroll smoothly between two positions (shell/app.cpp).
+    c.mark_scroll(1, x, y + ROW_HEIGHT + 14 + ROW_HEIGHT, WIDTH, VISIBLE_ROWS * ROW_HEIGHT,
+                  s.scrollPosition * ROW_HEIGHT);
 }
 
 void SongEditorModule::draw_row(Canvas& c, int x, int y, int row_index, int absolute_row,

@@ -144,6 +144,12 @@ cp "$SRC/native/vendor/opus/LICENSE_PLEASE_READ.txt"    "$STAGE/licenses/libopus
 # into the binary is adapted from it.
 cp "$SRC/docs/licenses/OFL-1.1-LiberationSans.txt"       "$STAGE/licenses/OFL-1.1-LiberationSans.txt"
 cp "$SRC/docs/licenses/OFL-1.1-QuinqueFive.txt"          "$STAGE/licenses/OFL-1.1-QuinqueFive.txt"
+# The Studio's Mutable Instruments/stmlib DSP (MIT) and the DaisySP conversion record ship in
+# every artifact too; THIRD-PARTY-NOTICES.md cites them by these names (see app/build.gradle.kts).
+cp "$SRC/docs/licenses/Mutable-Instruments-MIT.txt" "$STAGE/licenses/Mutable-Instruments-MIT.txt"
+cp "$SRC/docs/licenses/Mutable-Instruments-PROVENANCE.txt" "$STAGE/licenses/Mutable-Instruments-PROVENANCE.txt"
+cp "$SRC/native/vendor/mutable/stmlib/LICENSE" "$STAGE/licenses/Mutable-stmlib-LICENSE"
+cp "$SRC/docs/licenses/DaisySP-GPL-CONVERSION.txt" "$STAGE/licenses/DaisySP-GPL-CONVERSION.txt"
 
 cat > "$STAGE/README.txt" <<EOF
 PocketTracker $VERSION — Linux (x86-64)
@@ -191,7 +197,7 @@ echo "read back out of the tarball:"
 for NEEDED in "PocketTracker" "README.txt" "install-desktop.sh" "pockettracker.png" "licenses/LICENSE" "licenses/THIRD-PARTY-NOTICES.md" \
               "licenses/CREDITS.md" "licenses/OFL-1.1-LiberationSans.txt" "licenses/OFL-1.1-QuinqueFive.txt" \
               "licenses/libogg-COPYING" "licenses/libopus-COPYING" \
-              "licenses/libopus-LICENSE_PLEASE_READ.txt"; do
+              "licenses/libopus-LICENSE_PLEASE_READ.txt" "licenses/Mutable-Instruments-MIT.txt" "licenses/Mutable-Instruments-PROVENANCE.txt" "licenses/Mutable-stmlib-LICENSE" "licenses/DaisySP-GPL-CONVERSION.txt"; do
     # ⚠️ `|| BYTES=0` is what makes the failure READABLE. A member that is not in the archive makes
     # tar exit 2, and under `set -euo pipefail` that kills the script mid-loop — before the FAIL
     # line below, with tar's own reason already swallowed by 2>/dev/null. The operator would get a

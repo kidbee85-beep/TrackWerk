@@ -20,6 +20,7 @@ namespace pt::ui {
  */
 void InputDispatcher::reset_editing_context() {
     phraseHistory_.clear();
+    s_.harmony = {};
     phraseArrow_.phraseId = -1;
     phraseRotation_.phraseId = -1;
     // NEW/LOAD may reuse the host Project address and reset its edit version to

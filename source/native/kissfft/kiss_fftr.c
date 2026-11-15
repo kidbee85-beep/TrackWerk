@@ -81,8 +81,10 @@ kiss_fftr_cfg kiss_fftr_alloc(int nfft, int inverse_fft, void* mem, size_t* lenm
  *          A     = fpk + fpnk               (even part × 2)
  *          B     = fpk - fpnk               (odd part × 2)
  *          C     = W_N^k * B                (modulate odd part)
- *          X[k]        = (A.r + C.i)/2 + j*(A.i - C.r)/2
- *          X[N/2-k]    = conj(X[k])
+ *          X[k]        = (A - j*C)/2
+ *          X[N/2-k]    = conj(A + j*C)/2
+ *   (X[N/2-k] is not conj(X[k]): real input gives X[N-k] = conj(X[k]). Taking the wrong mirror
+ *   made every bin above N/4 wrong up to TrackWerk 1.1.0-dev.2 — PT-LOCAL-PATCHES, 2026-11-12.)
  */
 void kiss_fftr(kiss_fftr_cfg st, const kiss_fft_scalar* timedata, kiss_fft_cpx* freqdata) {
     const int ncfft = st->ncfft;
@@ -118,10 +120,12 @@ void kiss_fftr(kiss_fftr_cfg st, const kiss_fft_scalar* timedata, kiss_fft_cpx* 
         freqdata[k].r = HALF_OF(A.r + C.i);
         freqdata[k].i = HALF_OF(A.i - C.r);
 
-        /* X[ncfft-k] = conj(X[k]) by conjugate symmetry of real input. */
+        /* X[ncfft-k] from the same pair: with k' = ncfft-k, A' = conj(A), B' = -conj(B) and
+           W^k' = -conj(W^k), so C' = conj(C) and X[k'] = (A' - j*C')/2 = conj(A + j*C)/2.
+           Both inputs were read above; iteration k writes only bins k and ncfft-k. */
         if (k != ncfft - k) {
-            freqdata[ncfft - k].r =  freqdata[k].r;
-            freqdata[ncfft - k].i = -freqdata[k].i;
+            freqdata[ncfft - k].r = HALF_OF(A.r - C.i);
+            freqdata[ncfft - k].i = -HALF_OF(A.i + C.r);
         }
     }
 }

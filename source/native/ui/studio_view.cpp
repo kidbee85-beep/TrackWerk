@@ -1,5 +1,7 @@
 #include "ui/studio.h"
 #include "ui/demo_font_style.h"
+#include "ui/scene_layout.h"
+#include "ui/scene_animation.h"
 #include "ui/product_brand.h"
 #include "ui/studio_help.h"
 #include "ui/live_resample.h"
@@ -16,11 +18,13 @@
 #include "ui/modules/oscilloscope.h"
 #include <cmath>
 #include <cstdio>
+#include <iterator>
+#include <type_traits>
 namespace pt::ui {
 namespace {
 using namespace premium;
 void panel_texture(Canvas& c,int x,int y,int w,int h,const Theme& t){
- if(t.surfaceStyle==7||(t.rowEvery4th&0x00ffffffu)==0)return;
+ if(t.sceneChrome||t.surfaceStyle==7||(t.rowEvery4th&0x00ffffffu)==0)return;
  Canvas::ClipScope clip(c,x+5,y+3,w-10,h-6);
  const auto light=with_alpha(t.textValue,.025f),dark=0x16000000u;
  if(t.surfaceStyle==1||t.surfaceStyle==3){
@@ -55,7 +59,10 @@ void studio_card(Canvas& c,int x,int y,int w,int h,const Theme& t,bool focus=fal
 int synth_family(int model){return std::max(0,studio_synth_model_group(model)-1);}
 Theme synth_theme(const AppState& s){
  Theme t=s.theme;
- static constexpr Argb colors[]={0xFF5CD8D0,0xFFB699F3,0xFF78B7EE,0xFFE4BD7A,0xFF8FDEA6,0xFFE89BBE,0xFFE8A37A};
+ // One tint per family after Sample Granular (synth_family). Spectral and Voice were missing before
+ // 1.1.0-dev.2 patch 0062: a Spectral model read past the end of this table.
+ static constexpr Argb colors[]={0xFF5CD8D0,0xFFB699F3,0xFF78B7EE,0xFFE4BD7A,0xFF8FDEA6,0xFFE89BBE,0xFFE8A37A,0xFF9FC4F8,0xFFF0A0A8,0xFFB8E07A};
+ static_assert(std::size(colors)==std::tuple_size_v<std::remove_reference_t<decltype(studio_synth_model_groups())>>-1);
  if(t.name!="MONO"&&t.name.find("OLED")==std::string::npos)
   t.rowCursor=mix(t.rowCursor,colors[synth_family(s.studioModel)],t.name=="STUDIO"||t.name=="GRAPHITE"||t.name=="CARBON"?.52f:.20f);
  return t;
@@ -88,7 +95,29 @@ void engine_diagram(Canvas& c,int family,int x,int y,Argb color){
     previous=py;
    }
   }
- }else{
+ }else if(family==8){
+  // Voice: three formant humps over a baseline.
+  c.line(x,y+18,x+76,y+18,faint);
+  static constexpr int centres[]={14,40,62},heights[]={15,10,6},widths[]={9,7,6};
+  for(int f=0;f<3;++f){
+   int previous=y+18;
+   for(int dx=-widths[f]*2;dx<=widths[f]*2;++dx){
+    const int py=y+18-heights[f]*widths[f]*widths[f]/(widths[f]*widths[f]+dx*dx);
+    if(dx>-widths[f]*2)c.line(x+centres[f]+dx-1,previous,x+centres[f]+dx,py,f==0?color:faint);
+    previous=py;
+   }
+  }
+ }else if(family==9){
+  // Vintage: a square wave stepping through an arpeggio (SID CHIP; DCO POLY draws its own).
+  static constexpr int levels[]={14,10,6,14,10,6};
+  int previous=y+18;
+  for(int i=0;i<6;++i){
+   const int left=x+i*13,top=y+18-levels[i];
+   c.line(left,previous,left,top,color);c.line(left,top,left+6,top,color);
+   c.line(left+6,top,left+6,y+18,faint);c.line(left+6,y+18,left+13,y+18,faint);
+   previous=y+18;
+  }
+}else{
   for(int i=0;i<18;++i){const int px=x+(i*37)%76,py=y+2+(i*11)%16;c.fill_rect(px,py,i%3+2,2,i%2?color:faint);}
  }
 }
@@ -100,6 +129,27 @@ const char* gravity_description(int model){
  }
 }
 void synth_diagram(Canvas& c,int model,int x,int y,Argb color){
+ if(model==studio::kFmSysexModel){
+  // FM SYSEX: six operators, a stack of three modulating a carrier beside a second stack.
+  const auto dim=with_alpha(color,.38f);
+  static constexpr int ox[]={8,8,8,44,44,44},oy[]={0,7,14,0,7,14};
+  for(int i=0;i<6;++i){c.panel_rect(x+ox[i],y+oy[i],14,5,0x17000000u,i==2||i==5?color:dim,1);if(oy[i]<14)c.line(x+ox[i]+7,y+oy[i]+5,x+ox[i]+7,y+oy[i]+7,dim);}
+  c.line(x+15,y+19,x+51,y+19,color);
+  return;
+ }
+ if(model==studio::kDcoPolyModel){
+  // DCO POLY: a resonant low-pass response, flat, a peak at the cutoff, then the four-pole fall.
+  const auto dim=with_alpha(color,.38f);
+  c.line(x,y+18,x+76,y+18,dim);
+  int previous=y+8;
+  for(int px=1;px<=76;++px){
+   const float t=(px-44)/6.f;
+   const int py=px<44?y+8-int(6.f/(1.f+t*t)):y+8-int(6.f/(1.f+t*t))+(px-44)*(px-44)/80;
+   c.line(x+px-1,previous,x+px,std::min(py,y+18),px<44?color:dim);
+   previous=std::min(py,y+18);
+  }
+  return;
+ }
  const int kind=model-studio::kGravityFirstModel;
  if(kind==1){
   const auto dim=with_alpha(color,.36f);
@@ -114,29 +164,78 @@ void synth_diagram(Canvas& c,int model,int x,int y,Argb color){
   c.line(x,y+18,x+76,y+18,dim);
  }else engine_diagram(c,synth_family(model),x,y,color);
 }
+int studio_play_step(const AppState& s){
+ for(const auto& head:s.playheads)if(head.step>=0)return head.step;
+ return -1;
+}
+
+void scene_heading(Canvas& c, const AppState& s, const char* transport, bool active) {
+ const Theme& t=s.theme;
+ const auto scene=scene_layout(t);
+ const auto tabs=[&](int x, int y, int columns, int stride, int width) {
+  for(size_t i=0;i<kStudioMusicTabs.size();++i){
+   const int column=static_cast<int>(i)%columns,row=static_cast<int>(i)/columns;
+   const auto& tab=kStudioMusicTabs[i];
+   chip(c,tab.label,x+column*stride,y+row*30,width,t,tab.id==s.studioTab);
+   if(tab.id==s.studioTab)c.mark_selector(2,x+column*stride,y+row*30,width,23);   // glides (ui/layout.cpp)
+  }
+ };
+ const auto identity=[&](int x,int y){
+  brand::mark(c,x,y,22,t.rowCursor,with_alpha(t.textTitle,.44f));
+  c.draw_label(kProductName,x+30,y-2,t.textTitle,18);
+  c.draw_label("Kid Bunka",x+30,y+20,t.textParam,12);
+ };
+
+ if(scene.railLeft){
+  const int board=scene.scopeBottom?223:16;
+  const int mast=scene.scopeBottom?16:430;
+  c.panel_rect(board,9,401,76,t.rowEvery4th,with_alpha(t.textParam,.45f),4);
+  tabs(board+8,17,4,98,92);
+  identity(mast,15);
+  label(c,"B + SELECT  SECTIONS",mast,51,t.textParam,188,12);
+  chip(c,transport,mast,68,94,t,active);
+  if(s.isPlaying&&s.project&&s.settings.sceneMotion)scene_animation::family_strip(c,mast+108,70,t,s.animationMs,songcore::tempo_in_force(*s.project),studio_play_step(s));
+ }else{
+  const int mastY=scene.scopeBottom?42:9;
+  const int tabsY=scene.scopeBottom?9:63;
+  c.panel_rect(16,mastY,608,42,t.rowEvery4th,with_alpha(t.textParam,.42f),4);
+  identity(24,mastY+9);
+  label(c,"SELECT  HELP",231,mastY+13,t.textParam,114,12);
+  label(c,"B + SELECT  SECTIONS",355,mastY+13,t.textParam,160,12);
+  chip(c,transport,520,mastY+9,94,t,active);
+  tabs(16,tabsY,8,77,69);
+  // Between the TrackWerk name and SELECT HELP: the Scene's own playback animation.
+  if(s.isPlaying&&s.project&&s.settings.sceneMotion)scene_animation::family_strip(c,158,mastY+11,t,s.animationMs,songcore::tempo_in_force(*s.project),studio_play_step(s));
+ }
+}
+
 void heading(Canvas& c,const AppState& s){
  const auto& t=s.theme;
  c.surface_rect(0,0,640,480,t.background);
+ const bool audition=s.studioTab==0&&(s.studioAuditionHeld||s.studioSynthPicker.previewSounding);
+ const bool recording=s.resampleView.active||granular_recording_busy(s.sampleGranular.recording);
+ const char* transport=recording?"RECORDING":s.studioAppearanceSettings?"SETTINGS":s.studioTab==3&&s.studioAUsed?"FX HELD":audition?"AUDITION":s.isPlaying?"PLAYING":"STOPPED";
+ const bool active=recording||(!s.studioAppearanceSettings&&(s.isPlaying||audition||s.studioAUsed));
+ if(t.sceneChrome&&!s.studioAppearanceSettings){scene_heading(c,s,transport,active);return;}
  brand::mark(c,18,12,27,t.rowCursor,with_alpha(t.textTitle,.42f));
  c.draw_label(kProductName,57,13,t.textTitle,18);
- c.draw_label("KID BUNKA",194,18,t.textParam,12);
+ c.draw_label("Kid Bunka",194,18,t.textParam,12);
  label(c,"SELECT  HELP",272,18,t.rowCursor,90,12);
  if(!s.studioAppearanceSettings) {
   c.draw_label("B + Select   Sections",365,18,t.textParam,12);
   if(brand::expressive_material(t))brand::registration(c,365,35,123,t,s.blinkPhaseMs,s.isPlaying||s.studioAuditionHeld||s.studioAUsed);
  }
- const bool audition=s.studioTab==0&&(s.studioAuditionHeld||s.studioSynthPicker.previewSounding);
- const bool recording=s.resampleView.active||granular_recording_busy(s.sampleGranular.recording);
- const char* transport=recording?"RECORDING":s.studioAppearanceSettings?"SETTINGS":s.studioTab==3&&s.studioAUsed?"FX HELD":audition?"AUDITION":s.isPlaying?"PLAYING":"STOPPED";
- chip(c,transport,530,14,94,t,recording||(!s.studioAppearanceSettings&&(s.isPlaying||audition||s.studioAUsed)));
+ chip(c,transport,530,14,94,t,active);
  c.fill_rect(18,47,606,1,with_alpha(t.textParam,.2f));
  if(s.studioAppearanceSettings){
   c.draw_label("SETTINGS / APPEARANCE",18,62,t.textValue,18);
   label(c,"B: Back to Settings",466,67,t.rowCursor,158);
   return;
  }
- for(size_t i=0;i<kStudioMusicTabs.size();++i)
-  chip(c,kStudioMusicTabs[i].label,16+static_cast<int>(i)*88,60,80,t,kStudioMusicTabs[i].id==s.studioTab);
+ for(size_t i=0;i<kStudioMusicTabs.size();++i){
+  chip(c,kStudioMusicTabs[i].label,16+static_cast<int>(i)*77,60,70,t,kStudioMusicTabs[i].id==s.studioTab);
+  if(kStudioMusicTabs[i].id==s.studioTab)c.mark_selector(2,16+static_cast<int>(i)*77,60,70,23);   // glides (ui/layout.cpp)
+ }
 }
 void preset(Canvas& c,const AppState& s,const std::string& title){
  const auto& t=s.theme;studio_card(c,16,102,608,66,t,s.studioRow==0);
@@ -145,11 +244,14 @@ void preset(Canvas& c,const AppState& s,const std::string& title){
  label(c,s.studioTab==1?studio::effect_preset_description(s.studioEffectPreset):studio::master_preset_description(s.studioMasterPreset),30,152,t.textEmpty,570);
 }
 void dynamics(Canvas& c,const AppState& s){
- const auto& t=s.theme;const auto& p=s.project->studioMaster;
+ const auto& t=s.theme;auto p=s.project->studioMaster;
+ // The transfer curve morphs to new settings: its five shaping values ease (Canvas::tween).
+ for(const int k:{studio::THRESHOLD,studio::RATIO,studio::OUTPUT,studio::CEILING,studio::DRIVE})
+  p[static_cast<size_t>(k)]=static_cast<std::decay_t<decltype(p[0])>>(c.tween(0x4000000u+static_cast<uint32_t>(k),p[static_cast<size_t>(k)]));
  studio_card(c,416,180,208,226,t);
  c.draw_label(p[studio::ENABLE]?"Drive / comp / output":"Dynamics bypassed",430,191,t.textParam);
  const int x=436,y=219,w=165,h=106;
- c.fill_rect(x,y,w,h,darken(t.vizBackground,.75f));
+ c.fill_rect(x,y,w,h,recess(t.background,t.vizBackground,.75f));
  for(int k=0;k<=4;++k){c.fill_rect(x+k*w/4,y,1,h,with_alpha(t.textParam,.13f));c.fill_rect(x,y+k*h/4,w,1,with_alpha(t.textParam,.13f));}
  c.line(x,y+h-1,x+w-1,y,with_alpha(t.textParam,.25f));
  const float threshold=-48+48*p[studio::THRESHOLD]/255.f,ratio=1+19*p[studio::RATIO]/255.f;
@@ -170,6 +272,7 @@ void list_page(Canvas& c,const AppState& s){
  const int first=std::max(1,s.studioRow>6?s.studioRow-6:1);
  for(int i=first;i<std::min(first+7,studio_rows(s.studioTab));++i)
   row(c,16,180+(i-first)*32,390,studio_label(s,i),studio_value(s,i),t,s.studioRow==i);
+ c.mark_scroll(10+s.studioTab,16,180,390,7*32,first*32);   // the rows scroll smoothly (shell/app.cpp)
  if(s.studioTab==2){dynamics(c,s);return;}
  const auto& p=s.project->studioMaster;studio_card(c,416,180,208,226,t);
  c.draw_label("Wet / Dry",430,192,t.textParam);knob(c,520,247,p[studio::FX_MIX],t,s.studioRow==2);
@@ -207,6 +310,11 @@ void synth_page(Canvas& c,const AppState& s){
 
  const std::string page=studio_synth_page_name(s)+"   "+std::to_string(s.studioSynthPage+1)+" / "+std::to_string(studio_synth_page_count(s));
  label(c,page,22,229,t.rowCursor,370);
+ {// Page pips, a tracker's position strip: one per page, the current one lit.
+  const int pages=std::clamp(studio_synth_page_count(s),1,16),x0=22+std::min(Canvas::label_width(page,12),370)+14;
+  for(int i=0;i<pages;++i){const int x=x0+i*11;
+   if(i==s.studioSynthPage)c.fill_rect(x,232,7,7,t.rowCursor);
+   else c.stroke_rect(x,232,7,7,with_alpha(t.textParam,.55f));}}
  label(c,"R + Left / Right: Pages",455,229,t.textParam,168);
  const int controls=std::clamp(studio_synth_control_count(s),1,4);
  const int cellWidth=608/controls;
@@ -218,11 +326,12 @@ void synth_page(Canvas& c,const AppState& s){
   if(i)c.fill_rect(x,258,1,84,with_alpha(t.textParam,.23f));
   if(selected){
    c.panel_rect(x+5,254,cellWidth-10,92,mix(t.rowEvery4th,t.rowCursor,.12f),t.rowCursor,5);
+   c.mark_cursor(x+5,254,cellWidth-10,92);   // the highlight glides between controls (ui/layout.cpp)
    c.fill_rect(x+6,265,2,70,t.rowCursor);
   }
   label(c,studio_synth_control_label(s,i),x+16,265,selected?ink:t.textParam,cellWidth-32,14);
   label(c,studio_synth_control_value(s,i),x+16,290,ink,cellWidth-32,20);
-  const int level=std::clamp(studio_synth_control_level(s,i),0,255);
+  const int level=c.tween(0x2000000u+static_cast<uint32_t>(i),std::clamp(studio_synth_control_level(s,i),0,255));   // the blocks fill smoothly
   const int blocks=16,step=(cellWidth-32)/blocks;
   for(int j=0;j<blocks;++j){
    const bool lit=j*255/blocks<level;
@@ -268,14 +377,22 @@ void synth_picker_page(Canvas& c,const AppState& s){
  label(c,target,481,116,t.rowCursor,128,12);
  if(model){
   const auto& groups=studio_synth_model_groups();
-  studio_card(c,16,153,178,259,t);
-  for(int i=0;i<studio_synth_model_group_count();++i){
+  const bool railRight=scene_layout(t).railLeft;
+  const int familyX=railRight?446:16;
+  const int modelX=railRight?16:202;
+  studio_card(c,familyX,153,178,259,t);
+  // Eight families fit the card at 31 px; a ninth (Spectral) tightens the rows to 27 px, a tenth (Voice)
+  // to 25 px, an eleventh (Vintage) to 23 px.
+  const int families=studio_synth_model_group_count();
+  const int familyStep=families>10?23:families>9?25:families>8?27:31;
+  const int familyTop=families>10?158:161;   // eleven rows end 3 px above the card's lower edge
+  for(int i=0;i<families;++i){
    const bool focus=i==picker.group;
-   const int y=161+i*31;
-   if(focus)c.panel_rect(22,y,166,29,mix(t.rowEvery4th,t.rowCursor,.16f),t.rowCursor,4);
-   label(c,groups[i].name,30,y+7,focus?t.rowCursor:t.textValue,150,14);
+   const int y=familyTop+i*familyStep;
+   if(focus)c.panel_rect(familyX+6,y,166,familyStep-2,mix(t.rowEvery4th,t.rowCursor,.16f),t.rowCursor,4);
+   label(c,groups[i].name,familyX+14,y+7,focus?t.rowCursor:t.textValue,150,14);
   }
-  studio_card(c,202,153,422,259,t);
+  studio_card(c,modelX,153,422,259,t);
   const auto& group=groups[picker.group];
   const int highlighted=group.firstModel+picker.item;
   constexpr int visible=8;
@@ -285,35 +402,36 @@ void synth_picker_page(Canvas& c,const AppState& s){
    const int y=161+(i-first)*27;
    const int id=group.firstModel+i;
    const bool focus=i==picker.item;
-   if(focus)c.panel_rect(208,y,410,25,mix(t.rowEvery4th,t.rowCursor,.15f),t.rowCursor,4);
-   label(c,id==kSampleGranularModel?"Sample Granular":studio::model_name(id),222,y+5,focus?t.rowCursor:t.textValue,307,14);
-   if(id==active)label(c,"CURRENT",540,y+6,t.textParam,65,12);
+   if(focus){c.panel_rect(modelX+6,y,410,25,mix(t.rowEvery4th,t.rowCursor,.15f),t.rowCursor,4);c.mark_cursor(modelX+6,y,410,25);}
+   label(c,id==kSampleGranularModel?"Sample Granular":studio::model_name(id),modelX+20,y+5,focus?t.rowCursor:t.textValue,307,14);
+   if(id==active)label(c,"CURRENT",modelX+338,y+6,t.textParam,65,12);
   }
+  c.mark_scroll(20+16*picker.group,modelX+6,161,410,visible*27,first*27);   // one family's models slide
   if(group.firstModel==kSampleGranularModel){
-   label(c,"Granulate a loaded sample.",222,199,t.textParam,383,14);
-   label(c,"Load or crop the source in the Sample Granular editor.",222,225,t.textParam,383,12);
+   label(c,"Granulate a loaded sample.",modelX+20,199,t.textParam,383,14);
+   label(c,"Load or crop the source in the Sample Granular editor.",modelX+20,225,t.textParam,383,12);
   }else{
    const std::string position=std::to_string(picker.item+1)+" / "+std::to_string(group.count);
-   if(studio::is_gravity_model(highlighted))label(c,gravity_description(highlighted),222,364,t.textParam,375,14);
-   label(c,position,222,390,t.textParam,111);
-   synth_diagram(c,highlighted,526,384,t.rowCursor);
+   if(studio::is_gravity_model(highlighted))label(c,gravity_description(highlighted),modelX+20,364,t.textParam,375,14);
+   label(c,position,modelX+20,390,t.textParam,111);
+   synth_diagram(c,highlighted,modelX+324,384,t.rowCursor);
   }
   label(c,"Left / Right: Family    Up / Down: Model    R: Sample Granular",22,435,t.textParam,596);
  }else{
   const int count=studio::variation_count();
   const int columnSize=(count+1)/2;
   for(int i=0;i<count;++i){
-   const int x=16+(i/columnSize)*309,y=153+(i%columnSize)*43;
+   const int x=16+(i/columnSize)*309,y=153+(i%columnSize)*33;
    const bool focus=i==picker.item;
-   studio_card(c,x,y,299,37,t,focus);
-   label(c,studio_synth_preset_label(s.studioModel,i),x+15,y+9,focus?t.rowCursor:t.textValue,206,16);
-   if(!s.studioSynthCustom&&i==s.studioVariation)label(c,"CURRENT",x+225,y+12,t.textParam,64,12);
+   studio_card(c,x,y,299,28,t,focus);
+   label(c,studio_synth_preset_label(s.studioModel,i),x+15,y+5,focus?t.rowCursor:t.textValue,206,14);
+   if(!s.studioSynthCustom&&i==s.studioVariation)label(c,"CURRENT",x+225,y+7,t.textParam,64,12);
   }
   label(c,"D-pad: Preset",22,435,t.textParam,596);
  }
  c.fill_rect(18,424,606,1,with_alpha(t.textParam,.2f));
  const bool granularChoice=model&&picker.group==0;
- label(c,granularChoice?"A: Open editor    B: Back    Select: Help":"Hold L: Audition    A: Choose    B: Back    Select: Help",
+ label(c,granularChoice?"A: Open editor    B: Back    Select: Help":model?"Hold L: Audition    A: Presets    B: Back":"Hold L: Audition    A: Choose    B: Back    Select: Help",
        22,458,t.textValue,438);
  if(picker.previewSounding){
   c.draw_label("OUT",465,456,t.textParam,12);
@@ -380,18 +498,26 @@ void input_page(Canvas& c,const AppState& s){
 
 void style_page(Canvas& c,const AppState& s){
  const auto& t=s.theme;
+ const int font=theme_font(t,s.settings.fontStyle);
  studio_card(c,16,102,608,54,t,s.studioRow==0);c.draw_label("Design collection",30,109,t.textParam);
- c.draw_label(t.name,30,128,t.textValue,18);label(c,std::to_string(theme_builtins().size())+" designs",503,130,t.textParam,100);
+ c.draw_label(t.name,30,128,t.textValue,18);label(c,"A  SCENES",503,130,t.textParam,100);
  studio_card(c,16,166,608,46,t,s.studioRow==1);c.draw_label("Material",30,182,t.textParam);
  label(c,surface_style_name(t.surfaceStyle),145,178,t.rowCursor,460,18);
  studio_card(c,16,222,608,64,t,s.studioRow==2);c.draw_label("Typeface",30,237,t.textParam);
- label(c,demo_font_style_name(s.settings.fontStyle),145,233,t.rowCursor,460,18);
- label(c,demo_font_style_detail(s.settings.fontStyle),30,263,t.textParam,574,12);
- studio_card(c,16,298,608,118,t);c.draw_label("TRACKWERK / TYPE LAB",30,309,t.textValue,18);
- label(c,std::to_string(valid_demo_font_style(s.settings.fontStyle)+1)+" / "+std::to_string(kDemoFontStyleCount),536,312,t.rowCursor,75,12);
- c.draw_text("C#4 A-3 120 00 FF",30,341,t.rowCursor,1,3);
- c.draw_text("0/O  1/I/l  8/B  E/F  #",30,371,t.textValue,1,2);
- label(c,"SAMPLE / SLICE / SYNTH / PUNCH",30,396,t.textParam,580,12);
+ // Where this choice lives (studio.cpp): with a Scene look it belongs to the Scene and is replaced
+ // when a Scene is applied again; otherwise it is the typeface of every look.
+ const bool sceneFont=t.sceneChrome>0&&t.sceneChrome<=kSceneCount;
+ const char* scope=!sceneFont?"ALL LOOKS":font==kScenePresets[size_t(t.sceneChrome-1)].font?"SCENE FONT":"THIS SCENE ONLY";
+ label(c,demo_font_style_name(font),145,233,t.rowCursor,330,18);
+ label(c,scope,608-Canvas::label_width(scope,12),240,sceneFont&&std::string(scope)=="THIS SCENE ONLY"?t.rowCursor:t.textParam,140,12);
+ label(c,demo_font_style_detail(font),30,263,t.textParam,574,12);
+ studio_card(c,16,294,608,38,t,s.studioRow==3);c.draw_label("Motion",30,305,t.textParam);
+ label(c,s.settings.sceneMotion?"ON":"OFF",145,301,t.rowCursor,60,18);
+ label(c,s.settings.sceneMotion?"Scene animations while playing":"Still screens: no Scene animation",215,307,t.textParam,390,12);
+ studio_card(c,16,340,608,76,t);c.draw_label("TRACKWERK / TYPE LAB",30,348,t.textValue,18);
+ label(c,std::to_string(valid_demo_font_style(font)+1)+" / "+std::to_string(kDemoFontStyleCount),536,351,t.rowCursor,75,12);
+ c.draw_text("C#4 A-3 120 00 FF",30,375,t.rowCursor,1,3);
+ c.draw_text("0/O  1/I/l  8/B  E/F  #",330,378,t.textValue,1,2);
 }
 Argb punch_ink(const Theme& theme,int bank){
  // Keep custom monochrome/OLED palettes exact; other themes gain a restrained family tint.
@@ -403,23 +529,26 @@ Argb punch_ink(const Theme& theme,int bank){
 void punch_page(Canvas& c,const AppState& s){
  const auto& t=s.theme;const int bank=studio::punch_bank(s.studioPunch),pad=studio::punch_pad(s.studioPunch);
  const Argb accent=punch_ink(t,bank);
+ const bool monitorBelow=scene_layout(t).scopeBottom;
+ const int monitorY=monitorBelow?275:126;
+ const int padsY=monitorBelow?126:188;
  const char* banks[]={"RHYTHM","TAPE","FILTER","DUB","GLITCH","GRAIN","MOD","DAMAGE"};
  for(int i=0;i<studio::kPunchBanks;++i)chip(c,banks[i],16+i*77,94,72,t,i==bank);
  c.fill_rect(28+bank*77,115,48,1,accent);
- studio_card(c,16,126,608,51,t,s.studioAUsed);
- c.draw_label(studio::punch_bank_name(bank),31,137,t.textValue,18);
- label(c,studio::punch_name(s.studioPunch),31,160,s.studioAUsed?accent:t.textParam,227);
+ studio_card(c,16,monitorY,608,51,t,s.studioAUsed);
+ c.draw_label(studio::punch_bank_name(bank),31,monitorY+11,t.textValue,18);
+ label(c,studio::punch_name(s.studioPunch),31,monitorY+34,s.studioAUsed?accent:t.textParam,227);
  // A large effect diagram supplies the performance movement. Its raster never crosses labels.
- c.fill_rect(275,133,242,36,darken(t.vizBackground,.72f));
- for(int yy=136;yy<169;yy+=6)c.fill_rect(278,yy,236,1,with_alpha(t.textParam,.07f));
- brand::punch_gesture(c,bank,s.studioPunch,279,135,234,31,s.blinkPhaseMs,s.studioAUsed,accent);
- c.panel_rect(535,139,73,23,mix(t.rowEvery4th,accent,s.studioAUsed?.17f:.04f),with_alpha(accent,s.studioAUsed?.8f:.32f),4);
- label(c,s.studioAUsed?"HELD A":"READY",546,143,accent,53);
+ c.fill_rect(275,monitorY+7,242,36,recess(t.background,t.vizBackground,.72f));
+ for(int yy=monitorY+10;yy<monitorY+43;yy+=6)c.fill_rect(278,yy,236,1,with_alpha(t.textParam,.07f));
+ brand::punch_gesture(c,bank,s.studioPunch,279,monitorY+9,234,31,s.blinkPhaseMs,s.studioAUsed,accent);
+ c.panel_rect(535,monitorY+13,73,23,mix(t.rowEvery4th,accent,s.studioAUsed?.17f:.04f),with_alpha(accent,s.studioAUsed?.8f:.32f),4);
+ label(c,s.studioAUsed?"HELD A":"READY",546,monitorY+17,accent,53);
  // This cursor is real sequencer readback, not a decorative beat/level estimate.
  int sequenceStep=-1;
  if(s.isPlaying)for(const auto& playhead:s.playheads)if(playhead.step>=0){sequenceStep=playhead.step&15;break;}
  for(int i=0;i<studio::kPunchPads;++i){
-  const int x=16+(i%4)*154,y=188+(i/4)*74,id=studio::punch_id(bank,i);
+  const int x=16+(i%4)*154,y=padsY+(i/4)*74,id=studio::punch_id(bank,i);
   const bool selected=i==pad,active=selected&&s.studioAUsed;
   studio_card(c,x,y,146,65,t,selected);
   if(selected)c.fill_rect(x+1,y+8,3,49,active?accent:with_alpha(t.rowCursor,.65f));
@@ -451,11 +580,12 @@ void punch_page(Canvas& c,const AppState& s){
 
 } // namespace
 void draw_studio(Canvas& c,const AppState& s){
- c.set_surface_style(s.theme.surfaceStyle);c.set_font_style(s.settings.fontStyle);heading(c,s);const auto& t=s.theme;
+ c.set_appearance(s.theme,s.settings.fontStyle);heading(c,s);const auto& t=s.theme;
  if(s.studioHelp){draw_studio_help(c,s);return;}
  if(draw_studio_workspace(c,s))return;
  if(studio_synth_picker_open(s)){synth_picker_page(c,s);return;}
  if(sample_granular_preset_picker_open(s)){draw_sample_granular(c,s);return;}
+ c.mark_stage(0,88,640,392);   // below the heading and tabs: the page that changes (shell/app.cpp)
  if(sample_granular_studio(s))draw_sample_granular(c,s);
  else if(s.studioTab==0)synth_page(c,s);
  else if(s.studioTab==1||s.studioTab==2)list_page(c,s);
@@ -464,6 +594,7 @@ void draw_studio(Canvas& c,const AppState& s){
  else if(s.studioTab==5){drumlab_draw(c,s.drumLab,t,*s.project);return;}
  else if(s.studioTab==6)style_page(c,s);
  else if(s.studioTab==7){source_sampler_draw(c,s.sourceSampler,t,*s.project);return;}
+ else if(s.studioTab==8){harmony_draw(c,s);return;}
  // Drumlab draws its own grid between the shared heading and footer.
  c.fill_rect(18,424,606,1,with_alpha(t.textParam,.2f));
  const bool granular=sample_granular_studio(s);

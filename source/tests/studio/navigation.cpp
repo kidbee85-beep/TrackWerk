@@ -58,7 +58,7 @@ int main(int argc,char** argv){
  const auto originalConfig=bytes(root/"data/config.json"),originalPreset=bytes(root/"data/Presets/User/keep.json");
 
  // Stable public-facing descriptors and saved SettingsRow identities.
- const int ids[]={0,1,2,3,4,5,7};const char* names[]={"Synth","FX","Master","Punch","Record","Drumlab","Sources"};
+ const int ids[]={0,1,2,3,4,5,7,8};const char* names[]={"Synth","FX","Master","Punch","Record","Drumlab","Sources","Harmony"};
  for(size_t i=0;i<kStudioMusicTabs.size();++i){assert(kStudioMusicTabs[i].id==ids[i]);assert(std::string(kStudioMusicTabs[i].label)==names[i]);}
  static_assert(static_cast<int>(SettingsRow::THEME)==9);
  static_assert(static_cast<int>(SettingsRow::AUDIO_OUT)==18);
@@ -76,10 +76,12 @@ int main(int argc,char** argv){
  assert(s.studioTab==4&&s.studioOpen);
  in.release(Button::DPAD_RIGHT);in.press(Button::DPAD_RIGHT);assert(s.studioTab==5);
  in.release(Button::DPAD_RIGHT);in.press(Button::DPAD_RIGHT);assert(s.studioTab==7);
+ in.release(Button::DPAD_RIGHT);in.press(Button::DPAD_RIGHT);assert(s.studioTab==8);
  in.release(Button::DPAD_RIGHT);in.press(Button::DPAD_RIGHT);assert(s.studioTab==0);
  in.release(Button::DPAD_RIGHT);in.release(Button::B);assert(s.studioOpen);
  // Reverse travel skips the settings-only Appearance ID too.
- in.press(Button::B);in.tap(Button::DPAD_LEFT);assert(s.studioTab==7);
+ in.press(Button::B);in.tap(Button::DPAD_LEFT);assert(s.studioTab==8);
+ in.tap(Button::DPAD_LEFT);assert(s.studioTab==7);
  in.tap(Button::DPAD_LEFT);assert(s.studioTab==5);in.release(Button::B);
  // Ending B ends the chord; there is no delayed Back on its release.
  in.press(Button::B);in.press(Button::DPAD_RIGHT);assert(s.studioTab==7);
@@ -165,7 +167,7 @@ int main(int argc,char** argv){
  s.studioOpen=false;s.currentScreen=ScreenType::SETTINGS;s.settingsReturnScreen=ScreenType::PHRASE;
  s.settingsCursorRow=19;s.settingsCursorColumn=1;s.studioTab=7;
  in.now+=400;in.press(Button::A);assert(s.studioOpen&&s.studioAppearanceSettings&&s.studioTab==6);
- in.release(Button::A);assert(s.studioTab==6&&!s.studioConfirm);
+ in.release(Button::A);assert(s.studioTab==6&&!s.studioConfirm&&s.scenePicker<0);
  const auto settingsRow=s.settingsCursorRow,settingsColumn=s.settingsCursorColumn;
  in.press(Button::B);in.tap(Button::DPAD_RIGHT);in.release(Button::B);
  assert(s.studioOpen&&s.studioAppearanceSettings&&s.studioTab==6);
@@ -201,5 +203,5 @@ int main(int argc,char** argv){
  assert(s.studioOpen&&!s.studioAppearanceSettings&&s.studioTab==3&&s.currentScreen==ScreenType::SETTINGS);
  in.tap(Button::B);assert(!s.studioOpen&&s.currentScreen==ScreenType::SETTINGS);
  assert(songcore::serialize_project(host.project())==originalProject);
- std::cout<<"PASS: seven stable music tabs, held-chord repeat latch, release safety, local Punch banks, settings-only Appearance entry/back/help, stable row IDs and settings/control/project preservation\n";
+ std::cout<<"PASS: eight stable music tabs, held-chord repeat latch, release safety, local Punch banks, settings-only Appearance entry/back/help, stable row IDs and settings/control/project preservation\n";
 }

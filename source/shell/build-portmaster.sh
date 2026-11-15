@@ -146,6 +146,12 @@ cp "$SRC/native/vendor/opus/LICENSE_PLEASE_READ.txt"    "$STAGE/pockettracker/li
 # into the binary is adapted from it.
 cp "$SRC/docs/licenses/OFL-1.1-LiberationSans.txt"      "$STAGE/pockettracker/licenses/OFL-1.1-LiberationSans.txt"
 cp "$SRC/docs/licenses/OFL-1.1-QuinqueFive.txt"         "$STAGE/pockettracker/licenses/OFL-1.1-QuinqueFive.txt"
+# The Studio's Mutable Instruments/stmlib DSP (MIT) and the DaisySP conversion record ship in
+# every artifact too; THIRD-PARTY-NOTICES.md cites them by these names (see app/build.gradle.kts).
+cp "$SRC/docs/licenses/Mutable-Instruments-MIT.txt" "$STAGE/pockettracker/licenses/Mutable-Instruments-MIT.txt"
+cp "$SRC/docs/licenses/Mutable-Instruments-PROVENANCE.txt" "$STAGE/pockettracker/licenses/Mutable-Instruments-PROVENANCE.txt"
+cp "$SRC/native/vendor/mutable/stmlib/LICENSE" "$STAGE/pockettracker/licenses/Mutable-stmlib-LICENSE"
+cp "$SRC/docs/licenses/DaisySP-GPL-CONVERSION.txt" "$STAGE/pockettracker/licenses/DaisySP-GPL-CONVERSION.txt"
 ls -1 "$STAGE/pockettracker/licenses/"
 
 echo
@@ -225,7 +231,7 @@ for D in "$SRC"/native/vendor/*/; do VENDORED="$VENDORED $(basename "$D")"; done
 # documented?", and the answer must be yes regardless of which artifact links which. THIRD-PARTY-NOTICES.md
 # is the file that then answers per artifact; it has a table for exactly this.
 for COMPONENT in $VENDORED kissfft daisysp soundpipe; do
-    if grep -qi -- "$COMPONENT" "$NOTICES"; then
+    if grep -qiw -- "$COMPONENT" "$NOTICES"; then
         echo "  ok      $COMPONENT"
     else
         echo "  MISSING $COMPONENT"
@@ -287,7 +293,8 @@ fi
 echo
 echo "licences, read back out of the zip:"
 for L in LICENSE THIRD-PARTY-NOTICES.md CREDITS.md libogg-COPYING libopus-COPYING \
-         libopus-LICENSE_PLEASE_READ.txt OFL-1.1-LiberationSans.txt OFL-1.1-QuinqueFive.txt; do
+         libopus-LICENSE_PLEASE_READ.txt OFL-1.1-LiberationSans.txt OFL-1.1-QuinqueFive.txt \
+         Mutable-Instruments-MIT.txt Mutable-Instruments-PROVENANCE.txt Mutable-stmlib-LICENSE DaisySP-GPL-CONVERSION.txt; do
     # ⚠️ `|| BYTES=0` is what makes the failure READABLE. A member that is not in the archive makes
     # unzip exit 11, and under `set -euo pipefail` that kills the script mid-loop — before the FAIL
     # line below, so the package is rejected without ever naming the file that is missing. Absent and

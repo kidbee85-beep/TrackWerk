@@ -91,7 +91,14 @@ const char* cell_label(Cell cell, int cc_slot_index) {
     return "";
 }
 
-const char* on_off(bool v) { return v ? "on" : "off"; }
+const char* on_off(bool v) { return v ? "ON" : "OFF"; }
+
+// The model keeps "off"/"lp"/"fwd" lower-case (project files, presets); the page shows every enum in
+// one case, as SLICE already did.
+std::string shown_upper(std::string v) {
+    for (char& ch : v) if (ch >= 'a' && ch <= 'z') ch = char(ch - 'a' + 'A');
+    return v;
+}
 
 std::string cell_text(Cell cell, int cc_slot_index, const InstrumentEditorState& s) {
     const Instrument& ins = s.instrument;
@@ -106,7 +113,7 @@ std::string cell_text(Cell cell, int cc_slot_index, const InstrumentEditorState&
         case Cell::ROOT:       return note_name(ins.root);
         case Cell::DETUNE:     return hex2(ins.detune);
         case Cell::DRIVE:      return hex2(ins.drive);
-        case Cell::FILTER:     return ins.filterType;
+        case Cell::FILTER:     return shown_upper(ins.filterType);
         case Cell::CRUSH:      return hex1(ins.crush);
         case Cell::FREQ:       return hex2(ins.filterCut);
         case Cell::DOWNSAMPLE: return hex1(ins.downsample);
@@ -121,7 +128,7 @@ std::string cell_text(Cell cell, int cc_slot_index, const InstrumentEditorState&
             return s.sfPresetName.empty() ? num : num + " " + s.sfPresetName;
         }
         case Cell::SLICE:      return slice_modes()[static_cast<size_t>(clamp(ins.slicingMode, 0, 2))];
-        case Cell::LOOP:       return ins.loopMode;
+        case Cell::LOOP:       return shown_upper(ins.loopMode);
         case Cell::START:      return hex2(ins.sampleStart);
         case Cell::LOOP_START: return hex2(ins.loopStart);
         case Cell::END:        return hex2(ins.sampleEnd);
@@ -172,7 +179,8 @@ void InstrumentEditorModule::draw(Canvas& c, int x, int y, const InstrumentEdito
                  with_alpha(t.textParam, .18f), 4);
 
     const int nameX  = x + 10;
-    const int valueX = x + 150;
+    // 160, not 150: the 8-letter LOOP END (136 px from x+10) touched its value ("LOOP ENDFF").
+    const int valueX = x + 160;
 
     int rowY = y + TEXT_PADDING;
 
@@ -262,10 +270,10 @@ void InstrumentEditorModule::draw_type_load_row(Canvas& c, int x, int y, int nam
     const bool c3 = onRow && cursor_column == 3;
 
     // Lowercase, as the other cycling cells here.
-    const char* typeText = ins.sampleFilePath&&studio::uri_code(ins.sampleFilePath->c_str())>=0?"synth":"sampler";
+    const char* typeText = ins.sampleFilePath&&studio::uri_code(ins.sampleFilePath->c_str())>=0?"SYNTH":"SAMPLER";
     switch (type) {
-        case InstrumentType::SOUNDFONT: typeText = "soundfont"; break;
-        case InstrumentType::EXTERNAL:  typeText = "external";  break;
+        case InstrumentType::SOUNDFONT: typeText = "SOUNDFONT"; break;
+        case InstrumentType::EXTERNAL:  typeText = "EXTERNAL";  break;
         case InstrumentType::SAMPLER:   break;
     }
 

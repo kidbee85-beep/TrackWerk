@@ -9,6 +9,8 @@ foreach(unit analog_oscillator digital_oscillator macro_oscillator resources)
 endforeach()
 add_library(pt-mutable STATIC ${MI_SOURCES} synth.cpp sample_granular.cpp rack.cpp punch.cpp m8_import.cpp)
 set_target_properties(pt-mutable PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# FFT for the spectral engines; the target is defined in ../CMakeLists.txt.
+target_link_libraries(pt-mutable PUBLIC pt-kissfft)
 target_include_directories(pt-mutable PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ${MI_ROOT})
 target_compile_definitions(pt-mutable PRIVATE TEST=1)
 # Keep NaN handling and denormal protection effective; no unsafe reassociation.

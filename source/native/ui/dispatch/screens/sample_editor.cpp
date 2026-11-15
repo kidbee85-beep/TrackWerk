@@ -15,9 +15,12 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
+#include <new>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace pt::ui {
@@ -45,9 +48,39 @@ void rescale_positions(SampleEditorState& se, int oldLen, int newLen) {
     auto scale = [&](int64_t f) -> int64_t {
         return oldLen > 0 ? std::clamp<int64_t>((f * newLen) / oldLen, 0, newLen) : 0;
     };
+    const bool hadSelection = se.selectionEnd > se.selectionStart;
     se.selectionStart = scale(se.selectionStart);
     se.selectionEnd   = scale(se.selectionEnd);
+    // A selection never shrinks to nothing on a shorter buffer: it keeps at least one frame.
+    if (hadSelection && newLen > 0 && se.selectionEnd <= se.selectionStart) {
+        se.selectionStart = std::min<int64_t>(se.selectionStart, newLen - 1);
+        se.selectionEnd   = se.selectionStart + 1;
+    }
     se.slicePosition  = scale(se.slicePosition);
+    // Every marker list moves with the audio (a RATE step, pitch or sync rescales it end to end):
+    // sorted, unique and strictly inside the new length, so SEL SL, CHOP and SAVE see valid bounds.
+    // In place, without allocating: it runs after the audio has been replaced and must not fail.
+    const auto inside = [&](int64_t f) { return f > 0 && f < newLen; };
+    const auto rescaleList = [&](std::vector<int>& list) {
+        size_t kept = 0;
+        for (size_t i = 0; i < list.size(); ++i) {
+            const int64_t g = scale(list[i]);
+            if (inside(g) && (kept == 0 || g > list[kept - 1])) list[kept++] = static_cast<int>(g);
+        }
+        list.resize(kept);   // shrinking: no allocation
+    };
+    rescaleList(se.fileMarkers);
+    rescaleList(se.transientMarkers);
+    size_t kept = 0;
+    for (size_t i = 0; i < se.manualMarkers.size(); ++i) {
+        SliceMarker m = se.manualMarkers[i];
+        const int64_t g = scale(m.frame);
+        if (!inside(g) || (kept > 0 && g <= se.manualMarkers[kept - 1].frame)) continue;
+        m.frame = static_cast<int>(g);
+        if (m.originFrame >= 0) m.originFrame = static_cast<int>(scale(m.originFrame));
+        se.manualMarkers[kept++] = m;
+    }
+    se.manualMarkers.resize(kept);
 }
 
 /** DIVIDE's boundaries: `divisions` equal slices. */
@@ -233,12 +266,22 @@ void InputDispatcher::sample_editor_audition(int64_t first, int64_t end) {
     samplePending_.previewRestoreAtMs = now_ms_ + 100;
     samplePending_.previewRestoreInst = se.instrumentId;
 
+    // Refused for memory: nothing plays (nor one still queued), and the source is the clean audio.
+    auto cancel_preview = [&] {
+        host_.restore_fx_preview_backup();
+        host_.stop_preview();
+        se.playbackPosition = -1.0f;
+        se.toolMessage = "PREVIEW CANCELLED: NOT ENOUGH MEMORY";
+        set_status(s_, se.toolMessage, false);
+    };
+
     // The FX row is auditioned by applying it, and the clean audio restored after.
     host_.restore_fx_preview_backup();
     if (!review && se.fx_armed()) {
         before_long_operation();
-        host_.save_fx_preview_backup(se.instrumentId);
-        host_.apply_sample_fx(se.instrumentId, se.fxType, se.fx_param());
+        if (!host_.save_fx_preview_backup(se.instrumentId)) { cancel_preview(); return; }
+        try { host_.apply_sample_fx(se.instrumentId, se.fxType, se.fx_param()); }
+        catch (const std::bad_alloc&) { cancel_preview(); return; }
     }
 
     // SYNC is auditioned from a copy (it changes the length), taking the pending PITCH with it.
@@ -248,9 +291,17 @@ void InputDispatcher::sample_editor_audition(int64_t first, int64_t end) {
     const int pitch = synced || review ? 0 : se.pitchSemitones;
 
     host_.set_preview_track(-1);   // a waveform being edited is not in the arrangement
-    host_.preview_sample_editor(se.instrumentId, se.sourceMode, review ? first : se.selectionStart,
-                                review ? end : se.selectionEnd,
-                                se.totalFrames, pitch, sync);
+    bool ok = false;
+    try {
+        ok = host_.preview_sample_editor(se.instrumentId, se.sourceMode, review ? first : se.selectionStart,
+                                         review ? end : se.selectionEnd, se.totalFrames, pitch, sync);
+    } catch (const std::bad_alloc&) { ok = false; }
+    if (!ok) { cancel_preview(); return; }
+    // A retry that plays clears the earlier refusal.
+    if (se.toolMessage == "PREVIEW CANCELLED: NOT ENOUGH MEMORY") {
+        se.toolMessage.clear();
+        if (s_.statusMessage == "PREVIEW CANCELLED: NOT ENOUGH MEMORY") s_.statusMessage.clear();
+    }
 }
 
 // ─── Opening and closing ─────────────────────────────────────────────────────────────────────────
@@ -292,6 +343,8 @@ void InputDispatcher::init_sample_editor_state() {
 
     // ⚠️ SOURCE opens on STEREO for a stereo sample: any other mode saves one channel.
     se.sourceMode = se.hasStereoData ? 2 /*STEREO*/ : 0;
+    se.undoMarkers = {};   // a fresh editor session: no backup's markers yet
+    se.heldUndoMarkers = {};
 
     se.waveformData  = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS, 0, 0,
                                              waveform_channel(se.sourceMode));
@@ -336,6 +389,9 @@ void InputDispatcher::init_sample_editor_state() {
 }
 
 void InputDispatcher::close_sample_editor(bool viaBack) {
+    // An audition still ringing or still queued (from any slot, the original's too) ends here.
+    host_.stop_preview();
+    s_.sampleEditor.playbackPosition = -1.0f;
     // Pay any pending audition restore now, or it lands on a slot no longer on screen.
     run_due_sample_preview_restore(/*force=*/true);
 
@@ -369,6 +425,10 @@ void InputDispatcher::nudge_selection_edge(int64_t delta) {
 
     const int64_t maxFrame = se.totalFrames;
     const int     dir      = (delta >= 0) ? 1 : -1;
+    // A selection from elsewhere (an older length) is brought inside the buffer first, at least
+    // one frame wide, so the clamps below always have lo <= hi.
+    se.selectionStart = std::clamp<int64_t>(se.selectionStart, 0, maxFrame - 1);
+    se.selectionEnd   = std::clamp<int64_t>(se.selectionEnd, se.selectionStart + 1, maxFrame);
 
     // SNAP: the nearest zero crossing in the direction of travel, ⚠️ in the signal SAVE writes.
     auto snap = [&](int64_t f) -> int64_t {
@@ -448,7 +508,7 @@ void InputDispatcher::materialise_manual_markers() {
 void InputDispatcher::select_current_slice() {
     SampleEditorState& se = s_.sampleEditor;
     int64_t start = 0, end = 0;
-    se.slice_bounds(se.sliceIndex, start, end);
+    se.slice_selection(se.sliceIndex, start, end);
     se.selectionStart = start;
     se.selectionEnd   = end;
 }
@@ -560,6 +620,15 @@ void InputDispatcher::apply_sample_rate_and_bits() {
 
     // ⚠️ Notes already scheduled (up to LONG_OPERATION_MS) keep the old base frequency.
     host_.apply_rate_and_bits(se.instrumentId, factor, se.bitDepth);
+    {   // A refused step (too short a buffer) stays where it was: no change, nothing modified.
+        const int done = host_.sample_rate_factor(se.instrumentId);
+        se.rateMode = done >= 4 ? 2 : (done >= 2 ? 1 : 0);
+        if (done != factor) {
+            se.toolMessage = "TOO SHORT FOR THIS RATE";
+            set_status(s_, se.toolMessage, false);
+            return;
+        }
+    }
 
     const int newLen = host_.sample_length(se.instrumentId);
     rescale_positions(se, oldLen, newLen);
@@ -608,12 +677,21 @@ void InputDispatcher::refresh_sample_view(bool reset_selection) {
         se.sliceIndex      = 0;   // the ceiling has just collapsed to a single slice, the whole sample
     }
 
-    se.waveformData = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS,
-                                            static_cast<int>(se.view_start()),
-                                            static_cast<int>(se.view_end()),
-                                            waveform_channel(se.sourceMode));
-    se.overviewData = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS, 0, newLen,
-                                          waveform_channel(se.sourceMode));
+    // The picture is the last step and never the reason an edit is half done: without the memory
+    // for it the editor stays on the new audio, with no waveform and a word saying why.
+    try {
+        se.waveformData = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS,
+                                                static_cast<int>(se.view_start()),
+                                                static_cast<int>(se.view_end()),
+                                                waveform_channel(se.sourceMode));
+        se.overviewData = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS, 0, newLen,
+                                              waveform_channel(se.sourceMode));
+    } catch (const std::bad_alloc&) {
+        se.waveformData.clear();
+        se.overviewData.clear();
+        se.toolMessage = "WAVEFORM NOT SHOWN: NOT ENOUGH MEMORY";
+        set_status(s_, se.toolMessage, false);
+    }
 }
 
 // ─── A on the op rows, the FX row, the name and the save buttons ─────────────────────────────────
@@ -642,26 +720,82 @@ void InputDispatcher::sample_editor_confirm() {
     // Not on row 11, whose tap must not stop the audition it is tapped against.
     if (se.cursorRow != 11) host_.restore_fx_preview_backup();
     const int          instId = se.instrumentId;
-    const int          startF = static_cast<int>(se.selectionStart);
-    const int          endF   = static_cast<int>(se.selectionEnd);
+    // Within the buffer: a range past either end edits (or copies) only what is there.
+    const int          startF = static_cast<int>(std::clamp<int64_t>(se.selectionStart, 0, se.totalFrames));
+    const int          endF   = static_cast<int>(std::clamp<int64_t>(se.selectionEnd, 0, se.totalFrames));
 
-    auto begin_destructive = [&] {
-        if (host_.backup_sample(instId)) return true;
-        se.toolMessage="EDIT CANCELLED: UNDO MEMORY UNAVAILABLE";
-        set_status(s_,se.toolMessage,false);
-        return false;
+    // The engine keeps at least one frame: a cut of everything is refused before it touches Undo.
+    auto refuse_whole_cut = [&] {
+        se.toolMessage = "KEEPS AT LEAST ONE FRAME: SELECT LESS";
+        set_status(s_, se.toolMessage, false);
+    };
+    // The new buffer an edit will allocate, checked together with its Undo backup (and a staged
+    // CUT/DUPL copy) as one peak against the load budget.
+    const int64_t channels = host_.has_stereo_data(instId) ? 2 : 1;
+    auto bufferBytes = [&](int64_t frames) { return std::max<int64_t>(frames, 0) * channels * int64_t(sizeof(float)); };
+    auto cancel = [&](const char* message) {
+        se.toolMessage = message;
+        set_status(s_, se.toolMessage, false);
+    };
+    auto begin_destructive = [&](int64_t extraBytes, bool resizes) {
+        return begin_sample_backup(instId, extraBytes, resizes);
+    };
+    // An edit that could not get its memory after all: the previous backup and its markers come
+    // back, nothing else has changed (the engine builds every new buffer before it touches the slot).
+    auto failed = [&] {
+        settle_sample_backup(instId, /*ok=*/false);
+        cancel("EDIT CANCELLED: NOT ENOUGH MEMORY");
+    };
+    // Off HIGH (or below the source BIT) an edit that goes through makes the reduced buffer the
+    // original (the engine drops the RATE basis then); one it refuses keeps it. RATE shows which.
+    auto show_rate_step = [&] {
+        const int factor = host_.sample_rate_factor(instId);
+        se.rateMode = factor >= 4 ? 2 : (factor >= 2 ? 1 : 0);
     };
     auto in_place = [&](auto&& op) {   // an op that does NOT change the length
-        if (!begin_destructive()) return;
-        op();
+        // Checked against the buffer before Undo is replaced: an empty selection edits nothing.
+        if (std::clamp(startF, 0, se.totalFrames) >= std::clamp(endF, 0, se.totalFrames)) {
+            cancel("SELECT AT LEAST ONE FRAME");
+            return;
+        }
+        if (!begin_destructive(0, /*resizes=*/false)) return;
+        try { op(); } catch (const std::bad_alloc&) { failed(); return; }
+        settle_sample_backup(instId, /*ok=*/true);
+        show_rate_step();
         refresh_sample_view(/*reset_selection=*/false);
         se.isModified = true;
     };
-    auto resizing = [&](auto&& op) {   // an op that DOES
-        if (!begin_destructive()) return;
-        op();
+    // An op that DOES change the length: returns false when the engine could not build its buffer.
+    auto resizing = [&](int64_t newFrames, auto&& op) {
+        if (!begin_destructive(bufferBytes(newFrames), /*resizes=*/true)) return false;
+        bool ok = false;
+        try { ok = op(); } catch (const std::bad_alloc&) { ok = false; }
+        if (!ok) { failed(); return false; }
+        settle_sample_backup(instId, /*ok=*/true);
+        show_rate_step();
         refresh_sample_view(/*reset_selection=*/true);
         se.isModified = true;
+        return true;
+    };
+    // CUT and DUPL: the copy is built first, the backup next, then the edit; the old clipboard is let
+    // go only once all of it went through. Any refusal leaves clipboard, Undo, audio, selection and
+    // markers exactly as they were.
+    auto cut_or_dupl = [&](bool cut) {
+        if (!host_.stage_copy(instId, startF, endF)) { cancel("EDIT CANCELLED: NOT ENOUGH MEMORY TO COPY"); return; }
+        const int64_t span = endF - startF;
+        const bool ok = resizing(cut ? se.totalFrames - span : se.totalFrames + span, [&] {
+            if (cut) {
+                if (!host_.delete_sample_region(instId, startF, endF)) return false;
+                host_.commit_copy();   // the cut audio is the clipboard now
+                return true;
+            }
+            host_.commit_copy();       // DUPL pastes from the clipboard...
+            if (host_.paste_region(instId, se.totalFrames)) return true;
+            host_.uncommit_copy();     // ...and gives the old one back if it cannot
+            return false;
+        });
+        (void)ok;
+        host_.discard_copy();   // the staged copy (refused) or the old clipboard (done)
     };
 
     switch (se.cursorRow) {
@@ -713,30 +847,29 @@ void InputDispatcher::sample_editor_confirm() {
         case 13:
             switch (se.cursorCol) {
                 case 0:   // CROP — keep the selection, discard the rest
-                    if (startF < endF) resizing([&] { host_.crop_sample(instId, startF, endF); });
+                    if (startF < endF) resizing(endF - startF, [&] { return host_.crop_sample(instId, startF, endF); });
                     break;
                 case 1:   // COPY — the ONE op on this row that changes nothing, so it takes no backup
                     host_.copy_region(instId, startF, endF);
                     break;
                 case 2:   // CUT = copy, then delete
-                    if (startF < endF) resizing([&] {
-                        host_.copy_region(instId, startF, endF);
-                        host_.delete_sample_region(instId, startF, endF);
-                    });
+                    if (startF <= 0 && endF >= se.totalFrames) { refuse_whole_cut(); break; }
+                    if (startF < endF) cut_or_dupl(/*cut=*/true);
                     break;
                 case 3:   // DUPL = copy the selection and paste it at the END
-                    if (startF < endF) resizing([&] {
-                        host_.copy_region(instId, startF, endF);
-                        host_.paste_region(instId, se.totalFrames);
-                    });
+                    // Never the old clipboard: DUPL appends only what it has just copied.
+                    if (startF < endF) cut_or_dupl(/*cut=*/false);
                     break;
                 case 4:   // PASTE — inserts at the selection's START
                     if (host_.clipboard_length() > 0)
-                        resizing([&] { host_.paste_region(instId, startF); });
+                        resizing(se.totalFrames + host_.clipboard_length(),
+                                 [&] { return host_.paste_region(instId, startF); });
                     break;
                 case 5:   // DEL
+                    if (startF <= 0 && endF >= se.totalFrames) { refuse_whole_cut(); break; }
                     if (startF < endF)
-                        resizing([&] { host_.delete_sample_region(instId, startF, endF); });
+                        resizing(se.totalFrames - (endF - startF),
+                                 [&] { return host_.delete_sample_region(instId, startF, endF); });
                     break;
                 default: break;
             }
@@ -757,10 +890,39 @@ void InputDispatcher::sample_editor_confirm() {
                 case 4: in_place([&] { host_.reverse_sample(instId, startF, endF); }); break;
 
                 case 5: {   // UNDO — one level, and it may restore a DIFFERENT length
-                    host_.undo_sample(instId);
+                    const int lengthBefore = se.totalFrames;
+                    const bool bufferBack = host_.undo_sample(instId);
+                    {   // RATE and BIT show the step the restored buffer stands on.
+                        const int factor = host_.sample_rate_factor(instId);
+                        se.rateMode = factor >= 4 ? 2 : (factor >= 2 ? 1 : 0);
+                        const int bits = host_.sample_level_bits(instId);
+                        se.bitDepth = bits > 0 ? bits : se.sourceBitDepth;
+                        se.sampleRate = host_.sample_rate_of(instId);
+                    }
                     // An in-place cleanup's undo keeps the user's slices and selection.
                     // Bounds must be rebuilt only when the restored audio has another length.
-                    refresh_sample_view(/*reset_selection=*/host_.sample_length(instId)!=se.totalFrames);
+                    const int lengthAfter = host_.sample_length(instId);
+                    const bool lengthChanged = lengthAfter != lengthBefore;
+                    const auto& kept = se.undoMarkers;
+                    // Undoing an edit that reset the markers (a cut, a crop, a SYNC: even one that
+                    // kept the length) brings back the markers of the audio it restores.
+                    const bool restoreKept = bufferBack && kept.restoreOnUndo && kept.length == lengthAfter;
+                    // Undoing an in-place edit keeps the markers as they are now; if the length moves
+                    // (the RATE basis came back with it), they move with it.
+                    auto current = std::make_tuple(se.fileMarkers, se.manualMarkers, se.manualKeyMethod, se.manualKeyParam);
+                    if (!restoreKept && lengthChanged) {
+                        rescale_positions(se, lengthBefore, lengthAfter);
+                        current = std::make_tuple(se.fileMarkers, se.manualMarkers, se.manualKeyMethod, se.manualKeyParam);
+                    }
+                    refresh_sample_view(/*reset_selection=*/lengthChanged);
+                    if (restoreKept) {
+                        se.fileMarkers     = kept.fileMarkers;
+                        se.manualMarkers   = kept.manualMarkers;
+                        se.manualKeyMethod = kept.manualKeyMethod;
+                        se.manualKeyParam  = kept.manualKeyParam;
+                    } else if (lengthChanged) {
+                        std::tie(se.fileMarkers, se.manualMarkers, se.manualKeyMethod, se.manualKeyParam) = current;
+                    }
                     // ⚠️ `isModified` is NOT cleared: one undo is one step back, not back to the file.
                     se.slicePosition = std::clamp<int64_t>(se.slicePosition, 0, se.totalFrames);
                     break;
@@ -795,8 +957,13 @@ void InputDispatcher::sample_editor_confirm() {
             if (se.fxType <= SampleEditorModule::FX_EQ) {
                 if (!se.fx_armed()) break;
 
-                if (!begin_destructive()) break;
-                host_.apply_sample_fx(instId, se.fxType, se.fx_param());
+                if (!begin_destructive(0, /*resizes=*/false)) break;
+                try { host_.apply_sample_fx(instId, se.fxType, se.fx_param()); }
+                catch (const std::bad_alloc&) { failed(); break; }
+                settle_sample_backup(instId, /*ok=*/true);
+                // Applied (not auditioned): the processed buffer is the original now.
+                host_.adopt_sample_as_original(instId);
+                se.rateMode = 0;
                 refresh_sample_view(/*reset_selection=*/false);
                 se.isModified = true;
                 // Spent — left in the cell, START would audition it over its own result.
@@ -830,7 +997,7 @@ void InputDispatcher::sample_editor_confirm() {
                 case 1: {   // SAVE — to <name>.wav, or ask for a name if that one is taken
                     const std::string base = se.sampleName.empty() ? "SAMPLE" : se.sampleName;
                     const std::string dir  = fs_.samples_directory();
-                    bake_pending_pitch();
+                    if (!bake_pending_pitch()) break;
 
                     // Taken: suggest the next free name — SAVE is not OVERWRITE.
                     const std::string stem = free_wav_stem(fs_, dir, base);
@@ -844,7 +1011,7 @@ void InputDispatcher::sample_editor_confirm() {
 
                 case 2:   // OVERWRITE — back over the file it came from. Nothing to do if it has none.
                     if (!se.sampleFilePath.empty()) {
-                        bake_pending_pitch();
+                        if (!bake_pending_pitch()) break;
                         save_sample_to(se.sampleFilePath, /*adopt_name=*/false);
                     }
                     break;
@@ -903,6 +1070,49 @@ songcore::SampleSync InputDispatcher::planned_sample_sync() const {
     return sync;
 }
 
+// The Undo backup and the markers that belong to it are taken, kept and given back together. The
+// snapshot is copied first (it may need memory); the backup next; the swap then cannot fail.
+bool InputDispatcher::begin_sample_backup(int instId, int64_t extraBytes, bool resizes) {
+    SampleEditorState& se = s_.sampleEditor;
+    SampleEditorState::UndoMarkers snapshot;
+    try {
+        snapshot.restoreOnUndo   = resizes;
+        snapshot.length          = se.totalFrames;
+        snapshot.fileMarkers     = se.fileMarkers;
+        snapshot.manualMarkers   = se.manualMarkers;
+        snapshot.manualKeyMethod = se.manualKeyMethod;
+        snapshot.manualKeyParam  = se.manualKeyParam;
+    } catch (const std::bad_alloc&) {
+        se.toolMessage = "EDIT CANCELLED: NOT ENOUGH MEMORY";
+        set_status(s_, se.toolMessage, false);
+        return false;
+    }
+    // The snapshot is held beside the backup: its real size counts against the budget too.
+    const int64_t markerBytes =
+        int64_t(snapshot.fileMarkers.capacity()) * int64_t(sizeof(snapshot.fileMarkers[0])) +
+        int64_t(snapshot.manualMarkers.capacity()) * int64_t(sizeof(snapshot.manualMarkers[0]));
+    if (!host_.backup_sample(instId, extraBytes + markerBytes)) {
+        se.toolMessage = "EDIT CANCELLED: UNDO MEMORY UNAVAILABLE";
+        set_status(s_, se.toolMessage, false);
+        return false;
+    }
+    se.heldUndoMarkers = std::move(se.undoMarkers);
+    se.undoMarkers = std::move(snapshot);
+    return true;
+}
+
+void InputDispatcher::settle_sample_backup(int instId, bool ok) {
+    SampleEditorState& se = s_.sampleEditor;
+    if (ok) {
+        host_.commit_backup(instId);
+        se.heldUndoMarkers = {};
+    } else {
+        host_.revert_backup(instId);
+        se.undoMarkers = std::move(se.heldUndoMarkers);
+        se.heldUndoMarkers = {};
+    }
+}
+
 void InputDispatcher::apply_sample_sync() {
     SampleEditorState&         se   = s_.sampleEditor;
     const songcore::SampleSync sync = planned_sample_sync();
@@ -912,30 +1122,66 @@ void InputDispatcher::apply_sample_sync() {
     const int oldLen = se.totalFrames;
 
     host_.restore_fx_preview_backup();   // act on the clean audio
-    if (!host_.backup_sample(instId)) {
-        se.toolMessage="EDIT CANCELLED: UNDO MEMORY UNAVAILABLE";
-        set_status(s_,se.toolMessage,false);
+    // Every buffer SYNC holds at its peak (pitched, stretched, SOLA's work, the published copy) is
+    // checked with the backup, at the length SOLA will really make.
+    const int channels = host_.has_stereo_data(instId) ? 2 : 1;
+    // + a little for the editor's own bookkeeping on the way (the marker snapshot, strings).
+    constexpr int64_t kBookkeepingBytes = 4096;
+    const int64_t extra = songcore::sync_peak_bytes(oldLen, channels, sync,
+                                                    static_cast<float>(host_.sample_rate_of(instId))) +
+                          kBookkeepingBytes;
+    if (!begin_sample_backup(instId, extra, /*resizes=*/true)) return;
+    bool ok = false;
+    try { ok = host_.sync_sample(instId, sync); } catch (const std::bad_alloc&) { ok = false; }
+    if (!ok) {
+        settle_sample_backup(instId, /*ok=*/false);
+        se.toolMessage = "EDIT CANCELLED: NOT ENOUGH MEMORY";
+        set_status(s_, se.toolMessage, false);
         return;
     }
-    host_.sync_sample(instId, sync);
+    settle_sample_backup(instId, /*ok=*/true);
     // Spent either way: TSTRETCH has baked the pending shift in, RPITCH has replaced it.
     se.pitchSemitones = 0;
 
     rescale_positions(se, oldLen, host_.sample_length(instId));
     // ⚠️ RATE resets (the result is the new original; it would decimate twice). BIT stays: SAVE writes it.
     se.rateMode = 0;
+    se.isModified = true;   // the audio is the new one from here on, whatever the view manages
+    // SYNC rescales the whole sample end to end: the markers just rescaled stay (a cut clears them).
+    // Moved aside and back (no copy, nothing to allocate), so they cannot be lost on the way.
+    auto fileMarkers = std::move(se.fileMarkers);
+    auto manualMarkers = std::move(se.manualMarkers);
+    const int keyMethod = se.manualKeyMethod, keyParam = se.manualKeyParam;
     refresh_sample_view(/*reset_selection=*/true);
-    se.isModified = true;
+    se.fileMarkers = std::move(fileMarkers);
+    se.manualMarkers = std::move(manualMarkers);
+    se.manualKeyMethod = keyMethod;
+    se.manualKeyParam = keyParam;
 }
 
 // ─── The pending pitch shift ─────────────────────────────────────────────────────────────────────
 
-void InputDispatcher::bake_pending_pitch() {
+bool InputDispatcher::bake_pending_pitch() {
     SampleEditorState& se = s_.sampleEditor;
-    if (se.pitchSemitones == 0) return;
+    if (se.pitchSemitones == 0) return true;
 
     const int oldLen = se.totalFrames;
-    host_.pitch_shift_sample(se.instrumentId, static_cast<float>(se.pitchSemitones));
+    // The shifted buffer is built beside the old one: it must fit before anything changes, or the
+    // save is refused with the audio, markers, RATE and the file on the card as they were.
+    const int channels = host_.has_stereo_data(se.instrumentId) ? 2 : 1;
+    songcore::SampleSync pitch;
+    pitch.kind = songcore::SampleSync::Kind::REPITCH;
+    pitch.semitones = static_cast<float>(se.pitchSemitones);
+    bool ok = songcore::SongcoreHost::edit_fits(songcore::sync_peak_bytes(oldLen, channels, pitch, 0.f));
+    if (ok) {
+        try { ok = host_.pitch_shift_sample(se.instrumentId, pitch.semitones); }
+        catch (const std::bad_alloc&) { ok = false; }
+    }
+    if (!ok) {
+        se.toolMessage = "SAVE CANCELLED: NOT ENOUGH MEMORY FOR PITCH";
+        set_status(s_, se.toolMessage, false);
+        return false;
+    }
     const int newLen = host_.sample_length(se.instrumentId);
     // Everything frame-measured moves with the audio; the selection is scaled, not reset.
     rescale_positions(se, oldLen, newLen);
@@ -943,12 +1189,19 @@ void InputDispatcher::bake_pending_pitch() {
     se.pitchSemitones = 0;   // spent
     se.rateMode       = 0;   // the shifted buffer IS the new original — see sample_edit.h
     // ⚠️ BIT is NOT reset. This runs on the way INTO a save, and BIT is the depth that save writes.
-    se.waveformData   = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS, 0, 0,
-                                              waveform_channel(se.sourceMode));
+    se.isModified     = true;   // the audio is the pitched one now, saved or not
+    // The picture only: without memory for it the save still goes on with the processed audio.
+    try {
+        se.waveformData = host_.sample_waveform(se.instrumentId, WAVEFORM_BINS, 0, 0,
+                                                waveform_channel(se.sourceMode));
+    } catch (const std::bad_alloc&) {
+        se.waveformData.clear();
+    }
 
     // The instrument's playback params were derived from the old buffer's length.
     host_.push_instrument(se.instrumentId);
     mark_modified();
+    return true;
 }
 
 // ─── The slices ──────────────────────────────────────────────────────────────────────────────────
@@ -998,34 +1251,93 @@ std::vector<std::pair<int64_t, int64_t>> InputDispatcher::current_slices() const
 
 void InputDispatcher::save_sample_to(const std::string& path, bool adopt_name) {
     before_long_operation();
-    SampleEditorState& se   = s_.sampleEditor;
-    const std::vector<int> cues = compute_slice_cue_points();
+    SampleEditorState& se = s_.sampleEditor;
+    auto failed = [&](const char* message) {   // nothing published: the edits stay, unsaved, for a retry
+        se.toolMessage = message;
+        set_status(s_, se.toolMessage, false);
+    };
 
-    if (!host_.save_sample_wav(se.instrumentId, path, cues, se.sourceMode, se.hasStereoData,
-                               se.bitDepth)) {
-        set_status(s_, "SAVE FAILED", false);
+    // Everything the project and the editor take over after the file is written is prepared first,
+    // so once the WAV is published only moves remain — WAV, project cues and the saved state then
+    // always agree. (`path` may be se.sampleFilePath itself: copied before anything moves.)
+    std::vector<int> cues;
+    std::vector<int64_t> projectCues;
+    std::string projectPath, editorPath, name;
+    try {
+        cues = compute_slice_cue_points();
+        projectCues.assign(cues.begin(), cues.end());
+        projectPath = path;
+        editorPath = path;
+        if (adopt_name) name = path_stem(path);
+    } catch (const std::bad_alloc&) {
+        failed("SAVE FAILED: NOT ENOUGH MEMORY");
         return;
     }
-    host_.adopt_saved_sample(se.instrumentId, se.bitDepth);
 
-    // ⚠️ A mono save reloads the file: the buffer may still be stereo, and the slot must match the file.
-    const bool wrote_mono = !(se.hasStereoData && se.sourceMode == 2);
-    if (wrote_mono) host_.load_sample(se.instrumentId, path);
+    bool written = false;
+    try {
+        written = host_.save_sample_wav(se.instrumentId, path, cues, se.sourceMode, se.hasStereoData,
+                                        se.bitDepth);
+    } catch (const std::bad_alloc&) {
+        failed("SAVE FAILED: NOT ENOUGH MEMORY");   // the file on the card is still the old one
+        return;
+    }
+    if (!written) {
+        // Both the publish and the restore failed: the original is safe beside it, and comes back
+        // by itself on the next load of this path.
+        if (songcore::detail::last_publish_kept_backup()) failed("SAVE FAILED: ORIGINAL KEPT AS .PTBAK");
+        else if (songcore::detail::last_publish_backup_in_way()) failed("SAVE FAILED: EARLIER .PTBAK IN THE WAY");
+        else failed("SAVE FAILED");
+        return;
+    }
 
+    // Published. First what must agree with the file — moves only, nothing to allocate.
     Instrument& ins = host_.edit_project().instruments[static_cast<size_t>(se.instrumentId)];
-    ins.sampleFilePath = path;
+    ins.sampleFilePath = std::move(projectPath);
     // The markers go into the PROJECT too — the .ptp is what a reload reads first.
-    ins.sliceMarkers.clear();
-    ins.sliceMarkers.reserve(cues.size());
-    for (const int c : cues) ins.sliceMarkers.push_back(static_cast<int64_t>(c));
+    ins.sliceMarkers = std::move(projectCues);
+    se.sampleFilePath = std::move(editorPath);
+    if (adopt_name) se.sampleName = std::move(name);
+    se.isModified = false;
+    if (songcore::detail::last_publish_rescued_backup())
+        set_status(s_, "SAVED; OLD BACKUP KEPT AS _PTBAK.WAV", true);
 
-    se.sampleFilePath = path;
-    if (adopt_name) se.sampleName = path_stem(path);
-    se.isModified    = false;
-    se.hasStereoData = host_.has_stereo_data(se.instrumentId);
+    // Then the session's own housekeeping. Without memory for a part of it the file and the project
+    // are still saved; the status says so instead of the editor breaking off.
+    try {
+        host_.adopt_saved_sample(se.instrumentId, se.bitDepth);
+        // The editor closes on a save: its Undo session ends with it (a mono save reloads, which
+        // frees it too; a stereo save keeps the buffer and must not keep the pre-save backup).
+        host_.free_sample_undo(se.instrumentId);
+        se.undoMarkers = {};
+        se.heldUndoMarkers = {};
+        // ⚠️ A mono save reloads the file: the buffer may still be stereo, and the slot must match.
+        const bool wrote_mono = !(se.hasStereoData && se.sourceMode == 2);
+        bool reloaded = true;
+        if (wrote_mono) {
+            try { reloaded = host_.load_sample(se.instrumentId, se.sampleFilePath); }
+            catch (const std::bad_alloc&) { reloaded = false; }
+        }
+        if (!reloaded) {
+            // The file is mono; the slot must not go on playing the two channels it no longer has.
+            // Reduced in place to the channel that was written (no memory needed), and said so.
+            host_.collapse_to_channel(se.instrumentId, se.sourceMode);
+            set_status(s_, "SAVED; RELOAD NOT DONE: NOT ENOUGH MEMORY", false);
+        }
+        se.hasStereoData = host_.has_stereo_data(se.instrumentId);
+        mark_modified();
+    } catch (const std::bad_alloc&) {
+        set_status(s_, "SAVED; RELOAD NOT DONE: NOT ENOUGH MEMORY", false);
+        mark_modified();
+    }
 
-    mark_modified();
-    s_.currentScreen = s_.previousScreen;   // a save LEAVES the editor, as it does on Android
+    // A save LEAVES the editor, as it does on Android — with the same cleanup as B: an audition
+    // ringing or still queued ends, its restore is paid, the scratch slots go.
+    host_.stop_preview();
+    se.playbackPosition = -1.0f;
+    run_due_sample_preview_restore(/*force=*/true);
+    host_.clear_previews();
+    s_.currentScreen = s_.previousScreen;
     resume_sample_granular_from_editor();
 }
 

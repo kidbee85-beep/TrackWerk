@@ -1,233 +1,7 @@
 {
-  "version": "1.0.0",
-  "shared_source_manifest_sha256": "f54c4a8921225f29cf4cd16f90843ffce779409f613c6483ea94494a5200f49a",
-  "android_source_manifest_sha256": "bfd46717ddcdcec7099bc1b0e0c6a7d18022fa6d41c368bfe459dad68d128b90",
+  "version": "1.1.0",
+  "source_manifest_sha256": "1ce87b88d4a33bed691b4863c922a6db5d105d93b8579919ce00dc7a224b64c6",
   "files": [
-    {
-      "path": "BUILD-TRACKWERK.txt",
-      "bytes": 2925,
-      "sha256": "985993a170fbfcbdc1973c3f43df2032f89bc67c0b3249db76fc670f99cbccf0"
-    },
-    {
-      "path": "SOURCE-SNAPSHOT.json",
-      "bytes": 1704733,
-      "sha256": "f2a6b88f946e2f09622d4e6d9db6baa961cc74e0d1cf2ad7f859ef2066839f24"
-    },
-    {
-      "path": "android-overlay/BUILD-ANDROID.txt",
-      "bytes": 1203,
-      "sha256": "b7210e2bdf1f775894c44c56d6b81565b2358dd2603c306cddac8c98bb107280"
-    },
-    {
-      "path": "android-overlay/OVERLAY.json",
-      "bytes": 4248,
-      "sha256": "07fe6da508f1fef8679202191527076052b5355ff4a26f9962a30c4a6376a7b9"
-    },
-    {
-      "path": "android-overlay/apply_android_overlay.py",
-      "bytes": 3613,
-      "sha256": "eb0b1b9ed94e6e2a9f4e4e1375c33da67ffc6d7090dffa5b679054d280a1b46e"
-    },
-    {
-      "path": "android-overlay/files/app/src/main/java/com/conanizer/pockettracker/AndroidLiveRadio.kt",
-      "bytes": 19132,
-      "sha256": "54181d717b9818514905f2b300fdf296732e3456ffc712734b1c703e7fd2d831"
-    },
-    {
-      "path": "android-overlay/files/app/src/main/java/com/conanizer/pockettracker/AndroidRadioHistory.kt",
-      "bytes": 8254,
-      "sha256": "2ce0ae70009c94748eb64c2f9ebe522af54a26242bc3ebaa5aad72f6e704bacd"
-    },
-    {
-      "path": "android-overlay/files/app/src/main/java/com/conanizer/pockettracker/SourceSampler.kt",
-      "bytes": 35714,
-      "sha256": "29c4fbab5277c9680297042fe0c89b612ff91f9a589196e25cad0d2c433b62eb"
-    },
-    {
-      "path": "android-overlay/files/native/ui/dispatch/screens/file_browser.cpp",
-      "bytes": 39320,
-      "sha256": "da38ff5dcfdb0953b4dcc4966f133f3cd0677f8433340662d4c8bc717f60e556"
-    },
-    {
-      "path": "android-overlay/files/native/ui/filesystem.h",
-      "bytes": 8743,
-      "sha256": "fe9c1ee8b5cdf406a7549343efecf92dfcc54a2fade81d9f752ba73a06c876bb"
-    },
-    {
-      "path": "android-overlay/files/native/ui/modules/file_browser.cpp",
-      "bytes": 23502,
-      "sha256": "89226fce3fcd4f7dafc09e87d44d5368056e343a4054d6b43b6e878583a6cddd"
-    },
-    {
-      "path": "android-overlay/files/native/ui/modules/file_browser.h",
-      "bytes": 7939,
-      "sha256": "145d2672477cc1db1a8d75c1f9ef10645b5033fbf67793497bcd9372faa09c34"
-    },
-    {
-      "path": "android-overlay/files/native/ui/sample_granular_recording.cpp",
-      "bytes": 9119,
-      "sha256": "9da4fcbd3c564aa53dfc92766bf1cbdb1d31afadaf47c999c648168a8021e1c0"
-    },
-    {
-      "path": "android-overlay/files/shell/android/saf-filesystem.cpp",
-      "bytes": 37728,
-      "sha256": "25faa8c80932ea1eedb7e092741b2b85ea3abc57e2c8e5104772fdce4f2fa932"
-    },
-    {
-      "path": "android-overlay/files/shell/android/saf-filesystem.h",
-      "bytes": 10175,
-      "sha256": "dfe8d3d0c1fde14383439ebb9063891dccbfa47b5b75941e3fef939bc413f6ee"
-    },
-    {
-      "path": "brand-authoring/NATIVE-BRAND-ASSETS.json",
-      "bytes": 3763,
-      "sha256": "db934195f1517db2719dadf3789f3fb74265e6638fe656c36554960fa736e9d9"
-    },
-    {
-      "path": "brand-authoring/PORTRAIT-BRAND-PANELS.json",
-      "bytes": 680,
-      "sha256": "ee3340080da68fe3dd122693a02f3cdf9339986564ba4d3cda36e6a3795daa34"
-    },
-    {
-      "path": "brand-authoring/TrackWerk-Mark-Geometry.json",
-      "bytes": 3904,
-      "sha256": "675a83714dcc533de60c0d574f9c28df1f8b5d73e44188aa5042742b3a32eb9c"
-    },
-    {
-      "path": "brand-authoring/TrackWerk-Mark-Masks.h",
-      "bytes": 1434,
-      "sha256": "daea811f5fcd3d3e867f0748def674416486aedea7e5bec7333221fd473ff97b"
-    },
-    {
-      "path": "brand-authoring/build_menu_art.py",
-      "bytes": 1446,
-      "sha256": "06be82812d41f41605d95857f920ac8c569d24f4eaf9294e9377369c30e90cd0"
-    },
-    {
-      "path": "brand-authoring/build_portrait_brand_panels.py",
-      "bytes": 2015,
-      "sha256": "c6c3f8c393e1e1b78763d44ac8d8a6a22bce377268e5b892f60f32d8bbaa64f2"
-    },
-    {
-      "path": "brand-authoring/build_studies.py",
-      "bytes": 10014,
-      "sha256": "9479ce4dfff16a206b3a5ffc6511abc313e85cde181b59aaca5a0a7b4b141cae"
-    },
-    {
-      "path": "brand-authoring/generate_native_art.py",
-      "bytes": 1547,
-      "sha256": "01abe76b8ecd20d135aa1274ea5edf7abfaaefe0f392b5098d541a2e3e5d208e"
-    },
-    {
-      "path": "brand-authoring/install_brand_art.py",
-      "bytes": 3505,
-      "sha256": "c9dfe6a027fee9887d3ffdde67e5a188c212388d1b503e63adead3113492b6c2"
-    },
-    {
-      "path": "build-tools/rebuild-miyoo-offline.py",
-      "bytes": 3408,
-      "sha256": "535b15bcbad787e63343a0b930897c3d32754888f697e30c54fbf8529e97addd"
-    },
-    {
-      "path": "build-tools/rebuild-miyoo-online.py",
-      "bytes": 3459,
-      "sha256": "f49c2c6eff81552ac22b9b80ac530d75b4b9e203580e7551231a9aa308533701"
-    },
-    {
-      "path": "build-tools/update-menu-art.py",
-      "bytes": 4260,
-      "sha256": "0812c92cd218538c242993feaa977d86e3c8ff95107d1b8f4ab6bc59d52491ee"
-    },
-    {
-      "path": "font-authoring/atlas-manifest.json",
-      "bytes": 11581,
-      "sha256": "f39d9c42169be11d87e51eb405c5baa5fcfd78ee4b865843ed38e7d8d8ecee5c"
-    },
-    {
-      "path": "font-authoring/author_masters.py",
-      "bytes": 13610,
-      "sha256": "e94064b17656a997961ecfe200553fed494980267f9481fb037869d4dcacaaa7"
-    },
-    {
-      "path": "font-authoring/clean-FREEZE.json",
-      "bytes": 1559,
-      "sha256": "5b29779f6cc8dea38021cab70cb52ed7ec7b6742dc6685db49569b6f658ff710"
-    },
-    {
-      "path": "font-authoring/clean-atlas-grid2.bin",
-      "bytes": 104500,
-      "sha256": "26efd88b81c34b8be3de3f40c8d70056feeb51edbb9d7f8a3991962a66a3ee99"
-    },
-    {
-      "path": "font-authoring/clean-atlas-grid3.bin",
-      "bytes": 242250,
-      "sha256": "46dffb59baca55ed85c68aba1264d670d4537e2137317310d02b3304f44f7710"
-    },
-    {
-      "path": "font-authoring/clean-atlas-label12.bin",
-      "bytes": 171080,
-      "sha256": "6a800fbb4f0e3fa86963ee35989e52430e983c0b5f5ca034962b6547007585b6"
-    },
-    {
-      "path": "font-authoring/clean-atlas-label18.bin",
-      "bytes": 369810,
-      "sha256": "7736f2fb3846fe0bd7f148e182d81fafe94d8fecef61027e20cf20facc68f55b"
-    },
-    {
-      "path": "font-authoring/clean-atlas-manifest.json",
-      "bytes": 15903,
-      "sha256": "b3336314b62c936c146dd13ebb636af695b357ac32eaf7117a865063bafa4257"
-    },
-    {
-      "path": "font-authoring/clean-author.py",
-      "bytes": 12724,
-      "sha256": "9f8062dd62c134a200f03444fc8b4d99582cac661df6f42bfc5a67efd40f0545"
-    },
-    {
-      "path": "font-authoring/clean-generate.py",
-      "bytes": 11122,
-      "sha256": "ab22253458961c8d7b3c6c97e71c6381851830551039478e15e567ef7726ca19"
-    },
-    {
-      "path": "font-authoring/clean-masters.json",
-      "bytes": 246679,
-      "sha256": "2ba5c9f01498618409d8967ab19c4895312bed05ce66932138f8332af8c471b4"
-    },
-    {
-      "path": "font-authoring/frozen-six-atlases.json",
-      "bytes": 2742,
-      "sha256": "c228a4b427948e6bb8804860c472cbd71e1f1797df819f2b64186acff70adbf5"
-    },
-    {
-      "path": "font-authoring/generate_atlases.py",
-      "bytes": 12986,
-      "sha256": "230c31b158f41fd24a4a8c78c5edd34a804a6896a5306ce7c64ecdf70ba7167d"
-    },
-    {
-      "path": "font-authoring/native_swatches.cpp",
-      "bytes": 6307,
-      "sha256": "caea5620cfe84479a1785223ea571f44a76f908d5ff0ebee6dc7fb6f554f38c3"
-    },
-    {
-      "path": "font-authoring/pixel-masters.json",
-      "bytes": 147448,
-      "sha256": "2d99792f7169a6bff8c3257a77b76c72f10af0434e7be9cf908e1c83bafc79f2"
-    },
-    {
-      "path": "release-tools/build_public_packages.py",
-      "bytes": 20575,
-      "sha256": "06695c156dd4e3b28bf8a3763b6f5b7e9cecc096129e7a3c28b069c1a1afc837"
-    },
-    {
-      "path": "release-tools/install_miyoo.py",
-      "bytes": 10297,
-      "sha256": "abaacdc6ce0126e7813e2c71d50338bd39a90a8124603f1aa52e0791cc384e5f"
-    },
-    {
-      "path": "release-tools/setup_brick_menu.py",
-      "bytes": 5285,
-      "sha256": "1f502e5ba0a14b81214a32afb5eceea53387da295a4e8af70ebd6e2df213d571"
-    },
     {
       "path": "source/.github/FUNDING.yml",
       "bytes": 179,
@@ -275,8 +49,8 @@
     },
     {
       "path": "source/CREDITS.md",
-      "bytes": 7165,
-      "sha256": "656845c11252229e508d145453ce92eb1c1306c7da129c44caa1417c853bd215"
+      "bytes": 8615,
+      "sha256": "add21aea861c49c5f50d82eacab6d5099d38293063b62fc967bde64d6f48597c"
     },
     {
       "path": "source/LICENSE",
@@ -285,8 +59,8 @@
     },
     {
       "path": "source/README.md",
-      "bytes": 1314,
-      "sha256": "64b73c56cef2a914a3f2c8ee478ee1667746e66cc7531fa03fc293c4bb718a06"
+      "bytes": 2208,
+      "sha256": "3a70bfda79459baa71d2b3bd328c37406e81570f6c58faa72e2596c2bfeceb9e"
     },
     {
       "path": "source/STUDIO-NOTES.txt",
@@ -301,7 +75,7 @@
     {
       "path": "source/app/build.gradle.kts",
       "bytes": 10646,
-      "sha256": "092fb323c6672a7a5a530c27946b688b5ea4f4a45108add7cc5d265eff621a1b"
+      "sha256": "4356a8693f0f06ed8f496d07cb8874ef9eb2348612ed0552271193d127b696db"
     },
     {
       "path": "source/app/proguard-rules.pro",
@@ -374,6 +148,56 @@
       "sha256": "5a0608a3ed3225433adb311321f9edf7ab4b687313cc97d74ac5620191910793"
     },
     {
+      "path": "source/app/src/main/assets/themes/amiga/bg_branding_panel.png",
+      "bytes": 55120,
+      "sha256": "f94a3012a72df5d58e36b01b90c554c46fae9a126c774a7fc6c7a90afd130f33"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/bg_button_backing.png",
+      "bytes": 576058,
+      "sha256": "10a2be1ce73c3d63a85e91889b02ded846feef5647b836e5b95b0814d7b98e29"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/bg_screen_bezel.png",
+      "bytes": 168765,
+      "sha256": "f13d800e67cbb87d5ca21f0c641be3ce1a679fd86a078c16d3cdfd1eaee44b52"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/bg_top_panel.png",
+      "bytes": 381812,
+      "sha256": "fef5b491f6f23a1ab5778cd517e07a2377abdb89e1d29a5f7bbc43d3d81e16b5"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_square_normal.png",
+      "bytes": 92494,
+      "sha256": "bc88b22c73ffb1632046f5e3c7bcb68e7176044f860e3ed795c034864b00bdd8"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_square_normal_dark.png",
+      "bytes": 90537,
+      "sha256": "02a2402bc91376bbe5c834f0cfea95cd9de42681a48c64879aa5ca28da9710f2"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_square_pressed.png",
+      "bytes": 87195,
+      "sha256": "0037d64354740928bad642a3e50fc98b863727f89816b25282fb7371ee864fd2"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_square_pressed_dark.png",
+      "bytes": 78373,
+      "sha256": "f224ec68d4b85a01cc3325e6282a0af62a3fc96d872f77a04bb13a8462dd3add"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_wide_normal.png",
+      "bytes": 202828,
+      "sha256": "7383f4a26c1bfe406905994e3bf26fdc807c048749c7e93a82681916847926d1"
+    },
+    {
+      "path": "source/app/src/main/assets/themes/amiga/btn_wide_pressed.png",
+      "bytes": 186545,
+      "sha256": "6580c14c932416f93964402ca08a8e266dbdae6afa212d5d30355147604196c7"
+    },
+    {
       "path": "source/app/src/main/assets/themes/amiga-2/bg_branding_panel.png",
       "bytes": 55021,
       "sha256": "9962429d3c6d74c3917f2b5e648c9542b49eb8c8e77f563e7e8ca0e5e32e3bb2"
@@ -442,56 +266,6 @@
       "path": "source/app/src/main/assets/themes/amiga-transparent/btn_wide_pressed.png",
       "bytes": 4116,
       "sha256": "c7eb40dbd4880f8cef6af78a41b08503d163e103057a78ab7b41de33c38c8b7d"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/bg_branding_panel.png",
-      "bytes": 55120,
-      "sha256": "f94a3012a72df5d58e36b01b90c554c46fae9a126c774a7fc6c7a90afd130f33"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/bg_button_backing.png",
-      "bytes": 576058,
-      "sha256": "10a2be1ce73c3d63a85e91889b02ded846feef5647b836e5b95b0814d7b98e29"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/bg_screen_bezel.png",
-      "bytes": 168765,
-      "sha256": "f13d800e67cbb87d5ca21f0c641be3ce1a679fd86a078c16d3cdfd1eaee44b52"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/bg_top_panel.png",
-      "bytes": 381812,
-      "sha256": "fef5b491f6f23a1ab5778cd517e07a2377abdb89e1d29a5f7bbc43d3d81e16b5"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_square_normal.png",
-      "bytes": 92494,
-      "sha256": "bc88b22c73ffb1632046f5e3c7bcb68e7176044f860e3ed795c034864b00bdd8"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_square_normal_dark.png",
-      "bytes": 90537,
-      "sha256": "02a2402bc91376bbe5c834f0cfea95cd9de42681a48c64879aa5ca28da9710f2"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_square_pressed.png",
-      "bytes": 87195,
-      "sha256": "0037d64354740928bad642a3e50fc98b863727f89816b25282fb7371ee864fd2"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_square_pressed_dark.png",
-      "bytes": 78373,
-      "sha256": "f224ec68d4b85a01cc3325e6282a0af62a3fc96d872f77a04bb13a8462dd3add"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_wide_normal.png",
-      "bytes": 202828,
-      "sha256": "7383f4a26c1bfe406905994e3bf26fdc807c048749c7e93a82681916847926d1"
-    },
-    {
-      "path": "source/app/src/main/assets/themes/amiga/btn_wide_pressed.png",
-      "bytes": 186545,
-      "sha256": "6580c14c932416f93964402ca08a8e266dbdae6afa212d5d30355147604196c7"
     },
     {
       "path": "source/app/src/main/ic_launcher-playstore.png",
@@ -594,26 +368,6 @@
       "sha256": "57abc3038267e2394e0500a898bd5d33fdfaa19557006da664fd11bad1b5ccc1"
     },
     {
-      "path": "source/app/src/main/res/drawable-hdpi/ic_splash_logo.png",
-      "bytes": 11644,
-      "sha256": "444ec40ebe47d43b94215654a3c968d8e49b51bf148612e51ac843759720b0db"
-    },
-    {
-      "path": "source/app/src/main/res/drawable-mdpi/ic_splash_logo.png",
-      "bytes": 8410,
-      "sha256": "1b7d951f011dbaaf0b017a56dd1bb82e5a04d6fea17fea4e97b7a74325c0699c"
-    },
-    {
-      "path": "source/app/src/main/res/drawable-xhdpi/ic_splash_logo.png",
-      "bytes": 12795,
-      "sha256": "99f7c0bd7415990a9c4f773a650437b02e9cf44f348d2977a51740f8d3d15710"
-    },
-    {
-      "path": "source/app/src/main/res/drawable-xxhdpi/ic_splash_logo.png",
-      "bytes": 22975,
-      "sha256": "ad5bd608d415e414ddca6df0edc33d59ea53713de658638e41c7acab2ebedc6f"
-    },
-    {
       "path": "source/app/src/main/res/drawable/ic_launcher_background.xml",
       "bytes": 446,
       "sha256": "89914f519c6a6e8a21ac219eeada61862cd031e535be261699f046c92045d737"
@@ -632,6 +386,26 @@
       "path": "source/app/src/main/res/drawable/ic_notification_play.xml",
       "bytes": 435,
       "sha256": "a7f7ae24486f0a7503a87e9a74d6a72b77da2c137814db84663675dfcbba17d9"
+    },
+    {
+      "path": "source/app/src/main/res/drawable-hdpi/ic_splash_logo.png",
+      "bytes": 11644,
+      "sha256": "444ec40ebe47d43b94215654a3c968d8e49b51bf148612e51ac843759720b0db"
+    },
+    {
+      "path": "source/app/src/main/res/drawable-mdpi/ic_splash_logo.png",
+      "bytes": 8410,
+      "sha256": "1b7d951f011dbaaf0b017a56dd1bb82e5a04d6fea17fea4e97b7a74325c0699c"
+    },
+    {
+      "path": "source/app/src/main/res/drawable-xhdpi/ic_splash_logo.png",
+      "bytes": 12795,
+      "sha256": "99f7c0bd7415990a9c4f773a650437b02e9cf44f348d2977a51740f8d3d15710"
+    },
+    {
+      "path": "source/app/src/main/res/drawable-xxhdpi/ic_splash_logo.png",
+      "bytes": 22975,
+      "sha256": "ad5bd608d415e414ddca6df0edc33d59ea53713de658638e41c7acab2ebedc6f"
     },
     {
       "path": "source/app/src/main/res/font/quinque_five.ttf",
@@ -940,8 +714,8 @@
     },
     {
       "path": "source/docs/features.md",
-      "bytes": 17341,
-      "sha256": "bec872bc973d4bb9308a2190a094160692b9e820d879af10a25401d65565c484"
+      "bytes": 17339,
+      "sha256": "379cff250e557ffc56a793fcb8f27e151fabde1f46342ea783f0d7151985b380"
     },
     {
       "path": "source/docs/images/logo-app.png",
@@ -1045,13 +819,13 @@
     },
     {
       "path": "source/docs/licenses/THIRD-PARTY-NOTICES.md",
-      "bytes": 43714,
-      "sha256": "5f7683060957fd47db86d5e0f9d4d8003cf1e8ec69fb69220f06bf8a2376b929"
+      "bytes": 45877,
+      "sha256": "a7b67a772d923a30ae30b8b7d5604088e0305f6fd3206752f1eff252c144f54b"
     },
     {
       "path": "source/docs/manual-en.md",
-      "bytes": 160953,
-      "sha256": "bc46e3a99f7ed123f09501f3e81ed2dcc1415e28aa15428aaa7aa2a1de66e383"
+      "bytes": 160867,
+      "sha256": "59236ce59ee7aa682546ac0c795706bc3959624c590557f0af43a4d76d59e623"
     },
     {
       "path": "source/docs/quick-start-guide.md",
@@ -1649,11 +1423,6 @@
       "sha256": "b7853f1e460e1c26a5fcf244d6a0976ef3568038be216d2db9979af7dbea5e5f"
     },
     {
-      "path": "source/external/apple-usb-deps/libplist-2.8.1/test-driver",
-      "bytes": 5215,
-      "sha256": "05d9c1057354db27b965fcd154860f938186324ccd72fdb8c5767083194c8b5a"
-    },
-    {
       "path": "source/external/apple-usb-deps/libplist-2.8.1/test/Makefile.am",
       "bytes": 3527,
       "sha256": "8ad7b2a9b066c81792b700cd9399741f3352d3ccfd8f5193a77bcb3ffc961845"
@@ -2189,6 +1958,11 @@
       "sha256": "d8694b2128f31a40f510c55f74284cad369b59ad5c8ab2b59d34bd68f5fb026a"
     },
     {
+      "path": "source/external/apple-usb-deps/libplist-2.8.1/test-driver",
+      "bytes": 5215,
+      "sha256": "05d9c1057354db27b965fcd154860f938186324ccd72fdb8c5767083194c8b5a"
+    },
+    {
       "path": "source/external/apple-usb-deps/libplist-2.8.1/tools/Makefile.am",
       "bytes": 339,
       "sha256": "88222fdd395041981ef5f28f64675f21bc93d87d1ff2c616de8c530d4c643614"
@@ -2459,11 +2233,6 @@
       "sha256": "3d7488bebd0cfc9b5c440c55d5b44f1c6e2e3d3e19894821bae4a27f9307f1d2"
     },
     {
-      "path": "source/external/apple-usb-deps/libusb-1.0.30/libusb-1.0.pc.in",
-      "bytes": 312,
-      "sha256": "57d8b0cb3a642e2bbcecbc26bd555f864eb1d9390c01d0cb355d4fa5d2b2c4ab"
-    },
-    {
       "path": "source/external/apple-usb-deps/libusb-1.0.30/libusb/Makefile.am",
       "bytes": 2589,
       "sha256": "9fd9d63c9ecc678f3c4de2b40365ed5b79cce790184658c678335826466dad3d"
@@ -2704,6 +2473,11 @@
       "sha256": "243da8ad18f946e4ee896b296ac56834bf6b50c6211af1b62603483b60f58d50"
     },
     {
+      "path": "source/external/apple-usb-deps/libusb-1.0.30/libusb-1.0.pc.in",
+      "bytes": 312,
+      "sha256": "57d8b0cb3a642e2bbcecbc26bd555f864eb1d9390c01d0cb355d4fa5d2b2c4ab"
+    },
+    {
       "path": "source/external/apple-usb-deps/libusb-1.0.30/ltmain.sh",
       "bytes": 333053,
       "sha256": "579a1445e6a9a8b0809a44aa9f908387d4a43a2a440c9b84ea979f2b4f17816c"
@@ -2794,11 +2568,6 @@
       "sha256": "38a27c1876071ba3f14ee1828915cb7c80e4a66f339caace156e5c1f52cbb25f"
     },
     {
-      "path": "source/external/apple-usb-deps/libusb-1.0.30/msvc/getopt.vcxproj",
-      "bytes": 1955,
-      "sha256": "064c0f47aa91fdf287e2ad25c6f4e3412f24ce81cb9d9062bcdf6cf4228ad30c"
-    },
-    {
       "path": "source/external/apple-usb-deps/libusb-1.0.30/msvc/getopt/bits/getopt_core.h",
       "bytes": 3667,
       "sha256": "238ff9f16662d515d6b191662965bb27e208b04dc929d04a69399de41bcd7d45"
@@ -2842,6 +2611,11 @@
       "path": "source/external/apple-usb-deps/libusb-1.0.30/msvc/getopt/unistd.h",
       "bytes": 127,
       "sha256": "ee245dcff04aa7803f7103e4b80f1b6517d1d959484cb06fc71fe3dd1490a0ff"
+    },
+    {
+      "path": "source/external/apple-usb-deps/libusb-1.0.30/msvc/getopt.vcxproj",
+      "bytes": 1955,
+      "sha256": "064c0f47aa91fdf287e2ad25c6f4e3412f24ce81cb9d9062bcdf6cf4228ad30c"
     },
     {
       "path": "source/external/apple-usb-deps/libusb-1.0.30/msvc/hotplugtest.vcxproj",
@@ -20574,6 +20348,11 @@
       "sha256": "0d4f1745664cf12df5f590319d1a2115f34d71c356202571a97e6621a873defd"
     },
     {
+      "path": "source/fastlane/metadata/android/en-US/changelogs/101003.txt",
+      "bytes": 266,
+      "sha256": "d0e49009b343999b9d836443b8425f542acf802c8f594d751b36297b1684916e"
+    },
+    {
       "path": "source/fastlane/metadata/android/en-US/changelogs/900.txt",
       "bytes": 504,
       "sha256": "ee006fc1c7c984716257decdf32c51648c34e8f026384eb3bd6486a88f95a5e5"
@@ -20659,11 +20438,6 @@
       "sha256": "cc62f06ad24682e6fe1e726f0e4a324734250fdcf1beac3923227e70e72d291a"
     },
     {
-      "path": "source/gradle.properties",
-      "bytes": 1624,
-      "sha256": "7b58d918ef7d2cfa7e8fb6e24302df1ecfde6f64601a0ffaf07771fb6ec87b93"
-    },
-    {
       "path": "source/gradle/libs.versions.toml",
       "bytes": 926,
       "sha256": "d0e958d88f0f76855f125215da2dadea56ef36804441889b050e13e6e582b1dc"
@@ -20677,6 +20451,11 @@
       "path": "source/gradle/wrapper/gradle-wrapper.properties",
       "bytes": 283,
       "sha256": "862f832efd28da0a8d9f28f78169eeea5d400be36823f76d844d8d99a52253f3"
+    },
+    {
+      "path": "source/gradle.properties",
+      "bytes": 1624,
+      "sha256": "7b58d918ef7d2cfa7e8fb6e24302df1ecfde6f64601a0ffaf07771fb6ec87b93"
     },
     {
       "path": "source/gradlew",
@@ -20695,8 +20474,8 @@
     },
     {
       "path": "source/native/CMakeLists.txt",
-      "bytes": 52468,
-      "sha256": "287bddb3cdb3ef8113b5dc36ff7eaeda4f35c0cf538438e1397721c7204d080c"
+      "bytes": 62941,
+      "sha256": "aec6f70858df7ed4eb4b4e79e08add226915f1f9963b4bc3e4d2a496dfc42142"
     },
     {
       "path": "source/native/audio-backend.h",
@@ -20720,13 +20499,13 @@
     },
     {
       "path": "source/native/audio-engine.cpp",
-      "bytes": 51453,
-      "sha256": "75722955ef0ba40d177a8f491a567c878d79cd5e411ffc9fdb7db25b2a0869d5"
+      "bytes": 54198,
+      "sha256": "1daf74d0d7a2a33e91a47fddf58586d5868e6355ec4f429502ca82e3c4d4e05c"
     },
     {
       "path": "source/native/audio-engine.h",
-      "bytes": 62606,
-      "sha256": "010db6d80ce9a92ed2660dd7e68dbfce1126f5e1592234c5f478b89fa42c5a0a"
+      "bytes": 70503,
+      "sha256": "7cc8373511ba4ed85ed1c57565016345404a39be8f15f392dcacc6ad8d0f7bd7"
     },
     {
       "path": "source/native/cmake/pt_reproducible.cmake",
@@ -20780,8 +20559,8 @@
     },
     {
       "path": "source/native/common/platform_memory.cpp",
-      "bytes": 3516,
-      "sha256": "b4082b65858ba83a384aa5213156d7e90f97ef1e7986629772235e9e1e1d2896"
+      "bytes": 4399,
+      "sha256": "dd69f1a168aea3f0b48278ee59ae2dd4c6ad0336437149769131904b36cb66ac"
     },
     {
       "path": "source/native/common/platform_memory.h",
@@ -21300,8 +21079,8 @@
     },
     {
       "path": "source/native/effects/primitives/sola-stretch.h",
-      "bytes": 4269,
-      "sha256": "d667f562e5068be52e714241b48fd1872a2ae8e08edbae1df34be5708184d3d5"
+      "bytes": 4461,
+      "sha256": "37828d155e81cb1cd69168212d902ea75c30f8ae8d2d0f9816bfcd111bedd60f"
     },
     {
       "path": "source/native/effects/primitives/upward-compressor.h",
@@ -21330,13 +21109,13 @@
     },
     {
       "path": "source/native/engine-mix.cpp",
-      "bytes": 93937,
-      "sha256": "d0ddf358a584d5880f3fbda542a96c37e74639a03ad10b68683ad1eb32ced9e4"
+      "bytes": 99851,
+      "sha256": "a57c81206c390564d3563dcd5cc049b1af6290be8e9f007e530b75d9602f9e08"
     },
     {
       "path": "source/native/engine-samples.cpp",
-      "bytes": 16939,
-      "sha256": "f0c68cf2db7c88c410c2b453730dd018cb76296f5738398d7c5bce2535a77b39"
+      "bytes": 19043,
+      "sha256": "d3c7e36137bee14db3c75bcff470c72268574c6efc40912393610b9cc1f508ae"
     },
     {
       "path": "source/native/engine-soundfont.cpp",
@@ -21365,13 +21144,13 @@
     },
     {
       "path": "source/native/kissfft/kiss_fft.h",
-      "bytes": 1304,
-      "sha256": "0a278b30f84f37751612206007e33bae1a3a591425e01ff58d7bc3403e2d8378"
+      "bytes": 1431,
+      "sha256": "d1f944b364af967e90788f722f22710415b5491e542d2ce2dfb9808b6dacc1c5"
     },
     {
       "path": "source/native/kissfft/kiss_fftr.c",
-      "bytes": 4819,
-      "sha256": "daa7ed30cf6926eec833f0ddc8baa704aed97f8b15c5dc5eee891cf6338419ae"
+      "bytes": 5204,
+      "sha256": "485e7e6dd444c7f702fcc5706439cd94e7394831000339c37ffeb68f1bfee17c"
     },
     {
       "path": "source/native/kissfft/kiss_fftr.h",
@@ -21445,8 +21224,8 @@
     },
     {
       "path": "source/native/sample-editor.cpp",
-      "bytes": 48400,
-      "sha256": "da68489e60f7df3c6698600d4b0800aaccccc9c5468d3039cc2bf58ebfe098a0"
+      "bytes": 61037,
+      "sha256": "6f133679edcb1f45cff5d3df5eef192d5f50eee31dc81311487ed7daec6a159f"
     },
     {
       "path": "source/native/sampler-voice.h",
@@ -21490,8 +21269,8 @@
     },
     {
       "path": "source/native/songcore/engine_setup.h",
-      "bytes": 33606,
-      "sha256": "e53918e3903a8895282336b54b7dbadcf64ee582de7beda793973e7647ffa721"
+      "bytes": 34324,
+      "sha256": "ed585caa02528f0d3d57d51860232ea0590ee198ed5bc57293240ad20579c184"
     },
     {
       "path": "source/native/songcore/event.h",
@@ -21505,18 +21284,18 @@
     },
     {
       "path": "source/native/songcore/host.cpp",
-      "bytes": 55911,
-      "sha256": "c2d7bad847e107f003b651bfa0772f3b1ee4d7399d24fbdae1a970a0fbc0fb51"
+      "bytes": 60590,
+      "sha256": "b1a1e6ed9c39754adb7c4eba389d24dbf2e7cdebcc498c163ec3bc4f16efef20"
     },
     {
       "path": "source/native/songcore/host.h",
-      "bytes": 32830,
-      "sha256": "174ba477d3116b520305ce5a5d4a12edc08a19c43c744b06d6511f9a3c446c53"
+      "bytes": 35655,
+      "sha256": "1fb0d994580c21bb8e2c725406312b0df5dd0eb233725e15f34aeb0390917ea4"
     },
     {
       "path": "source/native/songcore/media_path.h",
-      "bytes": 8440,
-      "sha256": "8deb78ed15e50ae773eba112cb4805cfb522f1719b57ce4f5b5196e261411ff9"
+      "bytes": 10260,
+      "sha256": "8ddfc284d2818084a44a517a5b840405c835e2dcbf6ef6f019cfbae7fb217014"
     },
     {
       "path": "source/native/songcore/midi_clock.h",
@@ -21545,8 +21324,8 @@
     },
     {
       "path": "source/native/songcore/model.h",
-      "bytes": 27331,
-      "sha256": "df34b798ba3e4c04a3c51201d69826ede8889be2a94039dd862a3af24ba2959c"
+      "bytes": 28677,
+      "sha256": "c20c8d47cdccb6dd7076deab997358ae89061243195f472a996e600637f3a952"
     },
     {
       "path": "source/native/songcore/note_command.h",
@@ -21565,8 +21344,8 @@
     },
     {
       "path": "source/native/songcore/project_io.h",
-      "bytes": 42347,
-      "sha256": "4e8ce7abbc914fd686f8a3260b0524c1056ee6fc7011b69ff62137b26bbb80a8"
+      "bytes": 44532,
+      "sha256": "828d14f1558dde2f39f875340be0050c5cb8fad0b0ab39771210968a16ab0bef"
     },
     {
       "path": "source/native/songcore/project_ops.h",
@@ -21575,8 +21354,8 @@
     },
     {
       "path": "source/native/songcore/render.h",
-      "bytes": 11953,
-      "sha256": "fcdd306adf50b8ba199b51c7a0c42ea6b42fae87c1ec2947489c6732f710b109"
+      "bytes": 12090,
+      "sha256": "10a7ab710fcbf2b5b96cd55efbbd17ba801c6da09f73c292ee241dcb365ad959"
     },
     {
       "path": "source/native/songcore/rng.h",
@@ -21590,8 +21369,8 @@
     },
     {
       "path": "source/native/songcore/sample_edit.h",
-      "bytes": 11383,
-      "sha256": "59963613c633ccd442fd11585bf9b0dcd11481c642dbc831cfaa423c15320456"
+      "bytes": 13834,
+      "sha256": "21170bc25b86421de0543d39a9cd1fa0b39d406e1bf6df629ae4ce50c8391a85"
     },
     {
       "path": "source/native/songcore/scale_bank.h",
@@ -21655,8 +21434,8 @@
     },
     {
       "path": "source/native/songcore/wav_writer.h",
-      "bytes": 17124,
-      "sha256": "1d96ed5fe4cf85abd1f5a00571e3616bc603d3c7575b0a571a876ef810d45cde"
+      "bytes": 31252,
+      "sha256": "00d8444ee393a92f11387699548a406220911f6f57a3c3a9d7dfe9c52d77502a"
     },
     {
       "path": "source/native/soundfont-trim.cpp",
@@ -21680,8 +21459,28 @@
     },
     {
       "path": "source/native/studio/CMakeLists.txt",
-      "bytes": 1214,
-      "sha256": "8991c160d3474ab0c2c36f51580cbe80cf5a1d326cf0d5aac5a222a44db988fd"
+      "bytes": 1342,
+      "sha256": "ed41b9a8c6f1f137f1bfeaaa6b70e2b218d7604f1bd9cb8390222aed0dbed595"
+    },
+    {
+      "path": "source/native/studio/dco_poly.h",
+      "bytes": 11248,
+      "sha256": "b32e40304d27f013a4901d94f33906ddaf4dfcd981c48b4ab9de94c5d21ae602"
+    },
+    {
+      "path": "source/native/studio/fm_sysex.h",
+      "bytes": 6859,
+      "sha256": "cc28fb6c14052f5c996e0ec377f537a0f33c5fb3d2dc06f760b1cf0c7e202df6"
+    },
+    {
+      "path": "source/native/studio/fm_sysex_voice.h",
+      "bytes": 3522,
+      "sha256": "18effbffb4d049609b53ff26d8032e8900e09b6993b30c5d6b2c1282d05874ef"
+    },
+    {
+      "path": "source/native/studio/formant_choir.h",
+      "bytes": 16023,
+      "sha256": "7dcb0379c910db57f75fc62814c941fb7ee0ff381facb119e57705736407b86b"
     },
     {
       "path": "source/native/studio/granular_disk_take.cpp",
@@ -21714,6 +21513,11 @@
       "sha256": "afa846dae56fea97f4d5f244f024efd6cdf50e968b4c37ccb5f8c77ae633d25b"
     },
     {
+      "path": "source/native/studio/native_clock.h",
+      "bytes": 2114,
+      "sha256": "2e059ee02e5a88a864a7450f9ed1bfe18450c969379206f5f24e7ab459a2a605"
+    },
+    {
       "path": "source/native/studio/preset_catalog.h",
       "bytes": 26532,
       "sha256": "d05080d917313625e4c8685da9194f15a970b2368a5d6aa9319a23700544bb06"
@@ -21730,8 +21534,8 @@
     },
     {
       "path": "source/native/studio/rack.cpp",
-      "bytes": 10563,
-      "sha256": "5effc0e3f925cfb26a5f2a891a1fe3499b83f33fc12461e89c7a62b781752271"
+      "bytes": 11828,
+      "sha256": "2d7bd12ce7f2ec614f10bd46b792f74b66c6c112c71c1ae029d36696de638da6"
     },
     {
       "path": "source/native/studio/rack.h",
@@ -21749,19 +21553,39 @@
       "sha256": "10caa051e83fb90ac77648afcc738620949bc280ff26126165aa0e08e0b6a6b2"
     },
     {
+      "path": "source/native/studio/sid_chip.h",
+      "bytes": 16163,
+      "sha256": "5dd01c96b18a5ddec8fe6e5d2b7d477a76b2a63382ab85457e78db52a044b36c"
+    },
+    {
+      "path": "source/native/studio/spectral_additive.h",
+      "bytes": 9068,
+      "sha256": "c56b8c547d6877615e4dd51f85625b13431925d47bd203a2a6916c73b09cfbf3"
+    },
+    {
+      "path": "source/native/studio/spectral_freeze.h",
+      "bytes": 12332,
+      "sha256": "62873f18c6d9f96fad45c292601ffdf3ca17013c8a75a5447264f981a3963057"
+    },
+    {
+      "path": "source/native/studio/spectral_morph.h",
+      "bytes": 10494,
+      "sha256": "4d400ff4ddc625d4dd02032863377c5e90525aef5b28eb130d3f4f11739fcf44"
+    },
+    {
       "path": "source/native/studio/synth.cpp",
-      "bytes": 28562,
-      "sha256": "cf8613b097aabdc3d663ce648104f8f7fe309f0d7ee00cac3073a7349d5d8e6d"
+      "bytes": 54521,
+      "sha256": "811c8815667a0104b836a28f90879581e0f04b589219dba32f341b0580bbbab4"
     },
     {
       "path": "source/native/studio/synth.h",
-      "bytes": 1914,
-      "sha256": "70e969b50c801fa0965847d87b2eccb8d75cbc4da308731f53364040cd274534"
+      "bytes": 6890,
+      "sha256": "21f1e5a172c523d31057a557432e8bdf3e90338dc67f54ed2060a8d3016cd1f8"
     },
     {
       "path": "source/native/studio/synth_extra.h",
-      "bytes": 21779,
-      "sha256": "691caf896e6c0da6e7271c5492990d17c7d0604b6ee87d48dcf213cf412fb7e2"
+      "bytes": 21933,
+      "sha256": "c14cd2d7361e18309ad0af3f98c1908063f767b90413e334d645dd69146eed43"
     },
     {
       "path": "source/native/studio/synth_params.h",
@@ -21780,8 +21604,8 @@
     },
     {
       "path": "source/native/ui/app_state.h",
-      "bytes": 20956,
-      "sha256": "57aa39a83ea74a6570d163cef6f5fea139b8b6ac69c528ce11247f6b0769a67f"
+      "bytes": 22097,
+      "sha256": "7f4984283eedbef7de0710b83b096996e0be7ce72740637cf7360102c1a6875e"
     },
     {
       "path": "source/native/ui/audio_capture.h",
@@ -21795,8 +21619,8 @@
     },
     {
       "path": "source/native/ui/button_mapper.h",
-      "bytes": 19245,
-      "sha256": "dc563b3531f6538613f06700aba1bc5586012e6e19ef4a75a5d6d4869c051c36"
+      "bytes": 20118,
+      "sha256": "4990e64905a764fe34413d555faff1664031ff7e46033d9a53a97771e47ca113"
     },
     {
       "path": "source/native/ui/buttons.h",
@@ -21805,13 +21629,13 @@
     },
     {
       "path": "source/native/ui/canvas.cpp",
-      "bytes": 20620,
-      "sha256": "c84d745e0e882548f1ebaec02ea3b98d97b2ece9d0e0613ce0d4a0eb5f05ab16"
+      "bytes": 42326,
+      "sha256": "c1e1192295c718b64a2725f893ed670d0a1c83232b1cf61018784a83bfc3690b"
     },
     {
       "path": "source/native/ui/canvas.h",
-      "bytes": 4727,
-      "sha256": "25668e921a0c868d441ed6ff468331389480627a889262be02268a792a4546d8"
+      "bytes": 9908,
+      "sha256": "79d43382aa24f5b6861e6a439f816417624e65cd2db3a35bdef2e59db667988b"
     },
     {
       "path": "source/native/ui/clipboard.cpp",
@@ -21845,23 +21669,33 @@
     },
     {
       "path": "source/native/ui/demo_fonts.h",
-      "bytes": 3511910,
-      "sha256": "bbff081f8ba1a66991b330118d70edd98921bc052ad8d53ea0cedcf3ed0ae4ae"
+      "bytes": 489639,
+      "sha256": "3e5f9978b62b1e5ba2b7d6528945bef5f7e7408d5d6bd56067f827882c13c47a"
+    },
+    {
+      "path": "source/native/ui/demo_fx.cpp",
+      "bytes": 13002,
+      "sha256": "922af2fc3f908940753516f8598a124fe24fb99e6bcb5eb79e8c178647ab408d"
+    },
+    {
+      "path": "source/native/ui/demo_fx.h",
+      "bytes": 3121,
+      "sha256": "5c6a6bbcfa53f5e81520952e25e41287a3340e3612f2a9181a0d282797e7c3f7"
     },
     {
       "path": "source/native/ui/dispatch/buttons.cpp",
-      "bytes": 4298,
-      "sha256": "3c30c234cba501d778122bf08e52d10e07a9ce1172e54ccb1213a93d6aa1cd0b"
+      "bytes": 4332,
+      "sha256": "5bad17df31f8f4fa1def0a9b7cca5c8a44f577023de0de3cf12cc264dd1837c3"
     },
     {
       "path": "source/native/ui/dispatch/chords.cpp",
-      "bytes": 16731,
-      "sha256": "af308c9a47a4a8afdd15fe09694e0a996167cf717854f67e2d3226495d446e76"
+      "bytes": 17004,
+      "sha256": "db49609301a2c6e1192dcd514a88d8b9dfd81f5307c1b3deeb6a82e1e705b92d"
     },
     {
       "path": "source/native/ui/dispatch/dispatch_common.h",
-      "bytes": 2939,
-      "sha256": "846eed0e3f51d736644bd4c86c1016f4f006f1a95f327b9ad08c76f060b05ad6"
+      "bytes": 3200,
+      "sha256": "59af376d426ec3903327b2aced8d8e655a793f6decb50589e3ee877e3cc88f36"
     },
     {
       "path": "source/native/ui/dispatch/gesture.h",
@@ -21915,8 +21749,8 @@
     },
     {
       "path": "source/native/ui/dispatch/layers/theme.cpp",
-      "bytes": 7759,
-      "sha256": "3fe969e401633bd6b9b92c1f16eddcd659d534b07743651c819e4035798f9d2a"
+      "bytes": 8518,
+      "sha256": "62c741f1b846a81bf93288c30d6b46d411500864286d16ab41c1d3c3e9011dfd"
     },
     {
       "path": "source/native/ui/dispatch/midi.cpp",
@@ -21925,13 +21759,13 @@
     },
     {
       "path": "source/native/ui/dispatch/project.cpp",
-      "bytes": 8513,
-      "sha256": "8dcd4f2928e573234f0c5af6e5cc49aae3693c8f6d165110cedb8e34a763c0ad"
+      "bytes": 8534,
+      "sha256": "9fecd9a297bd60aefcceb0d68b88133611f704d46acaa5643666e76d11d7c2b5"
     },
     {
       "path": "source/native/ui/dispatch/route.cpp",
-      "bytes": 6024,
-      "sha256": "9bd4727bc6585ef380df1f0eecbdd3e4413f4b1bb24d5a4089a9dc7aa0ee4070"
+      "bytes": 6152,
+      "sha256": "6273903ffb8786ec03de0ff2c94e57d334292c53c87d12f60f6f856faca1f923"
     },
     {
       "path": "source/native/ui/dispatch/screens/file_browser.cpp",
@@ -21954,14 +21788,19 @@
       "sha256": "f16cb3ef4d3440ca83a383c20e0f2de1f795e47c15138d5f3f52cb78ef9dce20"
     },
     {
+      "path": "source/native/ui/dispatch/screens/perform.cpp",
+      "bytes": 1917,
+      "sha256": "c5ef046160f50a2a5eb410edfd0dbf7f7212bbd2a57aebbad398478918c49421"
+    },
+    {
       "path": "source/native/ui/dispatch/screens/project.cpp",
-      "bytes": 9937,
-      "sha256": "4edb21c93262269b6d2b035502a3369dc558c7779c0e94e6dad5de0e6c171a3d"
+      "bytes": 10063,
+      "sha256": "dfdfe9670cb281d756512aec96bcb43e82012ff8877fb602afdcb14242950e78"
     },
     {
       "path": "source/native/ui/dispatch/screens/sample_editor.cpp",
-      "bytes": 70215,
-      "sha256": "c02eef57139bed81f6b0bdd250999f1e17cabbdc2c02dcee685d666ddaa439a2"
+      "bytes": 87633,
+      "sha256": "276efb853713ec5f64e1e401dc5fa93a1e5ef2d91e95fd412d2ca1001eff2d86"
     },
     {
       "path": "source/native/ui/dispatch/screens/scale_groove.cpp",
@@ -21970,23 +21809,28 @@
     },
     {
       "path": "source/native/ui/dispatch/screens/sequencer.cpp",
-      "bytes": 40795,
-      "sha256": "eb53a8e1db552c3c5ac2e8485f8effab76f06f6c9c2ea620bed307cedb807a02"
+      "bytes": 41447,
+      "sha256": "503402f42739a88ff18a84370e85911215c8def227e24e659a13e6def9f04217"
     },
     {
       "path": "source/native/ui/dispatch/sub_screens.cpp",
-      "bytes": 8514,
-      "sha256": "5b4cccea5ed4601d7b1861d1ce9728e49f538ed87cc3fcf303073c9f933c4560"
+      "bytes": 8677,
+      "sha256": "593b7dc3e21eee338d3ad6788e71a8a4ab4b9a75b4f0bdca7fd14d9b6ad1c80e"
     },
     {
       "path": "source/native/ui/drumlab.cpp",
-      "bytes": 44196,
-      "sha256": "d2ee89c07c86c3199f09833fef62433fa13d9cabeaf6f7ed51b4170f4d9aca4f"
+      "bytes": 48528,
+      "sha256": "4675f36149a05fc278331e9d5322caf08eaa96553973dccf978179395283707c"
     },
     {
       "path": "source/native/ui/drumlab.h",
-      "bytes": 4314,
-      "sha256": "7ac0ad22974762061cf4b51cdbcaf5cad17e6faa54f1163135d469ae91cceac4"
+      "bytes": 4618,
+      "sha256": "b94d13b0a3b8868ce96b33b02235cc98cde6ce31486a7000dbd6eff3dc519836"
+    },
+    {
+      "path": "source/native/ui/drumlab_map.h",
+      "bytes": 6635,
+      "sha256": "46cf39231ea1b8bf0adddfa1c9c4f5a1efa56c31649330153cb5f4e713e09fad"
     },
     {
       "path": "source/native/ui/effects_row_layout.h",
@@ -21995,18 +21839,28 @@
     },
     {
       "path": "source/native/ui/engine_feed.h",
-      "bytes": 17668,
-      "sha256": "fc0d586d9c2d660261f930ee9027b48f9d181d741f62cf0558634c4a05c8a76a"
+      "bytes": 18743,
+      "sha256": "5a93a34fa7de209feeb7bdd27b27b66cac74c952f105361548d6dc555d714c51"
     },
     {
       "path": "source/native/ui/extreme_splash.h",
-      "bytes": 8479,
-      "sha256": "2801309c7bc116c40cb05646c2bff7ef63b23cccaad3ac77d348e749a883418a"
+      "bytes": 9980,
+      "sha256": "8c8ecf59f95d480f703069e01bc00f8958bc58298830774cb023c15d3dd61f74"
     },
     {
       "path": "source/native/ui/filesystem.h",
       "bytes": 8188,
       "sha256": "d87dec6d866327405fe16d18ed6e2f5ab23388f8b41f8c523ee453cf6405f599"
+    },
+    {
+      "path": "source/native/ui/fm_library.cpp",
+      "bytes": 3074,
+      "sha256": "829a5ea3f90414ffc7d11246c33c9f908c00bbff126b5234a5e81afc292b01a2"
+    },
+    {
+      "path": "source/native/ui/fm_library.h",
+      "bytes": 1641,
+      "sha256": "ced8ca7860864cec28de0396d4f901d64f05a54c04e580d0dc98a3592bc17392"
     },
     {
       "path": "source/native/ui/folder_config.cpp",
@@ -22054,14 +21908,24 @@
       "sha256": "60d33d93cb9dabf50f4a59cd8df843268d0755c1c9de4deda1546e80d920d0f1"
     },
     {
+      "path": "source/native/ui/harmony.cpp",
+      "bytes": 22878,
+      "sha256": "a1e1658081b4791773fbc6b967a6186792d1a0d8296ae732225dea5f359d126f"
+    },
+    {
+      "path": "source/native/ui/harmony.h",
+      "bytes": 1223,
+      "sha256": "a17b396f00b7878cd376d3d14dcb799cedf3d353c0b619410be82d73db449c34"
+    },
+    {
       "path": "source/native/ui/help_text.h",
-      "bytes": 135085,
-      "sha256": "edd953b72e1bce24146ca30bb2a34df667192fd68691d27a982e3d3bf09c6731"
+      "bytes": 135796,
+      "sha256": "609f607fab96dfe738136c5568445d5664e66b09bdadf89aeb67fa0800fe499d"
     },
     {
       "path": "source/native/ui/helpers.h",
-      "bytes": 10306,
-      "sha256": "b06b83b4c5d3a5e3d028060401ce13cd04cec919e61490dbaa5ae2ef44e8eda7"
+      "bytes": 13872,
+      "sha256": "71955769ad6ae2a3fad15e8b1436084fd0961db5f7ae6aa03456645f87b0158b"
     },
     {
       "path": "source/native/ui/input_config.cpp",
@@ -22080,8 +21944,8 @@
     },
     {
       "path": "source/native/ui/input_dispatcher.h",
-      "bytes": 55626,
-      "sha256": "c551d6d19769684e677ef35a9d71e2961388d679be7ef6a3e532f4f21ec5e20c"
+      "bytes": 56135,
+      "sha256": "f926f394ef8d295ad213da1cebf09d4c38be85bee139662e4dabecc412eca56c"
     },
     {
       "path": "source/native/ui/instrument_row_layout.h",
@@ -22090,13 +21954,13 @@
     },
     {
       "path": "source/native/ui/layout.cpp",
-      "bytes": 25701,
-      "sha256": "b2aab394c8ac6651c5cd42b86b27c003666483b7ce3ebe4a73e9e14a7d997e8b"
+      "bytes": 38758,
+      "sha256": "3cf14d2fc42d49be705e84b28cbb9160c51da7842723cd7ef17b2a0d18bdb018"
     },
     {
       "path": "source/native/ui/layout.h",
-      "bytes": 4987,
-      "sha256": "82e52a24d839cdfd70b3ec8d26ef0af7fa62d1d28c8369b48d21f39b31f834a9"
+      "bytes": 6532,
+      "sha256": "7f54748cbd53a56f01dcf4e09b35dfb443ce1245f50dc0cbb69042fcb1e9f049"
     },
     {
       "path": "source/native/ui/lifecycle.cpp",
@@ -22160,8 +22024,8 @@
     },
     {
       "path": "source/native/ui/modules/chain_editor.cpp",
-      "bytes": 5924,
-      "sha256": "7ef3ca5e56027815dbeb97383dd5e6d7f893f942bed1b7518a01691eb70d9412"
+      "bytes": 8020,
+      "sha256": "7a248a839a8f7d2bb1e6e584a80e09606935ad9dc8010e28b5d13f6d697777ff"
     },
     {
       "path": "source/native/ui/modules/chain_editor.h",
@@ -22180,8 +22044,8 @@
     },
     {
       "path": "source/native/ui/modules/effects_editor.cpp",
-      "bytes": 18805,
-      "sha256": "04718f258ee04502ef67b4025532c555f92ef37f7ffa765f474075b48b427495"
+      "bytes": 21950,
+      "sha256": "18ae8c097978febd912706eefda42055ed521035b9fe34d16823af9b9c5566e2"
     },
     {
       "path": "source/native/ui/modules/effects_editor.h",
@@ -22200,8 +22064,8 @@
     },
     {
       "path": "source/native/ui/modules/file_browser.cpp",
-      "bytes": 23357,
-      "sha256": "062f3e927c5abc9d1bb43d2f4649734a9f95bdb5a8f5b4eca883a4a11d508876"
+      "bytes": 23773,
+      "sha256": "07af8be9cb0171caec7ded2625427fc6c33c9ddc405ce66563b4934fb7f150bd"
     },
     {
       "path": "source/native/ui/modules/file_browser.h",
@@ -22220,8 +22084,8 @@
     },
     {
       "path": "source/native/ui/modules/groove_editor.cpp",
-      "bytes": 11085,
-      "sha256": "f03fa000deb69559dd0d1ee16194ae7b58ce5f97e80d5513159b9b83b748f59b"
+      "bytes": 12695,
+      "sha256": "fcd5c9f230a5dde2b6a1d710f8ead2de840ab5c215af77c39a1fa4e152cb4b34"
     },
     {
       "path": "source/native/ui/modules/groove_editor.h",
@@ -22250,8 +22114,8 @@
     },
     {
       "path": "source/native/ui/modules/instrument_editor.cpp",
-      "bytes": 25539,
-      "sha256": "6fca2596da859bfeb87f74e4428a0d79d136fe7df2945606f326e3287892e1ab"
+      "bytes": 25934,
+      "sha256": "43a443e8b6267bc356bb032f8a1434e85f4c30e1fed6eb857106d36e71c5e8d4"
     },
     {
       "path": "source/native/ui/modules/instrument_editor.h",
@@ -22260,8 +22124,8 @@
     },
     {
       "path": "source/native/ui/modules/instrument_pool.cpp",
-      "bytes": 5692,
-      "sha256": "a03c31ca6d45ac1ea82884ba3044fa34fad1e580597ea0d1c7f3665cff35a464"
+      "bytes": 5857,
+      "sha256": "7855e4116ac4941446ff1d94cb14ba142c6f52bd94af6d497c85d91778de5b11"
     },
     {
       "path": "source/native/ui/modules/instrument_pool.h",
@@ -22310,8 +22174,8 @@
     },
     {
       "path": "source/native/ui/modules/mixer.cpp",
-      "bytes": 20839,
-      "sha256": "08dbe9fa6dd27b126ef26bbbfc91fac60085b2a0ce020b6500f941857365886d"
+      "bytes": 22749,
+      "sha256": "2cc98135281cb0bdd66db480506feb21e8ed5028fb37a70617f67a27b0228268"
     },
     {
       "path": "source/native/ui/modules/mixer.h",
@@ -22320,8 +22184,8 @@
     },
     {
       "path": "source/native/ui/modules/modulation.cpp",
-      "bytes": 12166,
-      "sha256": "68690015391020ef21efdf71bdadd7a39bbad1e4afd03a3f6ae0c9b79242687a"
+      "bytes": 16831,
+      "sha256": "50a6310de7834e2d91d913d7ac53c950e18351a98d1fdf043787869e8eab2626"
     },
     {
       "path": "source/native/ui/modules/modulation.h",
@@ -22330,28 +22194,28 @@
     },
     {
       "path": "source/native/ui/modules/navigation_map.cpp",
-      "bytes": 2403,
-      "sha256": "83c3216375200f01a74e3e0b5461ae21499976b5ee38da2c7cbe2e1310e5aa14"
+      "bytes": 3484,
+      "sha256": "3f2a75459f5499353b7cce2a92f09cd5b4a25fc2ad510e86fe75308df9b67dca"
     },
     {
       "path": "source/native/ui/modules/navigation_map.h",
-      "bytes": 850,
-      "sha256": "ee1abf9aa458f5809be358152e14034d2ea5c2b29039bc3918b4bc060233e6e8"
+      "bytes": 1050,
+      "sha256": "66a858d66469aad4feb40db435a319c9746d1e383513aa0920d4008850d79e0b"
     },
     {
       "path": "source/native/ui/modules/oscilloscope.cpp",
-      "bytes": 7105,
-      "sha256": "e24b56607a02c9c35368e9cab0e74e0fe4fb02d273275e31ef6375e69a566d8c"
+      "bytes": 13185,
+      "sha256": "f488e8ff5cd98b994948058339d9683155346c4f927c29d1147be2a2e29a35db"
     },
     {
       "path": "source/native/ui/modules/oscilloscope.h",
-      "bytes": 3266,
-      "sha256": "c084e950627d5f8bd3e61d143a995ac6a878afd93a860f00cf2cb0bd611409bc"
+      "bytes": 4312,
+      "sha256": "65909c11e70f32002ef28db3073be2daa4b3fb6ae7316a7a47aa724748e40e08"
     },
     {
       "path": "source/native/ui/modules/phrase_editor.cpp",
-      "bytes": 18731,
-      "sha256": "cf0dd13a2db8ee42ae05170eb4e738efc6a7cbf0db6c6bc2e7958c7429d1f1ae"
+      "bytes": 20456,
+      "sha256": "d87f5f1d7fe57b7217f1390d4d53d2962ec84e2ba8bf8133a0a6c711bf1baa2a"
     },
     {
       "path": "source/native/ui/modules/phrase_editor.h",
@@ -22370,8 +22234,8 @@
     },
     {
       "path": "source/native/ui/modules/qwerty_keyboard.cpp",
-      "bytes": 14650,
-      "sha256": "81fec37278ce215ad58a30a8928eb490e26593bc934e68ef7bf878b0f549dbcc"
+      "bytes": 14663,
+      "sha256": "4f1729808046335775e4dc33091365424ee3844a45b335a0705fcab1bc26764f"
     },
     {
       "path": "source/native/ui/modules/qwerty_keyboard.h",
@@ -22390,18 +22254,18 @@
     },
     {
       "path": "source/native/ui/modules/sample_editor.cpp",
-      "bytes": 54062,
-      "sha256": "7b5e20ccb20a35b33700756c26bf69820b29e932793a88b153ccc0ae5a64c5a2"
+      "bytes": 57896,
+      "sha256": "6db6affa2b7db1f0125b6cf72ea388ab8e1d5b7f93ada5a656c082ed19152afa"
     },
     {
       "path": "source/native/ui/modules/sample_editor.h",
-      "bytes": 15653,
-      "sha256": "7850ad3b9eed9ffda8c35aa0bd9509fef6335d40addd67b20133d815a4a7b24f"
+      "bytes": 16541,
+      "sha256": "0d4627b13167bc343597664ad3a267c92c882daf47de0f9b445a69b07cdef9d0"
     },
     {
       "path": "source/native/ui/modules/scale_editor.cpp",
-      "bytes": 9097,
-      "sha256": "ef8ed4fdd07a67e022384a98d26d7656a4aef795330a86d58b1c13db5fc9fd63"
+      "bytes": 11707,
+      "sha256": "8b8038596ad7f9ec5735021025840519741df2c6b28174e3bf4409df55ae7d80"
     },
     {
       "path": "source/native/ui/modules/scale_editor.h",
@@ -22410,18 +22274,18 @@
     },
     {
       "path": "source/native/ui/modules/settings_editor.cpp",
-      "bytes": 14836,
-      "sha256": "d9453bb03388e10f2770afab2c4ec232433e452c89c473076841aa741c6ff229"
+      "bytes": 14937,
+      "sha256": "9232b812fa7aae7f9041d145c95cb9bf4e47ae114d1634a33acdfea453e8199f"
     },
     {
       "path": "source/native/ui/modules/settings_editor.h",
-      "bytes": 7669,
-      "sha256": "3d325a4e38cb73cf9a6ecc765ccbb265ee70e1e663ebd9073543a01d28c7548f"
+      "bytes": 8200,
+      "sha256": "96e72604f9350c8f36f39bf2be763f79c0705aeaaf2ceae6000bba78c4ad9f2b"
     },
     {
       "path": "source/native/ui/modules/song_editor.cpp",
-      "bytes": 6948,
-      "sha256": "030d50cbd92db5523c9a402816c0aafc962babb0a84e7c64a0791e5a57869490"
+      "bytes": 7161,
+      "sha256": "e015fd87005b36bdd663c2932ae3b8256107a58a2f63864690d0de4bb4024f29"
     },
     {
       "path": "source/native/ui/modules/song_editor.h",
@@ -22430,8 +22294,8 @@
     },
     {
       "path": "source/native/ui/modules/table_editor.cpp",
-      "bytes": 9716,
-      "sha256": "1d85ab922d8f91fecbd1a959f6ff4fd45962f4b98cf04e4835a994ede45e7dfb"
+      "bytes": 10009,
+      "sha256": "692ac26cb7ecb68601cb4eee15c5cc2fcf1b5e617a84b5cf8d2f74b67b3ab361"
     },
     {
       "path": "source/native/ui/modules/table_editor.h",
@@ -22450,8 +22314,18 @@
     },
     {
       "path": "source/native/ui/navigation.h",
-      "bytes": 11157,
-      "sha256": "1b62ce263ca17ab982c32a2933d0cb0662cb7d1b3f8dbab073036715e53950fd"
+      "bytes": 11164,
+      "sha256": "9023c5fead8af9338c934421c010ebac280217cb78d44fe232b819fdad7d68db"
+    },
+    {
+      "path": "source/native/ui/perform.cpp",
+      "bytes": 18033,
+      "sha256": "13f16d0af295984e1cf09832bdb1ecd4bb8d1e7148bf42b9ef395a02125d7cee"
+    },
+    {
+      "path": "source/native/ui/perform.h",
+      "bytes": 3229,
+      "sha256": "76ebe2e3e8c5533d7ece8993dd1b31ac07a1fd2e8753b3c8b01b9c0f674f681a"
     },
     {
       "path": "source/native/ui/phrase_fill.h",
@@ -22470,8 +22344,8 @@
     },
     {
       "path": "source/native/ui/premium.h",
-      "bytes": 4079,
-      "sha256": "cc9ef48f2b4a6ae99dedace5a7c50f90e36e1b6168e6100fecfda406395d66c5"
+      "bytes": 4243,
+      "sha256": "8c0e43b91566cf5fdc75d5d43da10de52146a8b791c7b481096e0b4dcc139c27"
     },
     {
       "path": "source/native/ui/product_brand.h",
@@ -22480,13 +22354,13 @@
     },
     {
       "path": "source/native/ui/project_actions.cpp",
-      "bytes": 18180,
-      "sha256": "b4f802a076702e1c691e04b9c2ed801c6966411d16bdd8c94e499ab09475cbbe"
+      "bytes": 20218,
+      "sha256": "aa6cd016f07421fe92eecd2e6539c6879902664a898c8399d940b0881b17c283"
     },
     {
       "path": "source/native/ui/project_actions.h",
-      "bytes": 3793,
-      "sha256": "ac0876f36f007703502dc57aa3c1d36bc9cb2ec87302cb78768ab56fbc068326"
+      "bytes": 3918,
+      "sha256": "fc474d8b09b0dcb7dac42f198fa7ecac2a921d90842b12d56beef946bbaa05c1"
     },
     {
       "path": "source/native/ui/punch_graphics.h",
@@ -22530,8 +22404,8 @@
     },
     {
       "path": "source/native/ui/sample_granular_view.cpp",
-      "bytes": 30548,
-      "sha256": "b1d3603e8f8a551324ed47d683367c24c98adf83d56ce9fd983fecef823fab4b"
+      "bytes": 30582,
+      "sha256": "e877a3fb3b39c8fc638bae8736cd40969497c73b8e01dcfad1a03f2d2859c488"
     },
     {
       "path": "source/native/ui/scale_io.h",
@@ -22539,9 +22413,34 @@
       "sha256": "7e8f1fccbc2078edbb6eee4faf1585a74b995afc943af83eea26c6398cb431a3"
     },
     {
+      "path": "source/native/ui/scene_animation.h",
+      "bytes": 7844,
+      "sha256": "41b6e283d947318bb21f6e034334cf0f0eea0466bdfd45f0cc60e6c31d3c74ea"
+    },
+    {
+      "path": "source/native/ui/scene_layout.h",
+      "bytes": 947,
+      "sha256": "b4c48c31b458bde3a284e704a771b65749224902928bafe24e23ae16ac2414fc"
+    },
+    {
+      "path": "source/native/ui/scene_picker.cpp",
+      "bytes": 5913,
+      "sha256": "6309aceb5d3bba9cfdd1d372fb17b80922e13f80957cad88d1aac5b066f458af"
+    },
+    {
+      "path": "source/native/ui/scene_picker.h",
+      "bytes": 593,
+      "sha256": "f46e5cb8337eaedf1e08899f734431bb59da815f89e10bb8443478f4a9b6fb98"
+    },
+    {
+      "path": "source/native/ui/scene_presets.h",
+      "bytes": 7930,
+      "sha256": "e2612cb6cea48ab5937da739b276f484d895e9972c1fe4e9d32ff0276c604140"
+    },
+    {
       "path": "source/native/ui/screen.h",
-      "bytes": 2970,
-      "sha256": "e6f2d7917f36aa11abff3f1ad4950cca81a200a489d76059974d912232cd6779"
+      "bytes": 5305,
+      "sha256": "49e3cc1db7d1524d00d0cb90cbd2414754adbf8e98c9d94d2e20e51b7e6dd178"
     },
     {
       "path": "source/native/ui/selection.h",
@@ -22555,13 +22454,13 @@
     },
     {
       "path": "source/native/ui/settings_store.cpp",
-      "bytes": 11137,
-      "sha256": "4f918db7fc3a01e554fc820b090a565745365f057f471e58c996ad5314633fe8"
+      "bytes": 13268,
+      "sha256": "dbe576633c5ae9af9ee7e94161a0d12495a2b1106a28160ba8c39027b43dbc82"
     },
     {
       "path": "source/native/ui/settings_store.h",
-      "bytes": 1108,
-      "sha256": "f38041e755edea62c920e7d3888a333cdf0a046cb2ee4d42c2c633197de4288e"
+      "bytes": 2516,
+      "sha256": "b7ab00db60623adb537641c999ea459b5923bc5a98601e1da246c5c7ffe086fe"
     },
     {
       "path": "source/native/ui/song_pointer.h",
@@ -22569,14 +22468,24 @@
       "sha256": "a1246b82956921b3a350fb1054f3a4109cf54992c15b7096be6d7fd3de6f8d42"
     },
     {
+      "path": "source/native/ui/source_credits.cpp",
+      "bytes": 10080,
+      "sha256": "8745dc755bc38e0dcc2dced46e0638853f227089d41fd9719c1160ac79cc30c1"
+    },
+    {
+      "path": "source/native/ui/source_credits.h",
+      "bytes": 3435,
+      "sha256": "a4ae60401dc55ff06242ab444fd8af749af6d4c278c602b35466d0262e421b9a"
+    },
+    {
       "path": "source/native/ui/source_sampler.cpp",
-      "bytes": 61730,
-      "sha256": "9148a5b4cb4c31cefb09fd0b3fb5ea6e78bfa3be78d012ba261a5a294e3cd60b"
+      "bytes": 71475,
+      "sha256": "70451d67c6a537bd039cf11a165257eb33836fab75a45f80652f114fbaf1db7a"
     },
     {
       "path": "source/native/ui/source_sampler.h",
-      "bytes": 4409,
-      "sha256": "657ca0cf500de72f989ae1b687c4db57eaa1f38c97428ec93dce055d1e85637d"
+      "bytes": 5457,
+      "sha256": "9c91a8292bb4a1ab2f1ffb764536c7068ea7ba076d7ec9e4b1c939c6cc31f73e"
     },
     {
       "path": "source/native/ui/std_filesystem.cpp",
@@ -22595,13 +22504,13 @@
     },
     {
       "path": "source/native/ui/studio.cpp",
-      "bytes": 25426,
-      "sha256": "01cffc9e6368f5c665d60c54c960c4e8f58948c5a934be7424828d016ba685a5"
+      "bytes": 28618,
+      "sha256": "31e6356afa23f24fe791b7ed9ffe6713f9bbd7f6bc56937899ebcf29844b9256"
     },
     {
       "path": "source/native/ui/studio.h",
-      "bytes": 2172,
-      "sha256": "b9d7e3a46edbb7ab7feb67b0b50ff0096984974e4bf2636e1892716a9696c7ed"
+      "bytes": 2286,
+      "sha256": "83ca24482c5ad6056fbeea33eec400ddd3db7b02af6528ae4ec32925457af402"
     },
     {
       "path": "source/native/ui/studio_capture.cpp",
@@ -22610,18 +22519,18 @@
     },
     {
       "path": "source/native/ui/studio_help.cpp",
-      "bytes": 27510,
-      "sha256": "d17d4216982725b0573cdd2e56db44b737171a2b04db0d63db26fd176cc680ee"
+      "bytes": 35330,
+      "sha256": "6f6632d186973017f398bc1e47c5c494bfd91eb49272f10d1b44035f44b1c3cf"
     },
     {
       "path": "source/native/ui/studio_help.h",
       "bytes": 820,
-      "sha256": "696ac18270ca50b64c0acad5d0c2cd4d08256690fe9fc27d67bdfd9dccc45508"
+      "sha256": "62e49be2575bd05dc0b1cb5691b1ce8dc0dd913c10c48754673e1288786db218"
     },
     {
       "path": "source/native/ui/studio_navigation.h",
-      "bytes": 1023,
-      "sha256": "d44335e2bdf4489f04a7fe5b230d107aaadebfdfec413300e3e7805247f5325d"
+      "bytes": 1039,
+      "sha256": "4360330e69a2129fe86fa8e69afd504b7201af7a920f3f28ea04b5a7bed98425"
     },
     {
       "path": "source/native/ui/studio_preset_io.h",
@@ -22630,18 +22539,18 @@
     },
     {
       "path": "source/native/ui/studio_synth.cpp",
-      "bytes": 25560,
-      "sha256": "d3fc454ace241aa4c5773161cfd84120b8220e5de899b5743a6806b346c76662"
+      "bytes": 29484,
+      "sha256": "12238f4d88d50ebc8d81b0cc3b75f7df712d23c60048a44024a34d9dc219736d"
     },
     {
       "path": "source/native/ui/studio_synth_picker.h",
-      "bytes": 1217,
-      "sha256": "fe6bc615b18480cc46aadadba49740ea3e626c317660aeebe2379f7abd2b4045"
+      "bytes": 1218,
+      "sha256": "7a69085313aba886f498d38481c53a614eaeb6967fcc5a0c3e2b85d6d615c7f3"
     },
     {
       "path": "source/native/ui/studio_view.cpp",
-      "bytes": 29941,
-      "sha256": "b45e8aebcf2da222ac64b2e57973ecba40bb350b781425088a7cc10377acec5a"
+      "bytes": 37349,
+      "sha256": "1db0821877a15225ecead9ec20bd65ff0d13495fe5d29948e90a4ceaa91f84e4"
     },
     {
       "path": "source/native/ui/studio_workspace.h",
@@ -22650,13 +22559,13 @@
     },
     {
       "path": "source/native/ui/theme.h",
-      "bytes": 18100,
-      "sha256": "05bc85ebb18616fea0091d8c657399e570e8a2c2ecf4fc873a00c14f74eb3150"
+      "bytes": 20902,
+      "sha256": "cd0dd02d4029d681cf9d332448c392b70ee0906f09e16d4ede047dc367b8c37b"
     },
     {
       "path": "source/native/ui/theme_io.h",
-      "bytes": 7733,
-      "sha256": "17cb7542de31da9b0e9fb2b2fdcad586d5b33ed69476dd2bd1324ebdebfa413d"
+      "bytes": 9084,
+      "sha256": "175c8057d6297ac816dc015f15675886886b9a67c298c320899841a47288f359"
     },
     {
       "path": "source/native/ui/theme_random.h",
@@ -29275,8 +29184,8 @@
     },
     {
       "path": "source/native/vendor/mutable/PT-LOCAL-PATCHES.md",
-      "bytes": 6732,
-      "sha256": "6e47ae199b3a374e6c7a3e6161dd50c2989a5924cfe342bfa700c8acb600f862"
+      "bytes": 7401,
+      "sha256": "f9b75dff19932b850bfaa637c62127cd0274767f7b9a0e31c9573ebcaf923d39"
     },
     {
       "path": "source/native/vendor/mutable/braids/README.md",
@@ -29499,16 +29408,6 @@
       "sha256": "4a034ae06bd93297d9392f74c07459d7d2307a356aaa2a61cdc41d8ab62af948"
     },
     {
-      "path": "source/native/vendor/mutable/braids/resources.cc",
-      "bytes": 388743,
-      "sha256": "b28a075193e7568e53621361ba95e3c9ff952b350eafe02e47dfb070b76f6b53"
-    },
-    {
-      "path": "source/native/vendor/mutable/braids/resources.h",
-      "bytes": 6940,
-      "sha256": "740135940b70a1d26f965c7c80e92aae03ae7f9d843dc81706284e0adef97327"
-    },
-    {
       "path": "source/native/vendor/mutable/braids/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -29537,6 +29436,16 @@
       "path": "source/native/vendor/mutable/braids/resources/waveshapers.py",
       "bytes": 2286,
       "sha256": "c201dc2039699fb4ef2f0dc259b65e4329e732b2f57c297403eb8906309d6235"
+    },
+    {
+      "path": "source/native/vendor/mutable/braids/resources.cc",
+      "bytes": 388743,
+      "sha256": "b28a075193e7568e53621361ba95e3c9ff952b350eafe02e47dfb070b76f6b53"
+    },
+    {
+      "path": "source/native/vendor/mutable/braids/resources.h",
+      "bytes": 6940,
+      "sha256": "740135940b70a1d26f965c7c80e92aae03ae7f9d843dc81706284e0adef97327"
     },
     {
       "path": "source/native/vendor/mutable/braids/settings.cc",
@@ -29859,16 +29768,6 @@
       "sha256": "455a66d89bd81c9fe833a173604e61a55fd9c0a96c9ceeecfb43cb68be136cce"
     },
     {
-      "path": "source/native/vendor/mutable/clouds/resources.cc",
-      "bytes": 213152,
-      "sha256": "167b5371080dfd1c8c493cdbb9ea8170cada7153fafea333e6d5657dd70f3568"
-    },
-    {
-      "path": "source/native/vendor/mutable/clouds/resources.h",
-      "bytes": 2962,
-      "sha256": "5935cca20a9e4df6cfd73b93fd40477154e761e724901fc42d4853eb0945b634"
-    },
-    {
       "path": "source/native/vendor/mutable/clouds/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -29887,6 +29786,16 @@
       "path": "source/native/vendor/mutable/clouds/resources/src_filters.py",
       "bytes": 2914,
       "sha256": "7c1ee04002d6c3a25fb578e9226981002c8c9b543f6f87c51ad88b122cd725c5"
+    },
+    {
+      "path": "source/native/vendor/mutable/clouds/resources.cc",
+      "bytes": 213152,
+      "sha256": "167b5371080dfd1c8c493cdbb9ea8170cada7153fafea333e6d5657dd70f3568"
+    },
+    {
+      "path": "source/native/vendor/mutable/clouds/resources.h",
+      "bytes": 2962,
+      "sha256": "5935cca20a9e4df6cfd73b93fd40477154e761e724901fc42d4853eb0945b634"
     },
     {
       "path": "source/native/vendor/mutable/clouds/settings.cc",
@@ -30179,16 +30088,6 @@
       "sha256": "b8fe4b2496cbc77e1803545f1b31d416f2190f2ad56294a5c74f7627340482c7"
     },
     {
-      "path": "source/native/vendor/mutable/elements/resources.cc",
-      "bytes": 1599351,
-      "sha256": "21352e0f4ad57028434194a30d337dcd8e6396d0e27492c1b28f38126b371203"
-    },
-    {
-      "path": "source/native/vendor/mutable/elements/resources.h",
-      "bytes": 4225,
-      "sha256": "51dd331d43320f69689bb978f6d81d877338d6db3edef33dc19afbb4c0279a45"
-    },
-    {
       "path": "source/native/vendor/mutable/elements/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -30212,6 +30111,16 @@
       "path": "source/native/vendor/mutable/elements/resources/samples.py",
       "bytes": 1712,
       "sha256": "eed1142a3f09ce78fcf0727a1667ec9439b9de3399fd149f8b769777e4e80dd8"
+    },
+    {
+      "path": "source/native/vendor/mutable/elements/resources.cc",
+      "bytes": 1599351,
+      "sha256": "21352e0f4ad57028434194a30d337dcd8e6396d0e27492c1b28f38126b371203"
+    },
+    {
+      "path": "source/native/vendor/mutable/elements/resources.h",
+      "bytes": 4225,
+      "sha256": "51dd331d43320f69689bb978f6d81d877338d6db3edef33dc19afbb4c0279a45"
     },
     {
       "path": "source/native/vendor/mutable/elements/test/elements_test.cc",
@@ -30924,16 +30833,6 @@
       "sha256": "0f66668cfb003585a23e08df553ef02cf2fd67fcb1a9288422e8ae1ff3fea188"
     },
     {
-      "path": "source/native/vendor/mutable/plaits/resources.cc",
-      "bytes": 378421,
-      "sha256": "de2b2adf661c0623a5ddf74326d7d3b88d7b3554c3aa0d710bf8ebd1c4cd18ef"
-    },
-    {
-      "path": "source/native/vendor/mutable/plaits/resources.h",
-      "bytes": 3656,
-      "sha256": "a7ee997d0c951e968af91625f43d0876b260cb809d22345703f2656589d95bb3"
-    },
-    {
       "path": "source/native/vendor/mutable/plaits/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -31047,6 +30946,16 @@
       "path": "source/native/vendor/mutable/plaits/resources/wavetables.py",
       "bytes": 8881,
       "sha256": "d5d226218013c6a88050206ca01d82d151183f762adfc587d2db543867ed393b"
+    },
+    {
+      "path": "source/native/vendor/mutable/plaits/resources.cc",
+      "bytes": 378421,
+      "sha256": "de2b2adf661c0623a5ddf74326d7d3b88d7b3554c3aa0d710bf8ebd1c4cd18ef"
+    },
+    {
+      "path": "source/native/vendor/mutable/plaits/resources.h",
+      "bytes": 3656,
+      "sha256": "a7ee997d0c951e968af91625f43d0876b260cb809d22345703f2656589d95bb3"
     },
     {
       "path": "source/native/vendor/mutable/plaits/settings.cc",
@@ -31374,16 +31283,6 @@
       "sha256": "9ac73c52e02a71fe92a2474a18a5cbedc68101adaa8867eed5f4bfce34fe8849"
     },
     {
-      "path": "source/native/vendor/mutable/rings/resources.cc",
-      "bytes": 113303,
-      "sha256": "e9fd699ee57a596c7ee28db6207d76ec1389030e956b5ec0b214068e4820eb2d"
-    },
-    {
-      "path": "source/native/vendor/mutable/rings/resources.h",
-      "bytes": 2224,
-      "sha256": "0bd2344f4acc9aa3e8f82ab6d20c1d54a1030d673c8ef04f5b1fa6884a249a7e"
-    },
-    {
       "path": "source/native/vendor/mutable/rings/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -31397,6 +31296,16 @@
       "path": "source/native/vendor/mutable/rings/resources/resources.py",
       "bytes": 3235,
       "sha256": "5f107de7cc3b776c8acb0d6b51f3b3c6a50bd0debea0fa67e2d9e6558807ba49"
+    },
+    {
+      "path": "source/native/vendor/mutable/rings/resources.cc",
+      "bytes": 113303,
+      "sha256": "e9fd699ee57a596c7ee28db6207d76ec1389030e956b5ec0b214068e4820eb2d"
+    },
+    {
+      "path": "source/native/vendor/mutable/rings/resources.h",
+      "bytes": 2224,
+      "sha256": "0bd2344f4acc9aa3e8f82ab6d20c1d54a1030d673c8ef04f5b1fa6884a249a7e"
     },
     {
       "path": "source/native/vendor/mutable/rings/rings.cc",
@@ -36324,16 +36233,6 @@
       "sha256": "f616fef583e2e5c7e1e4907a43c100c22c6b86f32b54bd6fe8af72c0b1d0a105"
     },
     {
-      "path": "source/native/vendor/mutable/warps/resources.cc",
-      "bytes": 248009,
-      "sha256": "21ff2afc5121061899e5ad895b66130113b0cb289d52f9782b0332523375d18d"
-    },
-    {
-      "path": "source/native/vendor/mutable/warps/resources.h",
-      "bytes": 4727,
-      "sha256": "03aa073162f185036ae898b778229e48aba15bd17f5930a74026f2ec6abecbb7"
-    },
-    {
       "path": "source/native/vendor/mutable/warps/resources/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -36362,6 +36261,16 @@
       "path": "source/native/vendor/mutable/warps/resources/waveforms.py",
       "bytes": 2414,
       "sha256": "b7196c6f9814b918fe0d2d42e8bc9bb1c8cd1889bac1b39cdd3facad497c58ad"
+    },
+    {
+      "path": "source/native/vendor/mutable/warps/resources.cc",
+      "bytes": 248009,
+      "sha256": "21ff2afc5121061899e5ad895b66130113b0cb289d52f9782b0332523375d18d"
+    },
+    {
+      "path": "source/native/vendor/mutable/warps/resources.h",
+      "bytes": 4727,
+      "sha256": "03aa073162f185036ae898b778229e48aba15bd17f5930a74026f2ec6abecbb7"
     },
     {
       "path": "source/native/vendor/mutable/warps/settings.cc",
@@ -38139,6 +38048,11 @@
       "sha256": "71bf582640e6eddf572804e06c29f8651f7427e74526b8666d106f29f01dc8c9"
     },
     {
+      "path": "source/qa/prepare-dev2-brick.py",
+      "bytes": 7349,
+      "sha256": "cc9655d817d7ed76a40ee02e1315e195fd4ef7d4189c74f5d057a3dac619ca32"
+    },
+    {
       "path": "source/settings.gradle.kts",
       "bytes": 643,
       "sha256": "16f4fb0d7e753787b0822623fdfc11deeca536bfd236b30fd8a43443b27ffda5"
@@ -38150,8 +38064,8 @@
     },
     {
       "path": "source/shell/CMakeLists.txt",
-      "bytes": 19473,
-      "sha256": "ca70f93e6e95679f507176ec2200c6ce67e2d9487aa10fe3d766d0ac29d485da"
+      "bytes": 20076,
+      "sha256": "016aedb3e34a9ec0a45e631e5e86400541c93ff90bb470fa95582543d6a778e9"
     },
     {
       "path": "source/shell/Dockerfile.linux",
@@ -38225,8 +38139,8 @@
     },
     {
       "path": "source/shell/app.cpp",
-      "bytes": 76950,
-      "sha256": "6091e09b4bfbe0ed9578265f7efde5e1a0f7169e1258c8f93ee9eefb2481d276"
+      "bytes": 87872,
+      "sha256": "f1ccd2ae18c6962a0a983e9fb190a3cc47338ad7e051191ca3cc75559535a812"
     },
     {
       "path": "source/shell/app.h",
@@ -38260,23 +38174,23 @@
     },
     {
       "path": "source/shell/build-linux.sh",
-      "bytes": 10105,
-      "sha256": "e9465a8f85e89f60ff94f1baac8958c15536e718aca93ae95ced8c661eb51e6d"
+      "bytes": 10849,
+      "sha256": "ecb5b0cc82049056f9f66666c506547d276ede10d7d23078ee79e381920e9c59"
     },
     {
       "path": "source/shell/build-miyoo.sh",
-      "bytes": 35715,
-      "sha256": "215779bbc667bae1371a0e2f0f8b03cd18b83c125596cf5ff5d2fb12febdbc98"
+      "bytes": 36512,
+      "sha256": "4d96a9161ecadc5d45ba37849e949515ea4e28b45b26c376d9af3ea1953bf1d1"
     },
     {
       "path": "source/shell/build-portmaster.sh",
-      "bytes": 16136,
-      "sha256": "0d770e83571a2a9cd7c94aa62624207d383b825d969dcc03e44b3927c2340f20"
+      "bytes": 16904,
+      "sha256": "1394da947e35483ede13985593c6e9c96fe690f18275a22a11202aa7febde347"
     },
     {
       "path": "source/shell/build-windows.ps1",
-      "bytes": 19548,
-      "sha256": "7e0efdc0c4121ef897d71040486684d87637909621fadaf8f22a65f67d5e0ea2"
+      "bytes": 20347,
+      "sha256": "a1bd078ec207dd928fcd9f1a74120243b2dfcf9dd3d50fcb6d6d0ca26f01b744"
     },
     {
       "path": "source/shell/latency_probe.h",
@@ -38375,8 +38289,8 @@
     },
     {
       "path": "source/shell/linux/source-sampler.cpp",
-      "bytes": 100280,
-      "sha256": "c2a9005453f63e22ff8353449d458dac2e3387f40c8a3166e13b6a6aa0561037"
+      "bytes": 101100,
+      "sha256": "01d7dbd415b89a06e0c911aab178c9f9b119adb6bbb95128f59060303b806f14"
     },
     {
       "path": "source/shell/linux/source-sampler.h",
@@ -38814,6 +38728,11 @@
       "sha256": "21142b527df494125da65d6424e319270d98bb01c043508215938f78f59dc6f5"
     },
     {
+      "path": "source/tests/studio/button_conflicts.cpp",
+      "bytes": 8468,
+      "sha256": "ddfe5d1f056f20642df1c4a8b8a727fe50cac0655937264f897e9dcae7dc6be0"
+    },
+    {
       "path": "source/tests/studio/canvas_probe.cpp",
       "bytes": 1225,
       "sha256": "f190bb67c31875103658372b2dcd5330f062cf1ad6591ab7e0cd4f46c34a30de"
@@ -38835,13 +38754,28 @@
     },
     {
       "path": "source/tests/studio/context_help.cpp",
-      "bytes": 6879,
-      "sha256": "86656932cdfbf477a4bd035931d33151be58dc4dbbb0e8d1410121a075a2961a"
+      "bytes": 6912,
+      "sha256": "7d94a65623db72d89c59650e473b0a53889524c6a4aaa9adc1342dfd77df33d0"
+    },
+    {
+      "path": "source/tests/studio/dco_poly.cpp",
+      "bytes": 15020,
+      "sha256": "cfe21d0bc882b797f56707ebb65489d9bfbf70e602df28078f5beea168a07f93"
+    },
+    {
+      "path": "source/tests/studio/demo_fx.cpp",
+      "bytes": 28349,
+      "sha256": "490802a0e9f31441a63c97b5ed7f3283136ce43d608ee1366a05beb912f8e532"
     },
     {
       "path": "source/tests/studio/drumlab.cpp",
       "bytes": 19967,
       "sha256": "ceb1f1ba4193b1130dfbc440b191779b19e35d9e05269a5ca5225079280054e9"
+    },
+    {
+      "path": "source/tests/studio/drumlab_map.cpp",
+      "bytes": 11018,
+      "sha256": "466fc746cd28f96e30f382fbae0db3ad9e037eff75ed200725f1148962c1a52e"
     },
     {
       "path": "source/tests/studio/drumlab_swing.cpp",
@@ -38879,9 +38813,24 @@
       "sha256": "1d15c77bba44905cda80d30cdd4316a2060029aacbcdd3b6a628873842e1cf58"
     },
     {
+      "path": "source/tests/studio/fm_sysex.cpp",
+      "bytes": 18543,
+      "sha256": "a599f11e96ec331f6e8864fc7c92ec60e287a61f2543d2973626a4abc1874e8c"
+    },
+    {
+      "path": "source/tests/studio/fm_sysex_song.cpp",
+      "bytes": 14160,
+      "sha256": "d81bfa45fc3c017bac616700b9a447d2ed567f5662615bc1aa27b03721ae08d0"
+    },
+    {
+      "path": "source/tests/studio/font_atlas.cpp",
+      "bytes": 4369,
+      "sha256": "2828e1cac648523a33d0a591a511853c17e7b86c7c126f33e1eb7f406e7c1cfa"
+    },
+    {
       "path": "source/tests/studio/font_style.cpp",
-      "bytes": 13952,
-      "sha256": "0b40847e772b067fad7410bd8fb06772b4cd946b1ac797aaf7b32dd7784aad2c"
+      "bytes": 13981,
+      "sha256": "2e673a8d1e5d69c6be88e790948ae448aa1b8a838e855fc5c3580ac6a66734c8"
     },
     {
       "path": "source/tests/studio/fontgen.cpp",
@@ -38894,6 +38843,11 @@
       "sha256": "248366d235914746ff577691fb3f3ca6288085f44bb066daa62d45c787f64e18"
     },
     {
+      "path": "source/tests/studio/formant_choir.cpp",
+      "bytes": 13589,
+      "sha256": "ca8eb8e7483664c1b77c4f03fe790fef7a9ea2861ca4ca65decc66998f63b270"
+    },
+    {
       "path": "source/tests/studio/granular_step_engine.cpp",
       "bytes": 10843,
       "sha256": "9626f6c3b920c9b7e575c9ffb781acbedd42c0a8e6fd6f6853fd9a36e6047699"
@@ -38904,14 +38858,24 @@
       "sha256": "d68e3c839b507647dd0e74bda52037495509bf6f33670023f3a136fb5c69dea7"
     },
     {
+      "path": "source/tests/studio/handover_fixes.cpp",
+      "bytes": 13154,
+      "sha256": "0620643260d7480cdf273fee6560606683fc93bcb58b24542f4473e67f61121e"
+    },
+    {
+      "path": "source/tests/studio/harmony.cpp",
+      "bytes": 6710,
+      "sha256": "06bd28c3c1ec3c49cd0669f756adc2bb2f3d5f9a76aad7226e9d3caea500405e"
+    },
+    {
       "path": "source/tests/studio/instrument_load.cpp",
-      "bytes": 10032,
-      "sha256": "10e9d08ec8963479507233b2abc9c796d3324810be8182863c77de3df4b44076"
+      "bytes": 10303,
+      "sha256": "f4999e92c51d8b3a113e4f8caf1e39f197811e08ca4f6237e73a9b99a149f9e3"
     },
     {
       "path": "source/tests/studio/integration.cpp",
-      "bytes": 11326,
-      "sha256": "64e9176854f9842ce481d86eb74aad24e771c4dac1922a046fedaa62aa59314f"
+      "bytes": 11494,
+      "sha256": "8e685bb257c20fa13ed96071d743dfd949cefe4dfc909f52a15130d3cd171141"
     },
     {
       "path": "source/tests/studio/iphone_capture_check.cpp",
@@ -38985,8 +38949,13 @@
     },
     {
       "path": "source/tests/studio/navigation.cpp",
-      "bytes": 11900,
-      "sha256": "d5c312ab933f09692fb972bff8104af93a8ee76c7ebbaf58a9c46ad4c86a93d3"
+      "bytes": 12065,
+      "sha256": "036ea78a76b84b974931e04d2e5b9ed058669cc7e7f0ad50ef1c2c10f70e54cb"
+    },
+    {
+      "path": "source/tests/studio/perform.cpp",
+      "bytes": 14391,
+      "sha256": "3d110a52a1b2bd1dfca6c1988036852e09af8663ec1af0e786392ca3a4989191"
     },
     {
       "path": "source/tests/studio/presetpack.cpp",
@@ -39000,8 +38969,8 @@
     },
     {
       "path": "source/tests/studio/punch_theme.cpp",
-      "bytes": 16025,
-      "sha256": "5b8a98b543b88b4ef5c8e6dda315891cf69344b128e63f76a60936dc7179cc42"
+      "bytes": 16597,
+      "sha256": "41c6d1f1e8752a2e6da2c09f15ad45d0802e5dd7cb612147a2800bef69a040da"
     },
     {
       "path": "source/tests/studio/recorder_workflow.cpp",
@@ -39016,7 +38985,57 @@
     {
       "path": "source/tests/studio/sample_editor.cpp",
       "bytes": 5988,
-      "sha256": "bc16170da6f1dc5c1529581b65e8cb867651437698883d2c73d72aa75c2d2578"
+      "sha256": "a7cddf207957255223143d8169aa224929f251988373934f9ae145e70049e0c2"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_atomic.cpp",
+      "bytes": 12935,
+      "sha256": "284fb01f499a039ed645d7723318d14b686f95428d4be9c2217513c2dafebad6"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_edges.cpp",
+      "bytes": 15870,
+      "sha256": "704de9bb1df4c6bbe19e77d6fcbda4af0a3ba2baf69be44ec892bfdf56f9124b"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_marker_budget.cpp",
+      "bytes": 9357,
+      "sha256": "acdfa3b0d539f7bd848e0881281f3057e056c0d83df26800fcf6635c48cda3f1"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_memory.cpp",
+      "bytes": 11604,
+      "sha256": "d670e0492befdb5cc1608a99cacac1be2df3e62a7fb8058815d45130bbe7d54d"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_preview.cpp",
+      "bytes": 10970,
+      "sha256": "87d4ce16965962f564040bc7154f024719f58fe2f1aeda97962d8624d1ef9df9"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_preview_aborts.cpp",
+      "bytes": 6545,
+      "sha256": "0d849c16f08a9ee7c66e38adc3c5e3b63069e94b986419d61dd703a7666c75de"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_preview_faults.cpp",
+      "bytes": 10442,
+      "sha256": "7a684a813ad027253f9441c59c4b81e6067585462364d7605ad2241b0e14206b"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_save_exit.cpp",
+      "bytes": 8479,
+      "sha256": "f2e296bfcb10f30c3487fb1a58c5ec6730b7afc7db7b0abac158639adf0b16ec"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_save_io.cpp",
+      "bytes": 12865,
+      "sha256": "5ec03667eb3fde61e02ec08f3959fdf214ea68aa3c402605ca8075618be47c38"
+    },
+    {
+      "path": "source/tests/studio/sample_editor_save_memory.cpp",
+      "bytes": 7900,
+      "sha256": "c625b399217908c20ededbe328a46cf85d84b247c366465e63a67b2659cf0e49"
     },
     {
       "path": "source/tests/studio/sample_granular_engine.cpp",
@@ -39029,6 +39048,11 @@
       "sha256": "addbb58eee6e839a244fa85c857ebadf1fb71c2fc1dd3e04654a24608dad7d93"
     },
     {
+      "path": "source/tests/studio/scene_presets.cpp",
+      "bytes": 9520,
+      "sha256": "6516e137d8f610cf602568d6c473da0076ff5908a7cd7ebd3df625d866d183e6"
+    },
+    {
       "path": "source/tests/studio/sdl_capture_check.cpp",
       "bytes": 7344,
       "sha256": "2b38610eacec05d9f8130a7cb8f198d3f7c27833afd58626703c56d9526aeed0"
@@ -39039,9 +39063,34 @@
       "sha256": "708da7b1101806c5ed2ce91d671e3badee315610f751f221871dfb6f6fecf813"
     },
     {
+      "path": "source/tests/studio/settings_autosave.cpp",
+      "bytes": 3577,
+      "sha256": "2ccba69eb53f3f16041e3709e9e8a2cd76aaf21146a2bcfe9ae35abeda32f288"
+    },
+    {
+      "path": "source/tests/studio/show_view.cpp",
+      "bytes": 3530,
+      "sha256": "91bd0c2fbdab0802172756d19c80bbef6dc2f7b1a6da65823e129dd14da9f743"
+    },
+    {
+      "path": "source/tests/studio/sid_chip.cpp",
+      "bytes": 16725,
+      "sha256": "f54993cf11ede08a2b27dd46894248994f7a8d4cdc61d6896a05aed0e1c93065"
+    },
+    {
+      "path": "source/tests/studio/source_bars.cpp",
+      "bytes": 3603,
+      "sha256": "79ce8d36ddef2da42b4fcc1b4b5471588eafe732ba4b8afef0d6512a3dd28021"
+    },
+    {
+      "path": "source/tests/studio/source_credits.cpp",
+      "bytes": 12736,
+      "sha256": "912021f067af708ab498bbd952455fd87effa72d20ef609aed07579ccf2c477f"
+    },
+    {
       "path": "source/tests/studio/source_integration.cpp",
-      "bytes": 10905,
-      "sha256": "2cbb96de1c7fd12b6dd3800700cbc269e3f01e430fbd0483b18218991b086c63"
+      "bytes": 10953,
+      "sha256": "fb03e2b15d9d1eb92f64bb565b3afba67b2c744a7c00a147ce20fad9aae040c5"
     },
     {
       "path": "source/tests/studio/source_query.cpp",
@@ -39054,6 +39103,26 @@
       "sha256": "4811d08a5e8dcf544e92eb5fd23b9ef7f624fffddc823478a654ce4980fa35b1"
     },
     {
+      "path": "source/tests/studio/source_youtube.cpp",
+      "bytes": 5894,
+      "sha256": "1d9652f49ad876dc62820552f6a4e4b1ac2d2896f2de657362cec3d4cf23443b"
+    },
+    {
+      "path": "source/tests/studio/spectral_additive.cpp",
+      "bytes": 9616,
+      "sha256": "1b7b265ef2d2dc61fa557492d5b317bb37262fdc025306efabd4ce7e02098dfc"
+    },
+    {
+      "path": "source/tests/studio/spectral_freeze.cpp",
+      "bytes": 34780,
+      "sha256": "9df85fcd202d1ef1c047d9909187c29d9ea75b089204f4c18cd87e9b6640e235"
+    },
+    {
+      "path": "source/tests/studio/spectral_morph.cpp",
+      "bytes": 10237,
+      "sha256": "c2a5cfba629b921eeb1df826d3d54e658fff97df8c7c9ec5f0c263a77c9fb935"
+    },
+    {
       "path": "source/tests/studio/studio_access.cpp",
       "bytes": 7874,
       "sha256": "2610936b99ae7a1a150c7f66f459a188b410d990622f1811eff92711cef0b4f4"
@@ -39064,9 +39133,24 @@
       "sha256": "acb5b177bf5d0b07b4972d4acb122a0243180c488893f733acfa470e6d100f94"
     },
     {
+      "path": "source/tests/studio/sync_budget.cpp",
+      "bytes": 9447,
+      "sha256": "931b2f0feb06ebb7a4e1fca777e5078e4458f4e2522ac0da12402e5dc1d51c08"
+    },
+    {
+      "path": "source/tests/studio/synth_cpu.cpp",
+      "bytes": 2904,
+      "sha256": "d11cab2698a394bfb8eff31d9fcde96e7798597bd6b8bcafbd80683b5d2d01a7"
+    },
+    {
+      "path": "source/tests/studio/synth_quality.cpp",
+      "bytes": 8990,
+      "sha256": "bea3b333a64d0a88009a3210ad3ed853d993d37ed34f2eec7dde4c412e244587"
+    },
+    {
       "path": "source/tests/studio/test.cpp",
-      "bytes": 9270,
-      "sha256": "c928983a356159da5f9e9b16cfcc936dac4766ab7a076819c9f04f6b1d67f669"
+      "bytes": 9857,
+      "sha256": "ac8f11cb6574a09c6e231dd04e1a1ed1d1335dc6d1c9a6eadbae0a69233bc8e5"
     },
     {
       "path": "source/tests/studio/theme_grid.cpp",
@@ -39074,9 +39158,49 @@
       "sha256": "ba8b247d80f275e65755232bcac7ae2ef3284424961197dd6e66364f06cdb1c6"
     },
     {
+      "path": "source/tests/studio/ui_polish.cpp",
+      "bytes": 26349,
+      "sha256": "7989a28271d1ad8dccf762ba38fec355b13fe12f71c5483ffd4d7bb8ba62815f"
+    },
+    {
       "path": "source/tests/studio/warps_init.cpp",
       "bytes": 2546,
       "sha256": "47dca04124a621d48d24392a832e8665ed6665ecbf96538a99dc1e356807a85d"
+    },
+    {
+      "path": "source/tests/studio/wav_interruption.cpp",
+      "bytes": 9949,
+      "sha256": "6d171d792d064784cbf8d125c7d38888a5c60879fee80455f00872b5f9786ff3"
+    },
+    {
+      "path": "source/tests/studio/wav_name_protection.cpp",
+      "bytes": 7317,
+      "sha256": "21351197de4797ad1994aa5f2d212f2ada977fc9a2c9001793c48f969c333210"
+    },
+    {
+      "path": "source/tests/studio/wav_publish_boundaries.cpp",
+      "bytes": 7026,
+      "sha256": "3a0cdde7a5abc86a227974392ae18c81f2383b22466ab11381d805140992c288"
+    },
+    {
+      "path": "source/tests/studio/wav_publish_filesystems.cpp",
+      "bytes": 6392,
+      "sha256": "030521e51c0d1f16197fb0e9ef3e037921433a05db0eaf1fdd9096378d337adb"
+    },
+    {
+      "path": "source/tests/studio/wav_publish_recovery.cpp",
+      "bytes": 10838,
+      "sha256": "986e46a9a38636f6ed466178e02e0d7dd756112dc69707148da667d5cd240395"
+    },
+    {
+      "path": "source/tests/studio/wav_recovery_guards.cpp",
+      "bytes": 6953,
+      "sha256": "12e65c600af74187ae88e9914b8e97a05bc2fdb85f9120691f7d0d8e77a92871"
+    },
+    {
+      "path": "source/tests/studio/wav_save_limits.cpp",
+      "bytes": 6210,
+      "sha256": "00b201671c1d838a76d8bc36db5511437fdbc9954a863745b47fc571a712ad89"
     },
     {
       "path": "source/tools/brick/BUILD.txt",
@@ -39104,6 +39228,11 @@
       "sha256": "f5a4bb218005d8ea2eb8ebd260c48dead2800d62845b4eaedd6c6de2ce5c3614"
     },
     {
+      "path": "source/tools/fonts/pack_demo_atlases.py",
+      "bytes": 10617,
+      "sha256": "1475d4358ba60edce5e2a27be1c579d324b42a82634a33ebe61fa032cf1faa0e"
+    },
+    {
       "path": "source/tools/presets/build_effect_catalog.py",
       "bytes": 4847,
       "sha256": "386e8764c6d3c15d4750d20cb1743633cd39bcabc434dec77989520d466a7c58"
@@ -39119,9 +39248,19 @@
       "sha256": "8535a18c3826b07a1cd45ec2d4f28601344fe7f217f1d9ade0d21524a7ca82b7"
     },
     {
+      "path": "source/tools/qa/run-host-checks.sh",
+      "bytes": 1360,
+      "sha256": "79f5f8299aaceae59d2d4ba8898eb4d8069707028e0b6f6659846fff08b206f1"
+    },
+    {
       "path": "source/tools/release/check_apk.py",
       "bytes": 2729,
       "sha256": "03c15d0ba04ca597cc03c09d94da340647ecde6c9873a2be83dfc8b8216687e3"
+    },
+    {
+      "path": "source/tools/release/fix_miyoo_names.py",
+      "bytes": 10330,
+      "sha256": "dffb4cd089a3d0309d8cad32ae87d3116ce0e0dd46f2d2c9a90255ced51a34e3"
     },
     {
       "path": "source/tools/release/package_brick.py",

@@ -1,3 +1,4 @@
+#include "ui/scene_layout.h"
 #include "ui/modules/sample_editor.h"
 
 #include <algorithm>
@@ -226,6 +227,14 @@ void SampleEditorState::slice_bounds(int idx, int64_t& start, int64_t& end) cons
     end   = total;
 }
 
+void SampleEditorState::slice_selection(int idx, int64_t& start, int64_t& end) const {
+    slice_bounds(idx, start, end);
+    const int64_t total = totalFrames;
+    start = std::clamp<int64_t>(start, 0, std::max<int64_t>(total - 1, 0));
+    end   = std::clamp<int64_t>(end, start, total);
+    if (end <= start && total > 0) end = start + 1;
+}
+
 int64_t SampleEditorState::effective_slice_position() const {
     int64_t start = 0, end = 0;
     slice_bounds(sliceIndex, start, end);
@@ -391,7 +400,8 @@ void sample_field(Canvas& c, int x, int y, int w, const std::string& label,
 
 void sample_group(Canvas& c, int x, int y, int h, const std::string& label,
                   bool active, const Theme& t) {
-    c.panel_rect(x + 10, y - 2, 620, h, darken(t.rowEvery4th, .75f),
+    const Argb panel = t.sceneChrome ? mix_rgb(t.rowEvery4th, t.background, 38) : recess(t.background,t.rowEvery4th, .75f);
+    c.panel_rect(x + 10, y - 2, 620, h, panel,
                  with_alpha(t.textParam, .13f), 5);
     c.fill_rect(x + 11, y + 3, 2, h - 10, with_alpha(active ? t.rowCursor : t.textParam, active ? .85f : .18f));
     c.draw_label(label, x + 19, y + 3, active ? t.rowCursor : t.textParam,12);
@@ -478,14 +488,37 @@ void SampleEditorModule::draw(Canvas& c, int x, int y, const SampleEditorState& 
             sample_field(c, x + fieldX[col], y + 28 + row * 22, 202, labels[row][col], values[row][col],
                          s.cursorRow == row + 1 && s.cursorCol == col, t);
 
-    draw_waveform(c, x, y + WAVEFORM_Y, s, t);
-
-    // TRIM and view tools share one panel; START/END remain exact sample-frame values.
-    sample_group(c, x, y + content_y(8), 44, "TRIM", s.cursorRow >= 3 && s.cursorRow <= 9, t);
-    sample_field(c, x + 85, y + content_y(8), 263, "START f", std::to_string(s.selectionStart),
-                 s.cursorRow == 8 && s.cursorCol == 0, t, 2);
-    sample_field(c, x + 352, y + content_y(8), 269, "END f", std::to_string(s.selectionEnd),
-                 s.cursorRow == 8 && s.cursorCol == 1, t, 2);
+    if (scene_layout(t).splitSampler) {
+        constexpr int waveWidth = 406, waveHeight = 171, railX = 424, railWidth = 206;
+        const int top = y + WAVEFORM_Y;
+        draw_waveform(c, x, top, waveWidth, waveHeight, s, t);
+        c.panel_rect(x + railX, top, railWidth, waveHeight,
+                     mix_rgb(t.rowEvery4th, t.background, 30), t.textParam, 4);
+        c.draw_label("TRIM / SELECTION", x + railX + 10, top + 10, t.textTitle, 15);
+        const bool focused = s.cursorRow == 8;
+        sample_field(c, x + railX + 9, top + 35, railWidth - 18, "START f",
+                     std::to_string(s.selectionStart), focused && s.cursorCol == 0, t, 2);
+        sample_field(c, x + railX + 9, top + 60, railWidth - 18, "END f",
+                     std::to_string(s.selectionEnd), focused && s.cursorCol == 1, t, 2);
+        c.fill_rect(x + railX + 10, top + 91, railWidth - 20, 1, with_alpha(t.textParam, .32f));
+        const auto seconds = [&](int64_t frames) {
+            char value[32];
+            std::snprintf(value, sizeof(value), "%.3f s", s.sampleRate > 0 ? double(frames) / s.sampleRate : 0.0);
+            return std::string(value);
+        };
+        sample_field(c, x + railX + 9, top + 102, railWidth - 18, "LENGTH",
+                     seconds(std::max<int64_t>(0, s.selectionEnd - s.selectionStart)), false, t, 2);
+        sample_field(c, x + railX + 9, top + 127, railWidth - 18, "VIEW",
+                     seconds(s.visible_frames()), false, t, 2);
+        sample_group(c, x, y + content_y(9), 23, "VIEW", s.cursorRow == 9, t);
+    } else {
+        draw_waveform(c, x, y + WAVEFORM_Y, WAVEFORM_W, WAVEFORM_H, s, t);
+        sample_group(c, x, y + content_y(8), 44, "TRIM", s.cursorRow >= 3 && s.cursorRow <= 9, t);
+        sample_field(c, x + 85, y + content_y(8), 263, "START f", std::to_string(s.selectionStart),
+                     s.cursorRow == 8 && s.cursorCol == 0, t, 2);
+        sample_field(c, x + 352, y + content_y(8), 269, "END f", std::to_string(s.selectionEnd),
+                     s.cursorRow == 8 && s.cursorCol == 1, t, 2);
+    }
     const std::string tools[] = {"FIT SEL", "FIT SL", "ALL", s.snapEnabled ? "SNAP ON" : "SNAP OFF",
                                  "WAVE " + std::to_string(1 << std::clamp(s.waveformGain, 0, 3)) + "X"};
     for (int i = 0; i < 5; ++i)
@@ -558,26 +591,26 @@ void SampleEditorModule::draw(Canvas& c, int x, int y, const SampleEditorState& 
     if (s.showConfirmClose) draw_confirm_dialog(c, x, y, t);
 }
 
-void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEditorState& s,
-                                       const Theme& t) const {
+void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, int width, int height,
+                                       const SampleEditorState& s, const Theme& t) const {
     const int wfLeft  = x + 10;
-    const int wfRight = wfLeft + WAVEFORM_W;
+    const int wfRight = wfLeft + width;
     // The last column inside the panel. Marks test against the edge and draw here, so an
     // end-of-view mark shows.
     const int wfLast  = wfRight - 1;
     const int waveTop = y + 30;
-    const int waveH = WAVEFORM_H - 58;
+    const int waveH = height - 58;
     const int midY = waveTop + waveH / 2;
 
-    c.panel_rect(wfLeft, y, WAVEFORM_W, WAVEFORM_H, t.vizBackground,
+    c.panel_rect(wfLeft, y, width, height, t.vizBackground,
                  with_alpha(t.textParam, .25f), 5);
-    c.fill_rect(wfLeft + 1, waveTop, WAVEFORM_W - 2, waveH, darken(t.vizBackground, .84f));
-    c.fill_rect(wfLeft + 1, midY, WAVEFORM_W - 2, 1, with_alpha(t.textParam, .22f));
+    c.fill_rect(wfLeft + 1, waveTop, width - 2, waveH, recess(t.background,t.vizBackground, .84f));
+    c.fill_rect(wfLeft + 1, midY, width - 2, 1, with_alpha(t.textParam, .22f));
     for (int i = 1; i < 8; ++i)
-        c.fill_rect(wfLeft + i * WAVEFORM_W / 8, waveTop, 1, waveH,
+        c.fill_rect(wfLeft + i * width / 8, waveTop, 1, waveH,
                     with_alpha(t.textParam, i % 2 ? .045f : .10f));
-    c.fill_rect(wfLeft + 1, waveTop + waveH / 4, WAVEFORM_W - 2, 1, with_alpha(t.textParam, .05f));
-    c.fill_rect(wfLeft + 1, waveTop + waveH * 3 / 4, WAVEFORM_W - 2, 1, with_alpha(t.textParam, .05f));
+    c.fill_rect(wfLeft + 1, waveTop + waveH / 4, width - 2, 1, with_alpha(t.textParam, .05f));
+    c.fill_rect(wfLeft + 1, waveTop + waveH * 3 / 4, width - 2, 1, with_alpha(t.textParam, .05f));
 
     const int64_t viewStart = s.view_start();
     const int64_t viewLen   = std::max<int64_t>(s.view_end() - viewStart, 1);
@@ -586,22 +619,22 @@ void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEdit
     // Frame → pixel, for every mark on the panel.
     auto frame_x = [&](double frame) {
         return static_cast<double>(wfLeft) +
-               ((frame - static_cast<double>(viewStart)) / viewLenF) * WAVEFORM_W;
+               ((frame - static_cast<double>(viewStart)) / viewLenF) * width;
     };
 
     // Whole-file overview and the current viewport remain stable while the detail is zoomed.
-    c.fill_rect(wfLeft + 4, y + 3, WAVEFORM_W - 8, 12, with_alpha(t.textParam, .06f));
+    c.fill_rect(wfLeft + 4, y + 3, width - 8, 12, with_alpha(t.textParam, .06f));
     const int overviewBins=static_cast<int>(s.overviewData.size()/2);
     for(int i=0;i<overviewBins;++i){
         const float lo=std::clamp(s.overviewData[i*2],-1.f,1.f);
         const float hi=std::clamp(s.overviewData[i*2+1],-1.f,1.f);
-        v_line(c,wfLeft+i*WAVEFORM_W/std::max(overviewBins,1),y+9-static_cast<int>(hi*5),
+        v_line(c,wfLeft+i*width/std::max(overviewBins,1),y+9-static_cast<int>(hi*5),
                std::max(1,static_cast<int>((hi-lo)*5)),with_alpha(t.textParam,.48f));
     }
     if(s.totalFrames>0){
-        const int left=wfLeft+static_cast<int>(static_cast<double>(viewStart)*WAVEFORM_W/s.totalFrames);
-        const int width=std::max(2,static_cast<int>(static_cast<double>(viewLen)*WAVEFORM_W/s.totalFrames));
-        c.stroke_rect(left, y + 3, std::min(width, wfRight - left), 12, with_alpha(t.textTitle, .85f));
+        const int left=wfLeft+static_cast<int>(static_cast<double>(viewStart)*width/s.totalFrames);
+        const int viewportWidth=std::max(2,static_cast<int>(static_cast<double>(viewLen)*width/s.totalFrames));
+        c.stroke_rect(left, y + 3, std::min(viewportWidth, wfRight - left), 12, with_alpha(t.textTitle, .85f));
     }
     auto time_label=[&](int64_t frame){char b[32];
         std::snprintf(b,sizeof(b),"%.3fms",s.sampleRate>0?1000.0*frame/s.sampleRate:0.0);return std::string(b);};
@@ -612,14 +645,18 @@ void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEdit
     const int64_t selected=std::max<int64_t>(s.selectionEnd-s.selectionStart,0);
     std::snprintf(detail,sizeof(detail),"LEN %lldf / %.3fms   STEP %lldf",static_cast<long long>(selected),
                   s.sampleRate>0?1000.0*selected/s.sampleRate:0.0,static_cast<long long>(s.fine_step()));
-    c.fill_rect(wfLeft + 1, y + WAVEFORM_H - 18, WAVEFORM_W - 2, 1, with_alpha(t.textParam, .13f));
+    c.fill_rect(wfLeft + 1, y + height - 18, width - 2, 1, with_alpha(t.textParam, .13f));
     std::string message = s.toolMessage.empty() ? detail : s.toolMessage;
     if (s.toolMessage.empty() && s.hitReview.open)
         message = std::to_string(s.hitReview.hits.size()) + " SUGGESTED CUTS / A APPLY / B CANCEL";
     if (s.toolMessage.empty() && s.chopReview.open())
         message = "UP: ALL  DOWN: ONE  A: EXPORT  B: BACK";
-    c.draw_text(Canvas::clip_text(message,54), wfLeft + 7, y + WAVEFORM_H - 13,
-                (s.hitReview.open || s.chopReview.open()) ? 0xffffc166 : s.toolMessage.empty() ? t.textParam : t.textTitle, 1, 2);
+    const Argb messageInk = (s.hitReview.open || s.chopReview.open()) ? 0xffffc166 :
+                            s.toolMessage.empty() ? t.textParam : t.textTitle;
+    if (width < WAVEFORM_W)
+        c.draw_label(Canvas::clip_label(message, width - 14, 12), wfLeft + 7, y + height - 15, messageInk, 12);
+    else
+        c.draw_text(Canvas::clip_text(message,54), wfLeft + 7, y + height - 13, messageInk, 1, 2);
 
 
     // ── The wave itself: one vertical rule per bin, from its min to its max ──────────────────────
@@ -633,7 +670,7 @@ void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEdit
             const float maxVal = s.waveformData[static_cast<size_t>(i) * 2 + 1];
 
             const int cx  = wfLeft + static_cast<int>(static_cast<float>(i) *
-                                                      static_cast<float>(WAVEFORM_W) /
+                                                      static_cast<float>(width) /
                                                       static_cast<float>(bins));
             const int top = std::clamp(midY - static_cast<int>(maxVal * halfH * gain),waveTop,waveTop+waveH);
             const int bot = std::clamp(midY - static_cast<int>(minVal * halfH * gain),waveTop,waveTop+waveH);
@@ -648,11 +685,11 @@ void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEdit
         }
     } else {
         const std::string empty = s.totalFrames <= 0 ? "NO SAMPLE LOADED" : "WAVEFORM LOADING";
-        c.draw_text(empty, wfLeft + (WAVEFORM_W - Canvas::text_width(empty, 1, 3)) / 2,
+        c.draw_text(empty, wfLeft + (width - Canvas::text_width(empty, 1, 3)) / 2,
                     midY - 13, t.textParam, 1, 3);
         if (s.totalFrames <= 0) {
             const std::string hint = "Choose LOAD below to open a sample";
-            c.draw_text(hint, wfLeft + (WAVEFORM_W - Canvas::text_width(hint, 1, 2)) / 2,
+            c.draw_text(hint, wfLeft + (width - Canvas::text_width(hint, 1, 2)) / 2,
                         midY + 10, t.textEmpty, 1, 2);
         }
     }
@@ -723,6 +760,34 @@ void SampleEditorModule::draw_waveform(Canvas& c, int x, int y, const SampleEdit
         for (int64_t i = 1; i < div; ++i) {
             const bool active = onSliceRow && (i == s.sliceIndex || i == s.sliceIndex + 1);
             boundary((i * total) / div, active);
+        }
+    }
+
+    // ── Slice numbers: a tracker's two hex digits at the foot of each slice wide enough to hold
+    //    them; the slice under the cursor wears a filled tag, as S and E do. ─────────────────────
+    if (s.sliceMethod != SLICE_OFF) {
+        const int count = markerCount > 0 ? markerCount + 1
+                        : (s.sliceMethod == SLICE_DIVIDE && s.sliceDivisions > 0 ? s.sliceDivisions : 0);
+        constexpr int kTagH = 13;
+        const int tagY = waveTop + waveH - kTagH - 2;
+        for (int i = 0; i < count; ++i) {
+            int64_t start = 0, end = 0;
+            s.slice_bounds(i, start, end);
+            const double l = frame_x(static_cast<double>(start)), r = frame_x(static_cast<double>(end));
+            if (r <= wfLeft || l >= wfRight) continue;
+            char tag[8];
+            std::snprintf(tag, sizeof(tag), "%02X", i);   // 256 slices and more: "100", never "00" twice
+            const int tagW = Canvas::label_width(tag, 11) + 6;
+            const int tx = static_cast<int>(std::max<double>(l, wfLeft)) + 2;
+            if (std::min<double>(r, wfRight) - tx < tagW + 2) continue;   // too narrow: the lines say it
+            const bool current = onSliceRow && i == s.sliceIndex;
+            if (current) {
+                c.fill_rect(tx, tagY, tagW, kTagH, t.rowCursor);
+                c.draw_label(tag, tx + 3, tagY, t.vizBackground, 11);
+            } else {
+                c.fill_rect(tx, tagY, tagW, kTagH, with_alpha(t.vizBackground, .65f));
+                c.draw_label(tag, tx + 3, tagY, with_alpha(t.textParam, .85f), 11);
+            }
         }
     }
 
@@ -924,7 +989,7 @@ SampleEditorInputResult SampleEditorModule::handle_input(SampleEditorState& s,
             // Stepping the index selects that slice, so CROP/CHOP/preview act on the one in view.
             if (s.cursorCol == 0 && s.sliceMethod != SLICE_OFF) {
                 int64_t start = 0, end = 0;
-                s.slice_bounds(v, start, end);
+                s.slice_selection(v, start, end);
                 s.sliceIndex      = v;
                 s.selectionStart  = start;
                 s.selectionEnd    = end;

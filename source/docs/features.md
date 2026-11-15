@@ -1,6 +1,6 @@
 > Historical PocketTracker upstream reference. Extreme adds studio, synth, capture and online-source features. For this beta, use the [current illustrated guide](site/guide.html), [Extreme quick start](quick-start-guide.md), and [release status](../README.md#beta-feature-and-test-status).
 
-# PocketTracker — Feature Overview
+# TrackWerk 1.1 - Feature Overview
 
 Everything you can do with PocketTracker.
 

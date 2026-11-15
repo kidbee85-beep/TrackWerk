@@ -376,6 +376,9 @@ struct Instrument {
     std::optional<std::string> sampleFilePath;   // null
     // -1 keeps the engine's authored factory value; absent in older projects/presets.
     std::array<int,16> studioSynthParams = []{std::array<int,16> p{};p.fill(-1);return p;}();
+    // FM SYSEX's own voice, 128 packed bytes in the DX7 bank layout (studio/fm_sysex.h); absent = the
+    // built-in banks. Carried by the song so it sounds the same without the .syx file it came from.
+    std::optional<std::array<uint8_t,128>> fmVoice;
     // Optional sample-based mode. The real sampleFilePath remains the source; legacy defaults omit it.
     bool granularEnabled = false;
     studio::granular::Parameters granularParams{};
@@ -441,6 +444,25 @@ inline int resolve_cc_param(const Instrument& ins, uint8_t param) {
     return ins.midiCC[static_cast<size_t>(slot)].cc;
 }
 
+// PERFORM's eight controls (ui/perform.*). A song carries its own layout; absent = the defaults below.
+struct PerformSlot {
+    enum class Type { EMPTY, MUTE, FILTER, MACRO };
+    Type type = Type::EMPTY;
+    int tracks = 0;        // MUTE: bit N = track N+1
+    int instrument = -1;   // MACRO: the synth instrument whose macro it moves; -1 = not assigned
+    int macro = 0;         // MACRO: 0…2 = macro A, B, C
+    bool operator==(const PerformSlot& o) const {
+        return type == o.type && tracks == o.tracks && instrument == o.instrument && macro == o.macro;
+    }
+    bool operator!=(const PerformSlot& o) const { return !(*this == o); }
+};
+inline constexpr int PERFORM_SLOTS = 8;
+inline std::array<PerformSlot, PERFORM_SLOTS> default_perform_slots() {
+    using T = PerformSlot::Type;
+    return {{{T::MUTE, 0x03, -1, 0}, {T::MUTE, 0x0C, -1, 0}, {T::MUTE, 0xF0, -1, 0}, {T::FILTER, 0, -1, 0},
+             {T::MACRO, 0, -1, 0}, {T::MACRO, 0, -1, 0}, {T::MACRO, 0, -1, 0}, {T::MACRO, 0, -1, 0}}};
+}
+
 struct Project {
     int version = 0;
     std::string name = "UNTITLED";
@@ -483,6 +505,7 @@ struct Project {
     bool reverbMute = false, reverbSolo = false;
     bool delayMute  = false, delaySolo  = false;
     int masterEqSlot = -1;
+    std::array<PerformSlot, PERFORM_SLOTS> perform = default_perform_slots();
     std::vector<Phrase>     phrases;              // 256
     std::vector<Chain>      chains;               // 256
     std::vector<Track>      tracks;               // 8

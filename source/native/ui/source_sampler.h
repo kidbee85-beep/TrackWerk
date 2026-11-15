@@ -26,7 +26,12 @@ public:
 
 inline constexpr int SOURCE_QUICK_CLIP_ROW = 17;
 inline constexpr int SOURCE_COLLECTION_ROW = 18;
-inline constexpr int SOURCE_SAMPLER_ROWS = SOURCE_COLLECTION_ROW + 1;
+// Hides results a release cannot use (source_credits.h); 0 all, 1 release-safe, 2 no credit needed.
+inline constexpr int SOURCE_LICENSE_ROW = 19;
+// Sets OUT a whole number of bars (4/4) after IN at the song's tempo.
+inline constexpr int SOURCE_BARS_ROW = 20;
+inline constexpr int SOURCE_SAMPLER_ROWS = SOURCE_BARS_ROW + 1;
+inline constexpr int SOURCE_BAR_LENGTHS[] = {1, 2, 4, 8};
 inline constexpr int SOURCE_SAMPLER_PROVIDERS = 5;
 #ifdef PT_MIYOO_PLUS_ARCHIVE
 inline constexpr int64_t SOURCE_CLIP_MAX_MS = 60000;
@@ -74,6 +79,11 @@ struct SourceSamplerState {
     uint32_t nextTakeRequest = 0, expectedTakeRequest = 0;
     int previewGainPercent = 100, liveCaptureSeconds = 30;
     int quickClipLengthIndex = 2, historyTakeLengthIndex = 2, liveHistorySeconds = 0;
+    int licenseFilter = 0;   // SourceLicenseFilter
+    int barLengthIndex = 1;  // SOURCE_BAR_LENGTHS: 2 bars
+    // Mirrors SettingsValues::sourceYoutube (studio.cpp copies it in and out around each button).
+    bool youtubeEnabled = false;
+    bool youtubeConfirm = false;   // A once on Provider = YouTube: the next A opts in
     int collectionProvider = 0, shelfGroup = 0, shelfCursor = 0, stationGenre = 0;
     bool collectionOpen = false, collectionArmed = false;
     bool quickClipArmed = false;
@@ -95,5 +105,11 @@ bool source_sampler_submit_query(SourceSamplerState&, const std::string& query);
 bool source_sampler_button(const ButtonEvent&, SourceSamplerState&, songcore::SongcoreHost&, AudioEngine&);
 void source_sampler_bind_import_context(AppState&);
 bool source_sampler_apply_import(AppState&, songcore::SongcoreHost&, AudioEngine&, FileSystem&);
+// The length of `bars` 4/4 bars at `tempo` BPM in milliseconds, rounded to the nearest.
+int64_t source_sampler_bars_ms(int bars, int tempo);
+// The YouTube provider's index; it is usable only when youtubeEnabled.
+inline constexpr int SOURCE_YOUTUBE_PROVIDER = 2;
+// Whether a result or title passes the licence filter.
+bool source_sampler_item_shown(const SourceSamplerState&, const SourceSamplerItem&);
 void source_sampler_draw(Canvas&, const SourceSamplerState&, const Theme&, const songcore::Project&);
 } // namespace pt::ui

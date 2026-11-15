@@ -1,6 +1,7 @@
 #include "ui/source_sampler.h"
 #include "ui/canvas.h"
 #include "ui/helpers.h"
+#include "ui/source_credits.h"
 #include "ui/studio.h"
 #include "common/curated_radio.h"
 #include "common/live_take_lengths.h"
@@ -22,12 +23,23 @@ constexpr const char* genreIds[] = {"jazz", "soul", "library", "funk", "", "worl
     "reggae", "folk", "classical", "rock", "pop", "ambient", "house", "drum and bass", "spoken"};
 constexpr int genreCount = static_cast<int>(std::size(genres));
 static_assert(std::size(genres) == std::size(genreIds));
-constexpr const char* providers[] = {"Internet Archive", "Wikimedia Commons", "YouTube / experimental", "Radio Browser / LIVE", "SomaFM / LIVE"};
+constexpr const char* providers[] = {"Internet Archive", "Wikimedia Commons", "YouTube / opt-in", "Radio Browser / LIVE", "SomaFM / LIVE"};
 constexpr const char* providerIds[] = {"archive", "commons", "youtube", "radio_browser", "somafm"};
 constexpr int shelfGroupCount = static_cast<int>(std::size(sources::shelf_groups));
 constexpr const char* rowNames[] = {"Provider", "Genre", "Search", "Results", "Tracks", "Transport", "Seek",
-                               "IN marker", "OUT marker", "Record region", "Render selection", "Target slot", "Open sample editor", "Source / license", "Preview level", "Live take length", "Favorite station", "Quick clip", "Browse sources"};
-constexpr int displayRows[] = {SOURCE_COLLECTION_ROW,0,1,2,3,4,5,14,15,6,7,8,SOURCE_QUICK_CLIP_ROW,9,10,11,12,16,13};
+                               "IN marker", "OUT marker", "Record region", "Render selection", "Target slot", "Open sample editor", "Source / license", "Preview level", "Live take length", "Favorite station", "Quick clip", "Browse sources", "License filter", "Bar length"};
+// Three sections, top to bottom: find a sound, listen and mark it, take it into the song.
+constexpr int displayRows[] = {SOURCE_COLLECTION_ROW,0,1,SOURCE_LICENSE_ROW,2,3,4,16,
+                               5,14,6,7,8,SOURCE_BARS_ROW,SOURCE_QUICK_CLIP_ROW,15,
+                               9,10,11,12,13};
+constexpr const char* sectionNames[] = {"1/3 FIND", "2/3 LISTEN & MARK", "3/3 TAKE"};
+int row_section(int row) {
+    switch (row) {
+        case 5: case 14: case 6: case 7: case 8: case SOURCE_BARS_ROW: case SOURCE_QUICK_CLIP_ROW: case 15: return 1;
+        case 9: case 10: case 11: case 12: case 13: return 2;
+        default: return 0;
+    }
+}
 constexpr std::array<int, 5> clipLengths = {10,20,30,40,60};
 constexpr uint64_t QUICK_CLIP_ACK_MS = 1800;
 static_assert(std::size(rowNames) == SOURCE_SAMPLER_ROWS && std::size(displayRows) == SOURCE_SAMPLER_ROWS);
@@ -76,6 +88,7 @@ std::vector<int> visibleRows(const SourceSamplerState& s) {
         if ((row == 14 && !s.previewGainAvailable) || (row == 15 && (!s.liveAvailable || !radio)) ||
             (row == 16 && (!s.favoritesAvailable || !radio)) ||
             (row == SOURCE_QUICK_CLIP_ROW && (!s.backend || (s.live && !live_history(s)))) ||
+            (row == SOURCE_BARS_ROW && s.live) ||
             (row == SOURCE_COLLECTION_ROW && !has_collection(s, s.provider))) continue;
         visible.push_back(row);
     }
@@ -131,6 +144,59 @@ std::vector<SourceSamplerItem> items(const json& j, const char* key) {
     return out;
 }
 int selected(int value, size_t count) { return count ? std::clamp(value, 0, static_cast<int>(count)-1) : -1; }
+SourceLicenseFilter license_filter(const SourceSamplerState& s) {
+    return static_cast<SourceLicenseFilter>(std::clamp(s.licenseFilter, 0, static_cast<int>(SourceLicenseFilter::COUNT) - 1));
+}
+SourceLicense item_license(const SourceSamplerItem& item) { return source_license_kind(item.license, item.live); }
+// The cursor on a shown entry: itself, else the next shown one, else the one before; −1 when none.
+int shown_cursor(const SourceSamplerState& s, const std::vector<SourceSamplerItem>& list, int cursor) {
+    if (list.empty()) return -1;
+    cursor = std::clamp(cursor, 0, static_cast<int>(list.size()) - 1);
+    for (int i = cursor; i < static_cast<int>(list.size()); ++i) if (source_sampler_item_shown(s, list[i])) return i;
+    for (int i = cursor - 1; i >= 0; --i) if (source_sampler_item_shown(s, list[i])) return i;
+    return -1;
+}
+// The next shown entry in `direction`; the cursor stays at the end of the list.
+int step_shown(const SourceSamplerState& s, const std::vector<SourceSamplerItem>& list, int cursor, int direction) {
+    for (int i = cursor + direction; i >= 0 && i < static_cast<int>(list.size()); i += direction)
+        if (source_sampler_item_shown(s, list[i])) return i;
+    return shown_cursor(s, list, cursor);
+}
+int shown_count(const SourceSamplerState& s, const std::vector<SourceSamplerItem>& list) {
+    return static_cast<int>(std::count_if(list.begin(), list.end(),
+        [&](const SourceSamplerItem& item) { return source_sampler_item_shown(s, item); }));
+}
+// YouTube is off and these results or titles came from it: opening or previewing one would resolve
+// and download again, so it is refused. The results' own provider counts, not the Provider row.
+bool youtube_results_blocked(SourceSamplerState& s) {
+    if (s.youtubeEnabled || s.catalogProvider != providerIds[SOURCE_YOUTUBE_PROVIDER]) return false;
+    s.status = "YouTube is off. On Provider = YouTube, press A twice to open these results.";
+    return true;
+}
+// Provider = YouTube: A twice opts in (a third-party helper, YouTube's terms); A once opts out.
+void youtube_switch(SourceSamplerState& s) {
+    if (s.youtubeEnabled) {
+        s.youtubeEnabled = s.youtubeConfirm = false;
+        s.status = "YouTube is off. Its results stay hidden from new searches.";
+    } else if (!s.youtubeConfirm) {
+        s.youtubeConfirm = true;
+        s.status = "YouTube runs the yt-dlp helper and conflicts with YouTube's terms. A again: turn on.";
+    } else {
+        s.youtubeEnabled = true;
+        s.youtubeConfirm = false;
+        s.status = "YouTube is on. You are responsible for respecting its terms and the rights.";
+    }
+}
+void set_license_filter(SourceSamplerState& s, int filter) {
+    const int count = static_cast<int>(SourceLicenseFilter::COUNT);
+    s.licenseFilter = (filter % count + count) % count;
+    s.selectedResult = shown_cursor(s, s.results, s.selectedResult);
+    s.selectedTrack = shown_cursor(s, s.tracks, s.selectedTrack);
+    const int hidden = static_cast<int>(s.results.size()) - shown_count(s, s.results);
+    s.status = std::string(source_license_filter_name(license_filter(s))) +
+               (hidden > 0 ? ": " + std::to_string(hidden) + " results hidden." : ".") +
+               " The licence page is what counts.";
+}
 int preserve_selection(const std::vector<SourceSamplerItem>& oldItems,int oldCursor,
                        const std::vector<SourceSamplerItem>& newItems,int backendIndex) {
     if(oldCursor>=0&&oldCursor<static_cast<int>(oldItems.size())){
@@ -220,6 +286,30 @@ void set_quick_clip(SourceSamplerState& s) {
         s.status = "Setting clip markers...";
     }
 }
+std::string time(int64_t value);
+int bar_length(const SourceSamplerState& s) {
+    return SOURCE_BAR_LENGTHS[std::clamp(s.barLengthIndex, 0, static_cast<int>(std::size(SOURCE_BAR_LENGTHS)) - 1)];
+}
+std::string bar_value(const SourceSamplerState& s, int tempo) {
+    const int bars = bar_length(s);
+    return std::to_string(bars) + (bars == 1 ? " bar = " : " bars = ") + time(source_sampler_bars_ms(bars, tempo)) +
+           " @ " + std::to_string(tempo);
+}
+// OUT exactly bar_length() bars after IN, at the song's tempo.
+void set_bars(SourceSamplerState& s, int tempo) {
+    if (!idle(s) || !loaded(s)) return;
+    if (s.live) { s.status = "Bar length works on files; on radio, mark IN and OUT."; return; }
+    const int64_t length = source_sampler_bars_ms(bar_length(s), tempo);
+    const int64_t first = std::clamp<int64_t>(s.inMs, 0, s.durationMs);
+    if (length > SOURCE_CLIP_MAX_MS) {
+        s.status = "Longer than " + std::to_string(SOURCE_CLIP_MAX_MS / 1000) + " s at this tempo; choose fewer bars.";
+        return;
+    }
+    if (first + length > s.durationMs) { s.status = "Not enough audio after IN; move IN earlier."; return; }
+    invalidate_clip(s);
+    if (send(s, "set_region", {{"in_ms", first}, {"out_ms", first + length}}))
+        s.status = "OUT set " + std::to_string(bar_length(s)) + (bar_length(s) == 1 ? " bar" : " bars") + " after IN.";
+}
 bool clip_valid(const SourceSamplerState& s) {
     const auto limit=s.live?std::min<int64_t>(60000,SOURCE_CLIP_MAX_MS):SOURCE_CLIP_MAX_MS;
     return !s.clipPath.empty()&&s.clipFrames>0&&s.clipRate>0&&(s.clipChannels==1||s.clipChannels==2)&&
@@ -257,11 +347,14 @@ void source_panel(Canvas& c,int x,int y,int w,int h,const Theme& t,Argb base,Arg
 }
 std::string control_value(const SourceSamplerState& s, int row) {
     switch(row){
-        case 0:return source_sampler_provider_name(s.provider);
+        case 0:return s.provider==SOURCE_YOUTUBE_PROVIDER?(s.youtubeEnabled?"YouTube / ON  A: off":s.youtubeConfirm?"YouTube / A again: ON":"YouTube / OFF  A A: on")
+                                                            :source_sampler_provider_name(s.provider);
         case 1:return source_sampler_genre_name(s.genre);
         case 2:if(s.col==2)return "FAVORITE STATIONS";return s.col==1?"RANDOM / "+std::string(source_sampler_genre_name(s.genre)):s.query.empty()?"A: enter query":s.query;
-        case 3:return std::to_string(s.results.empty()?0:s.selectedResult+1)+" / "+std::to_string(s.results.size());
-        case 4:return std::to_string(s.tracks.empty()?0:s.selectedTrack+1)+" / "+std::to_string(s.tracks.size());
+        case 3:return std::to_string(s.selectedResult<0?0:s.selectedResult+1)+" / "+std::to_string(s.results.size())+
+                      (license_filter(s)!=SourceLicenseFilter::ALL?" ("+std::to_string(shown_count(s,s.results))+" shown)":"");
+        case 4:return std::to_string(s.selectedTrack<0?0:s.selectedTrack+1)+" / "+std::to_string(s.tracks.size())+
+                      (license_filter(s)!=SourceLicenseFilter::ALL?" ("+std::to_string(shown_count(s,s.tracks))+" shown)":"");
         case 5:return s.col==1?"STOP / CANCEL":s.playing?"PAUSE":"PLAY";
         case 6:return live_history(s) ? (s.liveRewound ? history_offset(s,s.livePlayheadMs) + " / A: LIVE" : "LIVE / Left: rewind")
             : s.live ? "LIVE" : time(s.positionMs);
@@ -277,7 +370,12 @@ std::string control_value(const SourceSamplerState& s, int row) {
         case SOURCE_QUICK_CLIP_ROW:return s.live ? "Up to " + std::to_string(history_take_length(s)) + " s / A: save"
             : std::to_string(clipLengths[quick_clip_index(s)]) + "s / A: from playhead";
         case SOURCE_COLLECTION_ROW:return station_collection(s) ? "Browse stations by genre" : "Browse shelves by genre";
-        default:return s.col==1?"LICENSE LINK":"SOURCE PAGE";
+        case SOURCE_BARS_ROW:return {};   // needs the song's tempo: source_sampler_draw
+        case SOURCE_LICENSE_ROW:{
+            const int hidden=static_cast<int>(s.results.size())-shown_count(s,s.results);
+            return std::string(source_license_filter_name(license_filter(s)))+(hidden>0?" / "+std::to_string(hidden)+" hidden":"");
+        }
+        default:return s.col==1?std::string("LICENSE ")+source_license_badge(source_license_kind(s.licenseUrl,s.live)):"SOURCE PAGE";
     }
 }
 json search_args(const SourceSamplerState& s) {
@@ -531,8 +629,8 @@ void draw_collection_picker(Canvas& c, const SourceSamplerState& s, const Theme&
     const std::string provider = "L / R  <  " + std::string(source_sampler_provider_name(s.collectionProvider)) + "  >";
     c.draw_label(provider,609-Canvas::label_width(provider,12),119,muted,12);
     c.fill_rect(31,139,578,1,with_alpha(accent,.4f));
-    source_panel(c,28,151,192,255,t,darken(panel,.70f),with_alpha(muted,.25f),5);
-    source_panel(c,229,151,383,255,t,darken(panel,.74f),with_alpha(muted,.25f),5);
+    source_panel(c,28,151,192,255,t,recess(t.background,panel,.70f),with_alpha(muted,.25f),5);
+    source_panel(c,229,151,383,255,t,recess(t.background,panel,.74f),with_alpha(muted,.25f),5);
     const auto row = [&](int x,int y,int width,const std::string& text,bool selected) {
         if (selected) c.panel_rect(x,y-2,width,22,panel,with_alpha(accent,.86f),3);
         c.draw_label(Canvas::clip_label(text,width-18,14),x+8,y,selected ? ink : muted,14);
@@ -590,6 +688,14 @@ void draw_collection_picker(Canvas& c, const SourceSamplerState& s, const Theme&
 }
 } // namespace
 
+int64_t source_sampler_bars_ms(int bars, int tempo) {
+    return std::llround(bars * 4 * 60000.0 / std::max(1, tempo));
+}
+
+bool source_sampler_item_shown(const SourceSamplerState& s, const SourceSamplerItem& item) {
+    return source_license_allowed(item_license(item), license_filter(s));
+}
+
 const char* source_sampler_genre_name(int genre) { return genres[std::clamp(genre,0,genreCount-1)]; }
 const char* source_sampler_provider_name(int provider) { return providers[std::clamp(provider,0,SOURCE_SAMPLER_PROVIDERS-1)]; }
 
@@ -617,7 +723,8 @@ bool source_sampler_poll(SourceSamplerState& s, uint64_t now) {
         const int opened=index(state,"selected_index"),playing=index(state,"track_index");
         s.selectedResult=preserve_selection(s.results,s.selectedResult,results,opened);
         s.selectedTrack=preserve_selection(s.tracks,s.selectedTrack,tracks,playing);
-        s.results=std::move(results);s.tracks=std::move(tracks);s.openedResult=opened;s.playingTrack=playing;
+        s.results=std::move(results);s.tracks=std::move(tracks);
+        s.selectedResult=shown_cursor(s,s.results,s.selectedResult);s.selectedTrack=shown_cursor(s,s.tracks,s.selectedTrack);s.openedResult=opened;s.playingTrack=playing;
         if(const auto submitted=string(state,"query");s.shelfTitle.empty()&&!submitted.empty())s.query=submitted;
         s.title=string(state,"title");s.creator=string(state,"creator");
         s.description=metadata(state,"description");s.tags=metadata(state,"tags");s.instruments=metadata(state,"instruments");
@@ -739,6 +846,11 @@ bool source_sampler_apply_import(AppState& s,songcore::SongcoreHost& host,AudioE
 }
 
 bool source_sampler_submit_query(SourceSamplerState& s, const std::string& query) {
+    // The search dialog is refused while YouTube is off; the callback checks again before sending.
+    if (s.provider == SOURCE_YOUTUBE_PROVIDER && !s.youtubeEnabled) {
+        s.status = "YouTube is off. On Provider, press A twice to opt in.";
+        return false;
+    }
     s.query = query.substr(0, 160);
     s.listFocused = false;s.showingTracks=false;
     s.pendingTrackList = false;
@@ -794,9 +906,14 @@ bool source_sampler_button(const ButtonEvent& e, SourceSamplerState& s, songcore
         if(!s.backend&&((s.row>=2&&s.row<=10)||s.row==13)){s.status="Offline build: use the Online app on a WiFi device for Internet sources.";return true;}
         if(s.row==0||s.row==1){
             if(s.row==1)s.genre=(std::clamp(s.genre,0,genreCount-1)+1)%genreCount;
-            else for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;break;}}
+            else if(s.provider==SOURCE_YOUTUBE_PROVIDER&&s.providerAvailable[s.provider])youtube_switch(s);
+            else for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;s.youtubeConfirm=false;break;}}
         }
         else if(s.row==SOURCE_COLLECTION_ROW){open_collection(s);}
+        else if(s.row==SOURCE_LICENSE_ROW){set_license_filter(s,s.licenseFilter+1);}
+        else if(s.row==SOURCE_BARS_ROW){set_bars(s,host.project().tempo);}
+        else if(s.row==2&&s.provider==SOURCE_YOUTUBE_PROVIDER&&!s.youtubeEnabled){
+            s.status="YouTube is off. On Provider, press A twice to opt in.";}
         else if(s.row==2){if(s.providerAvailable[s.provider]){
             s.listFocused=false;s.pendingTrackList=false;s.showingTracks=false;
             if(s.col==2){if(s.favoritesAvailable&&idle(s)&&send(s,"favorites",search_args(s))){s.shelfTitle.clear();s.busy=true;invalidate_clip(s);}else s.status="Station favorites are unavailable on this backend.";}
@@ -804,12 +921,14 @@ bool source_sampler_button(const ButtonEvent& e, SourceSamplerState& s, songcore
             else if(!s.quickClipRequest&&send(s,"query_dialog",search_args(s)))s.shelfTitle.clear();
         }else s.status="This provider is unavailable on this device.";}
         else if(s.row==3){
-            if(!idle(s))return true;
-            if(s.selectedResult<0||s.selectedResult>=static_cast<int>(s.results.size()))s.status="Search first, then choose a result.";
+            if(!idle(s)||youtube_results_blocked(s))return true;
+            if(s.selectedResult<0||s.selectedResult>=static_cast<int>(s.results.size()))
+                s.status=s.results.empty()?"Search first, then choose a result.":"No result passes the license filter.";
             else{stop_tracker(host,engine);if(send(s,"open",{{"index",s.selectedResult},{"auto_listen",true}})){s.busy=true;s.pendingTrackList=true;invalidate_clip(s);}}
         }else if(s.row==4){
-            if(!idle(s))return true;
-            if(s.selectedTrack<0||s.selectedTrack>=static_cast<int>(s.tracks.size()))s.status="Open a result to view its tracks.";
+            if(!idle(s)||youtube_results_blocked(s))return true;
+            if(s.selectedTrack<0||s.selectedTrack>=static_cast<int>(s.tracks.size()))
+                s.status=s.tracks.empty()?"Open a result to view its tracks.":"No title passes the license filter.";
             else{stop_tracker(host,engine);if(send(s,"listen",{{"index",s.selectedTrack}})){
                 s.busy=s.selectedTrack!=s.playingTrack;if(s.busy)invalidate_clip(s);
             }}
@@ -865,15 +984,17 @@ bool source_sampler_button(const ButtonEvent& e, SourceSamplerState& s, songcore
         if(e.button==Button::DPAD_LEFT){s.listFocused=false;return true;}
         if(e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN){
             auto& cursor=s.row==3?s.selectedResult:s.selectedTrack;const auto& list=s.row==3?s.results:s.tracks;
-            cursor=selected(cursor+(e.button==Button::DPAD_UP?-1:1),list.size());
+            cursor=step_shown(s,list,cursor,e.button==Button::DPAD_UP?-1:1);
         }
         return true;
     }
     if(!e.mods.a){
         if(e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN){const auto rows=visibleRows(s);s.row=rows[(displayIndex(rows,s.row)+int(rows.size())+(e.button==Button::DPAD_DOWN?1:-1))%int(rows.size())];}
         else if((s.row==3||s.row==4)&&e.button==Button::DPAD_RIGHT){s.listFocused=true;s.showingTracks=s.row==4;}
-        else if(s.row==0){for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+SOURCE_SAMPLER_PROVIDERS+(positive?1:-1)*step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;break;}}}
+        else if(s.row==0){for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+SOURCE_SAMPLER_PROVIDERS+(positive?1:-1)*step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;s.youtubeConfirm=false;break;}}}
         else if(s.row==1)s.genre=(std::clamp(s.genre,0,genreCount-1)+genreCount+(positive?1:-1))%genreCount;
+        else if(s.row==SOURCE_LICENSE_ROW)set_license_filter(s,s.licenseFilter+(positive?1:-1));
+        else if(s.row==SOURCE_BARS_ROW)s.barLengthIndex=std::clamp(s.barLengthIndex+(positive?1:-1),0,static_cast<int>(std::size(SOURCE_BAR_LENGTHS))-1);
         else if(s.row==2)s.col=(s.col+3+(positive?1:-1))%3;
         else if(s.row==5||s.row==13)s.col=positive?1:0;
         else if(s.row==6&&live_history(s))history_seek(s,positive?5000:-5000);
@@ -900,10 +1021,10 @@ bool source_sampler_button(const ButtonEvent& e, SourceSamplerState& s, songcore
     s.aUsed=true;
     const int direction=positive?1:-1;
     const bool coarse=e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN;
-    if(s.row==0){for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+SOURCE_SAMPLER_PROVIDERS+direction*step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;break;}}}
+    if(s.row==0){for(int step=1;step<SOURCE_SAMPLER_PROVIDERS;++step){const int other=(s.provider+SOURCE_SAMPLER_PROVIDERS+direction*step)%SOURCE_SAMPLER_PROVIDERS;if(s.providerAvailable[other]){s.provider=other;s.youtubeConfirm=false;break;}}}
     else if(s.row==1)s.genre=(std::clamp(s.genre,0,genreCount-1)+genreCount+direction)%genreCount;
-    else if(s.row==3)s.selectedResult=selected(s.selectedResult+direction,s.results.size());
-    else if(s.row==4)s.selectedTrack=selected(s.selectedTrack+direction,s.tracks.size());
+    else if(s.row==3)s.selectedResult=step_shown(s,s.results,s.selectedResult,direction);
+    else if(s.row==4)s.selectedTrack=step_shown(s,s.tracks,s.selectedTrack,direction);
     else if(s.row==5||s.row==13)s.col=positive?1:0;
     else if(s.row==11)s.targetInstrument=std::clamp(s.targetInstrument+direction*(coarse?16:1),-1,127);
     else if(s.row==6){
@@ -941,7 +1062,7 @@ void source_sampler_draw(Canvas& c,const SourceSamplerState& s,const Theme& t,co
     const std::string metadataLine=!instruments.empty()?"Instruments: "+instruments:!tags.empty()?"Tags: "+tags:"Instrument details not supplied";
     c.draw_label(Canvas::clip_label(metadataLine,214,12),294,112,muted,12);
     const auto stateColor=s.recording?t.meterHigh:s.playing?accent:muted;
-    c.panel_rect(518,109,92,23,darken(panel,.72f),with_alpha(stateColor,.6f),4);
+    c.panel_rect(518,109,92,23,recess(t.background,panel,.72f),with_alpha(stateColor,.6f),4);
     if(s.playing){for(int i=0;i<8;++i)c.fill_rect(526+i,116+i/2,1,9-i,stateColor);}
     else{c.fill_rect(527,116,2,10,stateColor);c.fill_rect(532,116,2,10,stateColor);}
     const auto playerState=!s.backend?"OFFLINE":s.recording?"RECORD":s.rendering?"RENDER":s.busy?"LOADING":
@@ -956,46 +1077,66 @@ void source_sampler_draw(Canvas& c,const SourceSamplerState& s,const Theme& t,co
             "Left or B returns to controls. L switches source order / title A-Z.",
             "Preview: Play / Stop. Preview level adjusts listening gain only.",
             "Quick clip: Left / Right sets length. A marks from the playhead.",
-            "Files: R + arrows seeks 5s. A marks IN / OUT. A + arrows trims.",
+            "Files: R + Left / Right seeks 5 s. A marks IN / OUT. A + arrows trims.",
             "Render + Edit renders IN/OUT and opens the finished WAV in the editor.",
             live_history(s) ? "Rewind: Left / Right jumps 5s. A returns LIVE. Save last makes a WAV."
                             : "Record live: Left / Right picks 10 to 60 seconds. A starts / finishes.",
-            "Discover: Search / Random / Favorites. Radio rights remain unchanged."};
-        for(int i=0;i<10;++i)c.draw_label(help[i],30,174+i*25,i==8?accent:ink,12);
+            "Discover: Search / Random / Favorites. Radio rights remain unchanged.",
+            "License filter: Release-safe hides NC / ND / unknown. EXPORT writes credits."};
+        for(int i=0;i<11;++i)c.draw_label(help[i],30,174+i*24,i==8?accent:ink,12);
         return;
     }
     source_panel(c,18,162,210,278,t,panel,with_alpha(muted,.18f));
-    c.draw_label("BROWSE / CAPTURE",29,172,accent,12);
+    c.draw_label(sectionNames[row_section(s.row)],29,172,accent,12);
     const auto visible=visibleRows(s);const int rowCount=int(visible.size());
     const int cursor = s.row == SOURCE_COLLECTION_ROW && !has_collection(s, s.provider) ? 2 : s.row;
     const int first=std::clamp(displayIndex(visible,cursor)-5,0,std::max(0,rowCount-8));
+    // The rows slide between scroll positions (shell/app.cpp); another provider is another list.
+    c.mark_scroll(30+16*s.provider+8*int(live_history(s)),25,191,196,8*29+1,first*29);
     for(int index=first;index<std::min(first+8,rowCount);++index){
         const int i=visible[index];const int y=196+(index-first)*29;const bool current=i==cursor;
-        if(current&&!s.listFocused)c.panel_rect(25,y-3,196,28,darken(accent,.16f),accent,3);
+        if(index>first&&row_section(i)!=row_section(visible[index-1]))c.fill_rect(31,y-5,184,1,with_alpha(accent,.45f));
+        if(current&&!s.listFocused){c.panel_rect(25,y-3,196,28,recess(t.background,accent,.16f),accent,3);c.mark_cursor(25,y-3,196,28);}
         const char* name = i==9&&s.live ? "Record live" : i==6&&live_history(s) ? "Rewind"
             : i==SOURCE_QUICK_CLIP_ROW&&live_history(s) ? "Save last" : rowNames[i];
         c.draw_label(name,31,y,current?ink:muted,12);
         std::string value=control_value(s,i);
         if(i==11&&s.targetInstrument>=0&&s.targetInstrument<static_cast<int>(project.instruments.size()))value+=" / "+project.instruments[s.targetInstrument].name;
+        if(i==SOURCE_BARS_ROW)value=bar_value(s,project.tempo);
         value=Canvas::clip_label(value,182,12);
         c.draw_label(value,31,y+12,current?accent:ink,12);
     }
     c.fill_rect(222,195,1,230,with_alpha(muted,.12f));
     c.fill_rect(222,195+first*99/std::max(1,rowCount-8),1,131,with_alpha(accent,.7f));
-    source_panel(c,238,162,384,166,t,darken(panel,.76f),s.listFocused?accent:with_alpha(muted,.18f));
+    source_panel(c,238,162,384,166,t,recess(t.background,panel,.76f),s.listFocused?accent:with_alpha(muted,.18f));
     c.draw_label(s.listFocused?(showTracks?"> TITLES / A: PREVIEW":"> RESULTS / A: OPEN"):(showTracks?"TITLES":"DISCOVERED SOURCES"),250,172,accent,12);
     c.draw_label(s.sortTitle?"A-Z / L":"Source / L",453,172,muted,12);
-    c.draw_label(std::to_string(list.size())+" items",550,172,muted,12);
+    // Only the entries the licence filter lets through; the cursor is a backend index among them.
+    std::vector<int> shown;
+    for(int i=0;i<static_cast<int>(list.size());++i)if(source_sampler_item_shown(s,list[i]))shown.push_back(i);
+    const bool filtered=license_filter(s)!=SourceLicenseFilter::ALL;
+    const std::string count=filtered?std::to_string(shown.size())+" / "+std::to_string(list.size()):std::to_string(list.size())+" items";
+    c.draw_label(count,610-Canvas::label_width(count,12),172,muted,12);
     if(list.empty()){
         c.draw_label(s.busy?"Finding your next sound...":"Start at Browse sources or try Search / Random.",250,211,muted,12);
         c.draw_label("In results, A opens or plays the selected item.",250,234,ink,12);
+    }else if(shown.empty()){
+        c.draw_label("Nothing here passes "+std::string(source_license_filter_name(license_filter(s)))+".",250,211,muted,12);
+        c.draw_label("Change License filter or try another search.",250,234,ink,12);
     }
-    const int listFirst=std::clamp(chosen-2,0,std::max(0,static_cast<int>(list.size())-5));
-    for(int i=listFirst;i<std::min(listFirst+5,static_cast<int>(list.size()));++i){
-        const int y=194+(i-listFirst)*23;const bool current=i==chosen;
+    const int at=static_cast<int>(std::find(shown.begin(),shown.end(),chosen)-shown.begin());
+    const int listFirst=std::clamp(at-2,0,std::max(0,static_cast<int>(shown.size())-5));
+    for(int n=listFirst;n<std::min(listFirst+5,static_cast<int>(shown.size()));++n){
+        const int i=shown[static_cast<size_t>(n)];
+        const int y=194+(n-listFirst)*23;const bool current=i==chosen;
         if(current)c.panel_rect(246,y-2,368,23,panel,with_alpha(accent,s.listFocused?.8f:.25f),3);
+        if(current&&s.listFocused)c.mark_cursor(246,y-2,368,23);
         if(i==(showTracks?s.playingTrack:s.openedResult))c.fill_rect(609,y+5,2,12,accent);
-        c.draw_label(Canvas::clip_label(list[i].title.empty()?list[i].id:list[i].title,350,12),253,y,current?ink:muted,12);
+        const auto kind=item_license(list[i]);
+        const char* badge=source_license_badge(kind);
+        const int badgeW=Canvas::label_width(badge,12);
+        c.draw_label(badge,603-badgeW,y,source_license_release_safe(kind)?accent:t.meterHigh,12);
+        c.draw_label(Canvas::clip_label(list[i].title.empty()?list[i].id:list[i].title,340-badgeW,12),253,y,current?ink:muted,12);
         const auto detail=list[i].creator.empty()?(list[i].kind.empty()?"Creator not supplied":list[i].kind):list[i].creator;
         c.draw_label(Canvas::clip_label(detail,350,12),253,y+12,muted,12);
     }
@@ -1017,6 +1158,8 @@ void source_sampler_draw(Canvas& c,const SourceSamplerState& s,const Theme& t,co
         live_history(s)&&s.row==SOURCE_QUICK_CLIP_ROW?"Left / Right: length     A: save before the playhead and open editor":
         s.live && s.row==9?(s.recording?"A: finish now and open the take":s.liveRewound?"Use Save last while rewound":"Left / Right: take length (10-60 s)     A: record"):
         s.row==15?"Left / Right: 10, 20, 30, 40, 45 or 60 seconds":
+        s.row==SOURCE_BARS_ROW?"Left / Right: 1, 2, 4 or 8 bars     A: OUT that many bars after IN":
+        s.row==SOURCE_LICENSE_ROW?"Left / Right / A: All, Release-safe (PD, CC0, BY, BY-SA), No credit needed":
         (s.row==3||s.row==4)?"Right: enter list    Up / Down: controls    L: source order / A-Z":s.status;
     c.draw_label(Canvas::clip_label(s.error.empty()&&!s.busy?browseHint:s.status,604,12),18,461,s.error.empty()?t.textTitle:t.meterHigh,12);
 }

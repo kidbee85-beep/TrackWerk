@@ -11,7 +11,9 @@ namespace pt::ui {
 
 using Argb = uint32_t;  // 0xAARRGGBB
 
-enum class VisualizerType { SCOPE, FLAT, OCTA, OCTA_FULL, SPECTRUM, SPECTRUM_PEAKS };
+// ⚠️ Append only: settings and themes store the index. COPPER, STARFIELD and PLASMA are the demo
+// visualizers (ui/demo_fx.h).
+enum class VisualizerType { SCOPE, FLAT, OCTA, OCTA_FULL, SPECTRUM, SPECTRUM_PEAKS, COPPER, STARFIELD, PLASMA };
 
 enum class StepGridStyle { OFF, BEATS, GRID, DOTS };
 
@@ -79,6 +81,8 @@ struct Theme {
     int surfaceStyle = 0;
     StepGridStyle chainGrid = StepGridStyle::OFF;
     StepGridStyle phraseGrid = StepGridStyle::GRID;
+    int sceneChrome = 0;
+    int fontOverride = -1;
 };
 
 // Append only: the integer is persisted by .ptt files and settings.json.
@@ -92,13 +96,41 @@ inline const char* surface_style_name(int style) {
     return names[style < 0 ? 0 : style >= kSurfaceStyleCount ? kSurfaceStyleCount-1 : style];
 }
 
+// Integer RGB blend for low-cost scene chrome. Both inputs are opaque.
+inline Argb mix_rgb(Argb first, Argb second, int secondPercent) {
+    const auto channel = [&](int shift) {
+        return (((first >> shift) & 255u) * (100 - secondPercent) +
+                ((second >> shift) & 255u) * secondPercent + 50) / 100;
+    };
+    return 0xff000000u | (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
+
+inline int theme_font(const Theme& theme, int userFont) {
+    return theme.fontOverride >= 0 ? theme.fontOverride : userFont;
+}
+
 // Scale the RGB channels by `factor`; alpha kept.
+// A light ground (Daylight themes): rough luma above the middle. Darkening a panel there turns
+// it grey; mixing toward the ground keeps it light.
+inline bool light_ground(Argb c) {
+    return ((c >> 16) & 255u) * 299u + ((c >> 8) & 255u) * 587u + (c & 255u) * 114u > 140000u;
+}
+
 inline Argb darken(Argb c, float factor) {
     auto ch = [&](int shift) {
         const int v = static_cast<int>(static_cast<float>((c >> shift) & 0xFF) * factor);
         return static_cast<Argb>(v < 0 ? 0 : (v > 255 ? 255 : v));
     };
     return (c & 0xFF000000u) | (ch(16) << 16) | (ch(8) << 8) | ch(0);
+}
+
+// A recessed or tinted surface: darken() on a dark ground. On a light ground darkening turns panels
+// grey and an accent tint nearly black under dark text, so there it mixes toward the ground instead
+// (`factor` .16 → a pale accent wash, .75 → the panel a step lighter).
+inline Argb recess(Argb ground, Argb c, float factor) {
+    if (!light_ground(ground)) return darken(c, factor);
+    const int toGround = static_cast<int>((1.f - factor) * 100.f + .5f);
+    return mix_rgb(c, ground, toGround < 0 ? 0 : toGround > 100 ? 100 : toGround);
 }
 
 // A dark seed lifted to a readable ink of the same hue (pure black: `fallback`). Only ever a default,
@@ -188,6 +220,23 @@ inline Theme theme_palette(const char* name, Argb ground, Argb panel, Argb accen
     t.meterBorder = darken(title, .35f);
     t.meterLow = accent;
     derive_borrowed_colors(t);
+    return t;
+}
+
+// A light ground with dark ink. theme_palette takes its text colours from the dark STUDIO theme;
+// here they come from the ink, as on the light Scene presets (scene_presets.h).
+inline Theme theme_light(const char* name, Argb ground, Argb panel, Argb accent, Argb ink, Argb selection) {
+    Theme t = theme_palette(name, ground, panel, accent, ink, selection);
+    t.textValue = ink;
+    t.textParam = mix_rgb(ink, panel, 30);
+    t.textEmpty = mix_rgb(ink, panel, 48);
+    t.textCursor = accent;
+    t.rowPlayback = accent;
+    t.vizCenterLine = mix_rgb(accent, ground, 66);
+    t.meterBorder = mix_rgb(ink, panel, 56);
+    derive_borrowed_colors(t);
+    t.textPlayhead = accent;
+    t.eqFill = mix_rgb(ink, ground, 73);
     return t;
 }
 
@@ -361,10 +410,15 @@ inline std::vector<Theme> theme_builtins() {
             theme_palette("PAPER INK", 0xFF201F1B, 0xFF38362F, 0xFFE7D7B1, 0xFFFAF3E3, 0xFFB5D7CA),
             theme_palette("LCD TEAL", 0xFF0C1C1F, 0xFF1D353B, 0xFF97DED9, 0xFFE6F7F4, 0xFFE2C79C),
             theme_palette("RAIL AMBER", 0xFF1D1813, 0xFF352B21, 0xFFE6C080, 0xFFFBF0DC, 0xFFA3C8D6),
-            theme_palette("NIGHT FOCUS", 0xFF13161C, 0xFF262D36, 0xFFBBC9DE, 0xFFF1F4F8, 0xFF9BCDC1)};
+            theme_palette("NIGHT FOCUS", 0xFF13161C, 0xFF262D36, 0xFFBBC9DE, 0xFFF1F4F8, 0xFF9BCDC1),
+            // Append only: light themes for daylight on a handheld screen.
+            theme_light("DAYLIGHT", 0xFFF4F2EC, 0xFFE1DDD2, 0xFF1D4ED8, 0xFF1A1C20, 0xFF8A3A00),
+            theme_light("NEWSPRINT", 0xFFF3F1EA, 0xFFDEDACD, 0xFF151515, 0xFF161616, 0xFFB3261E),
+            theme_light("SUNNY LCD", 0xFFC6D1B0, 0xFFB2BD99, 0xFF1F2A14, 0xFF1B2411, 0xFF2A3B17),
+            theme_light("HIGH CONTRAST", 0xFFFFFFFF, 0xFFE4E4E4, 0xFF000000, 0xFF000000, 0xFF0047FF)};
     const int styles[] = {0,5,6,3,1,5,6,1,4,7,1,5,7,6,7,7,2,1,3,4,6,5,0,2,8,10,11,9,8,11,10,9,
-                          12,14,13,12,15,16,17,17, 7,8,5,6,5,14,3,7,1,7};
-    static_assert(sizeof(styles)/sizeof(styles[0])==50,"Each built-in palette needs a material");
+                          12,14,13,12,15,16,17,17, 7,8,5,6,5,14,3,7,1,7, 6,3,7,7};
+    static_assert(sizeof(styles)/sizeof(styles[0])==54,"Each built-in palette needs a material");
     for(size_t i=0;i<themes.size();++i) themes[i].surfaceStyle=styles[i];
     return themes;
 }

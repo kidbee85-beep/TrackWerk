@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <utility>
@@ -44,7 +45,9 @@ int original_sample_rate(Engine* engine, const Routing& routing, int id) {
 
     const float ratio = routing.sampleRateRatio[id];
     if (ratio <= 0.0f) return 44100;
-    return std::max(static_cast<int>(static_cast<float>(engine->getSampleRate()) / ratio), 8000);
+    // Rounded, and no 8 kHz floor: LOFI of a 22.05 kHz file is a 5.5 kHz buffer, and a header that
+    // claimed 8 kHz would replay it 45 % sharp. The WAV header holds whole hertz.
+    return std::max(static_cast<int>(std::lround(static_cast<double>(engine->getSampleRate()) / ratio)), 1);
 }
 
 // RATE: HIGH (1×) / NORM (2×) / LOFI (4×), a destructive decimation relative to the ORIGINAL. `bits`
@@ -69,12 +72,13 @@ void apply_rate_and_bits(Engine* engine, Routing& routing, RateCache& cache, int
     engine->applyRateAndBits(id, factor, bits);
 }
 
-// The destructive resamplers. The result is the new original, so the cache entry is dropped.
+// The destructive resamplers. The result is the new original, so the cache entry is dropped —
+// once the engine has published it, not before.
 template <typename Engine>
-void pitch_shift_sample(Engine* engine, RateCache& cache, int id, float semitones) {
-    if (!engine) return;
+bool pitch_shift_sample(Engine* engine, RateCache& cache, int id, float semitones) {
+    if (!engine || !engine->pitchShiftSample(id, semitones)) return false;
     cache.clear(id);
-    engine->pitchShiftSample(id, semitones);
+    return true;
 }
 
 template <typename Engine>
@@ -95,26 +99,53 @@ struct SampleSync {
     float grainMs   = sola::DEFAULT_GRAIN_MS;   // STRETCH: the chunk length
 };
 
-// ⚠️ The pitch goes first (it changes the length); the stretch after it lands on `frames`.
-template <typename Engine>
-void run_sample_sync(Engine& engine, int id, const SampleSync& sync, float sampleRate) {
-    if (sync.kind == SampleSync::Kind::NONE) return;
-    if (sync.semitones != 0.0f) engine.pitchShiftSample(id, sync.semitones);
-    if (sync.kind != SampleSync::Kind::STRETCH) return;
+// The length a pitch shift gives (the engine's own float math).
+inline int pitch_result_frames(int len, float semitones) {
+    if (semitones == 0.0f) return len;
+    return std::max(1, (int)std::round((float)len / std::pow(2.0f, semitones / 12.0f)));
+}
 
-    const int len = engine.getSampleLength(id);
-    if (len <= 0) return;
-    engine.timeStretchSample(id, static_cast<float>(static_cast<double>(sync.frames) / len),
-                             sync.grainMs, sampleRate);
+// The memory SYNC holds at its peak beside the buffer it edits — the largest of its phases, as
+// AudioEngine::syncSample runs them (SOLA's ratio clamp included):
+//   pitch    the pitched channels (+ their published copy when no stretch follows);
+//   stretch  the pitched channels, the channels SOLA has returned (each keeps its working capacity,
+//            result + one chunk) and the one in work, with its two fades;
+//   publish  the stretched channels and their published copy.
+inline int64_t sync_peak_bytes(int len, int channels, const SampleSync& sync, float sampleRate) {
+    if (sync.kind == SampleSync::Kind::NONE || len <= 0) return 0;
+    const bool pitchedCopy = sync.semitones != 0.0f;
+    const int  pitched = pitch_result_frames(len, sync.semitones);
+    const int64_t pitchFloats = pitchedCopy ? int64_t(pitched) * channels : 0;
+    int64_t peak = pitchFloats;
+    bool stretches = false;
+    if (sync.kind == SampleSync::Kind::STRETCH && sync.frames > 0) {
+        float ratio = static_cast<float>(static_cast<double>(sync.frames) / pitched);
+        if ((int)std::lround((double)pitched * (double)ratio) != pitched) {
+            stretches = true;
+            ratio = std::clamp(ratio, 0.1f, 10.0f);
+            const int64_t result = std::max(1, (int)std::lround((double)pitched * (double)ratio));
+            const bool shortcut = std::llabs(result - pitched) <= 2;   // SOLA copies, no chunks
+            const int64_t sequence = shortcut ? 0 : std::max(2, (int)(sync.grainMs * 0.001f * sampleRate));
+            // One channel's output buffer: SOLA's, with one chunk of headroom, or the shortcut's
+            // copy, allocated at exactly the result.
+            const int64_t working = shortcut ? result : result + sequence;
+            const int64_t fades   = 2 * sequence;                    // at most half a chunk each
+            const int64_t stretch = pitchFloats + int64_t(channels) * working + fades;
+            const int64_t publish = int64_t(channels) * (working + result);
+            peak = std::max({peak, stretch, publish});
+        }
+    }
+    if (!stretches && pitchedCopy) peak = 2 * pitchFloats;   // pitched vectors + the published copy
+    return peak * int64_t(sizeof(float));
 }
 
 // The slot the audition plays from: the instrument's own, or for LEFT/RIGHT/MONO on a stereo sample,
 // the scratch slot 254.
+// −1: the copy could not be had (memory); nothing to play.
 template <typename Engine>
 int prepare_source_preview(Engine& engine, int id, int sourceMode) {
     if (!engine.hasStereoData(id) || sourceMode == 2 /*STEREO*/) return id;
-    engine.prepareSourcePreview(SOURCE_PREVIEW_SLOT, id, sourceMode);
-    return SOURCE_PREVIEW_SLOT;
+    return engine.prepareSourcePreview(SOURCE_PREVIEW_SLOT, id, sourceMode) ? SOURCE_PREVIEW_SLOT : -1;
 }
 
 // SYNC's audition, built from a copy in the scratch slot; returns the slot to play.
@@ -123,8 +154,10 @@ template <typename Engine>
 int prepare_sync_preview(Engine& engine, int id, int sourceMode, const SampleSync& sync,
                          float sampleRate) {
     if (sync.kind == SampleSync::Kind::NONE) return prepare_source_preview(engine, id, sourceMode);
-    engine.prepareSourcePreview(SOURCE_PREVIEW_SLOT, id, sourceMode);
-    run_sample_sync(engine, SOURCE_PREVIEW_SLOT, sync, sampleRate);
+    if (!engine.prepareSourcePreview(SOURCE_PREVIEW_SLOT, id, sourceMode)) return -1;
+    // The same one-publish path as APPLY: both stages or neither, so a refusal plays nothing.
+    const int frames = sync.kind == SampleSync::Kind::STRETCH ? sync.frames : 0;
+    if (!engine.syncSample(SOURCE_PREVIEW_SLOT, sync.semitones, frames, sync.grainMs, sampleRate)) return -1;
     return SOURCE_PREVIEW_SLOT;
 }
 

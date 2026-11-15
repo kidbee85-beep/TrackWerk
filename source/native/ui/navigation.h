@@ -33,7 +33,7 @@ inline constexpr int NAV_MAIN_ROW = 2;   // always drawn on the map; R+LEFT/RIGH
 
 // [row][column]. Popups (SETTINGS, MIDI, the browser…) are not on it.
 inline constexpr std::optional<ScreenType> SCREEN_GRID[NAV_ROWS][NAV_COLUMNS] = {
-    {std::nullopt,         std::nullopt,        ScreenType::SCALE,   ScreenType::INST_POOL,  std::nullopt},
+    {ScreenType::PERFORM,  ScreenType::PERFORM, ScreenType::SCALE,   ScreenType::INST_POOL,  ScreenType::PERFORM},
     {ScreenType::PROJECT,  ScreenType::PROJECT, ScreenType::GROOVE,  ScreenType::MODS,       ScreenType::PROJECT},
     {ScreenType::SONG,     ScreenType::CHAIN,   ScreenType::PHRASE,  ScreenType::INSTRUMENT, ScreenType::TABLE},
     {ScreenType::MIXER,    ScreenType::MIXER,   ScreenType::MIXER,   ScreenType::MIXER,      ScreenType::MIXER},

@@ -60,6 +60,11 @@ tarball and the PortMaster zip.
 - **SOLA time-stretch** — Roucos & Wilgus (1985), Verhelst & Roelands (1993). The "Akai-cyclic" mode matches the algorithm used in Akai S950 / S1000 samplers; the characteristic grit on jungle breaks is intentional.
 - **Biquad filter design** — Robert Bristow-Johnson, *Audio EQ Cookbook* (1994, rev. 2016).
 - **OTT 3-band compressor** — parameters matched to the Xfer Records vitOTT plugin. Downward: −27 dBFS / 8:1; upward: −35 dBFS / 4:1; ~8 dB neutral zone.
+- **Choir formant tables** (FORMANT CHOIR) — centre frequency, level and bandwidth of five formants for the vowels A E I O U in bass, tenor, alto and soprano voices, as published in the formant appendix of *The Canonical Csound Reference Manual*. Data only; the synthesis is TrackWerk's own.
+- **PolyBLEP band-limited steps** (SID CHIP, FORMANT CHOIR) — V. Välimäki and A. Huovilainen, "Antialiasing oscillators in subtractive synthesis," IEEE Signal Processing Magazine 24(2), 2007.
+- **SID CHIP** models the behaviour of the MOS Technology 6581/8580 SID as trackers use it (waveforms, the 23-bit noise LFSR, combined waves as the AND of the digital waveforms, the multimode filter's character). Written from the chip's public documentation; no code from reSID or any other emulator.
+- **FM SYSEX** reads 6-operator voices in the Yamaha DX7 SysEx format (32-voice bank and single-voice messages, from the format's public description) and plays them with Plaits' FM voice (Émilie Gillet, MIT, `vendor/mutable/plaits/dsp/fm`). Its built-in banks are the three banks shipped with Plaits. Banks a user loads stay the user's; the app stores only the chosen voice inside the song.
+- **Drum Lab Map style** follows the idea of Mutable Instruments' Grids (Émilie Gillet): a 2-D map of rhythm nodes, blended by X/Y, with a fill density per instrument and a chaos amount. The nodes, levels and code are TrackWerk's own; no Grids data or code is used.
 - **Spectral flux transient detection** — Brossier et al., "Fast labelling of notes in music signals," ICASSP 2004.
 
 ---

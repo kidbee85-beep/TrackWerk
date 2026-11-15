@@ -4,6 +4,7 @@
 // rects, bitmap text, a clip. The shell scales the finished frame onto the display.
 
 #include <cstdint>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,60 @@ public:
 
     // ARGB, row-major — what the shell uploads.
     const uint32_t* pixels() const { return px_.data(); }
+
+    // ── The cursor of this frame ─────────────────────────────────────────────────────────────────
+    // Grids (RowCells) and lists mark the cell their cursor is drawn on; TrackerLayout glides a
+    // highlight from where it was to there (ui/layout.cpp, apply_glide). Cleared at each frame's start.
+    struct Rect { int x = 0, y = 0, w = 0, h = 0; };
+    void mark_cursor(int x, int y, int w, int h) { cursorMark_ = {x, y, w, h}; }
+    void clear_cursor_mark() { cursorMark_ = {}; scrollMark_ = {}; stageMark_ = {}; selectorMark_ = {}; }
+    // The highlighted entry of a selector that stays on screen while pages change: the Studio tabs,
+    // the screen map in the track rail. TrackerLayout glides a highlight from the last entry to it.
+    struct SelectorMark { int id = -1; Rect at; };
+    void mark_selector(int id, int x, int y, int w, int h) { selectorMark_ = {id, {x, y, w, h}}; }
+    SelectorMark selector_mark() const { return selectorMark_; }
+
+    // ── Values that ease to a new setting (knobs, faders, level blocks) ─────────────────────────
+    // TrackerLayout sets the clock each frame; a new page or Motion off forgets every value.
+    void set_clock(uint64_t nowMs, bool motion, int page);
+    // What a value's graphic shows now: on a change it eases 120 ms (ease-out) from where it was to
+    // `target`; without a clock or with Motion off, `target`. The number beside it shows `target`.
+    // `forwardOnly`: a step back (a playhead wrapping to the top) jumps instead of sweeping back.
+    int tween(uint32_t key, int target, bool forwardOnly = false);
+    bool tweening(uint64_t nowMs) const { return tweenUntil_ > nowMs; }
+    Rect cursor_mark() const { return cursorMark_; }
+    // A list that scrolls marks its viewport and how far its content is scrolled, in pixels; `id`
+    // tells lists apart. The shell slides the content from the last offset to this one (slide).
+    struct ScrollMark { int id = -1; Rect view; int offset = 0; };
+    void mark_scroll(int id, int x, int y, int w, int h, int offset) { scrollMark_ = {id, {x, y, w, h}, offset}; }
+    ScrollMark scroll_mark() const { return scrollMark_; }
+
+    // ── Motion over whole frames (shell/app.cpp, after an input or a page change) ────────────────
+    // `previous` is DESIGN_W × DESIGN_H pixels of the last frame shown.
+    // Phosphor afterglow: each pixel keeps `keep`/256 of the previous frame (0 = none). A cursor jump
+    // or a scroll step leaves a short fading trail, which reads as more frames than were drawn.
+    void afterglow(const uint32_t* previous, int keep);
+    // Venetian-blind wipe for a page change: of every four lines, the first `shown` (1…3) are the new
+    // frame and the rest still the old one.
+    void blinds(const uint32_t* previous, int shown);
+    // A page change in the style of the design family: where the new frame is not yet revealed at
+    // `progress` (0…1), the previous frame stays. `edge` (alpha 0 = none) marks a moving boundary.
+    // The WIPE_UP / WIPE_LEFT and PUSH_* kinds follow the direction of a move on the screen map:
+    // PUSH_RIGHT slides the old page out to the left while the new one comes in from the right.
+    enum class Transition { BLINDS, DISSOLVE, WIPE_DOWN, WIPE_RIGHT, IRIS, WIPE_UP, WIPE_LEFT,
+                            PUSH_RIGHT, PUSH_LEFT, PUSH_DOWN, PUSH_UP };
+    // `area` limits the change to the page's own part (TrackerLayout and Studio mark it, mark_stage);
+    // the default is the whole screen.
+    void transition(const uint32_t* previous, Transition kind, float progress, Argb edge = 0,
+                    Rect area = {0, 0, DESIGN_W, DESIGN_H});
+    // The part of the screen a page's content occupies; the chrome around it (title, scope, track
+    // rail, Studio tabs) stays in place while the content changes. Cleared each frame.
+    void mark_stage(int x, int y, int w, int h) { stageMark_ = {x, y, w, h}; }
+    Rect stage_mark() const { return stageMark_; }
+    // Smooth scrolling inside `view`: the content moved up by `distance` pixels (down if negative)
+    // since `previous`, and `remaining` of that is still to go. Rows the shifted frame does not cover
+    // come from `previous`. Needs |remaining| <= |distance| < view height.
+    void slide(const uint32_t* previous, Rect view, int distance, int remaining);
     int             pitch_bytes() const { return DESIGN_W * 4; }
 
     // ── Primitives ───────────────────────────────────────────────────────────────────────────────
@@ -38,6 +93,8 @@ public:
 
     // Quiet, static grain and a shallow light falloff. No animation or random state.
     void set_surface_style(int style);
+    void set_appearance(const Theme& theme, int userFont);
+    void scene_edge(int x, int y, int w, int h, Argb color);
     void set_font_style(int style);
     int font_style() const { return fontStyle_; }
     void surface_rect(int x, int y, int w, int h, Argb base);
@@ -97,11 +154,24 @@ public:
 
 private:
     std::vector<uint32_t> px_;
+    Rect cursorMark_;
+    ScrollMark scrollMark_;
+    Rect stageMark_;
+    SelectorMark selectorMark_;
+    struct Tween { int from = 0, to = 0; uint64_t start = 0, until = 0; };
+    std::unordered_map<uint32_t, Tween> tweens_;
+    uint64_t clockMs_ = 0, tweenUntil_ = 0;
+    bool motion_ = false;
+    int tweenPage_ = -1;
+    std::vector<uint32_t> slideRows_;
     std::vector<uint32_t> surfacePixels_;
     Argb                 surfaceColor_ = 0;
     int                  surfaceStyle_ = 0;
     int                  fontStyle_ = 0;
     int                  cachedSurfaceStyle_ = -1;
+    int                  cachedSceneChrome_ = 0;
+    int                  sceneChrome_ = 0;
+    Argb                 sceneInk_ = 0;
     int                   clipX_ = 0, clipY_ = 0, clipW_ = DESIGN_W, clipH_ = DESIGN_H;
 };
 

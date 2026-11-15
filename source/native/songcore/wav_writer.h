@@ -6,14 +6,28 @@
 // Both write "<path>.tmp" and rename on success. ⚠️ Open, remove and rename all go through
 // byte_source.h — `std::remove` cannot see URI-addressed storage.
 
+#include <cerrno>
 #include <cmath>
+#include <limits>
+#include <system_error>
+#include <cstdlib>
+#include <filesystem>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <string>
 #include <vector>
 
+#if defined(_WIN32)
+#include <process.h>   // _getpid
+#else
+#include <signal.h>    // kill (orphan temps)
+#include <unistd.h>    // getpid
+#endif
 #include "../common/byte_source.h"   // pt_fopen / pt_remove / pt_rename
+#include "media_path.h"              // is_wav_file
 
 namespace songcore {
 
@@ -24,11 +38,261 @@ inline int16_t float_to_int16(float v) {
     return static_cast<int16_t>(static_cast<int>(v * 32767.0f));
 }
 
+namespace detail {
+// What sits at a path, as far as publishing a WAV over it is concerned. A directory opens with
+// "rb" on some systems, so the probe also reads: only a readable file (or an empty one) is FILE.
+enum class PathKind { ABSENT, FILE, OTHER };
+inline PathKind probe_path(const char* path) {
+    errno = 0;
+    std::FILE* f = pt_fopen(path, "rb");
+    if (!f) {
+        // Only a path shown to be missing is ABSENT. Anything else (no read permission, an I/O
+        // error) may well be a file: OTHER, so nothing is replaced or restored over it. A storage
+        // that reports no reason at all (errno 0) keeps the earlier reading: absent.
+        return (errno == 0 || errno == ENOENT || errno == ENOTDIR) ? PathKind::ABSENT : PathKind::OTHER;
+    }
+    unsigned char byte = 0;
+    const bool readable = std::fread(&byte, 1, 1, f) == 1 || std::feof(f);
+    std::fclose(f);
+    return readable ? PathKind::FILE : PathKind::OTHER;
+}
+
+// The writer's own backup suffix: nothing else makes "<path>.ptbak", so finding one is finding ours.
+constexpr const char* kBackupSuffix = ".ptbak";
+
+// Set by publish_replacing when both the publish and the restore failed: the original is then
+// safe at "<path>.ptbak" (and recover_interrupted_save puts it back on the next load).
+inline bool& last_publish_kept_backup() { static bool kept = false; return kept; }
+// Set when a save found a foreign "<path>.ptbak" (an earlier interrupted save's original) and moved
+// it to the visible "<name>_ptbak.wav" beside it, so it shows in the WAV browser and stays.
+inline bool& last_publish_rescued_backup() { static bool rescued = false; return rescued; }
+// Set when a publish that must not replace (a numbered export) found its target taken meanwhile.
+inline bool& last_publish_target_taken() { static bool taken = false; return taken; }
+
+// The visible name a foreign backup is kept under: "take.wav" → "take_ptbak.wav".
+inline std::string rescue_path_for(const std::string& path) {
+    const size_t n = path.size();
+    const bool wav = n >= 4 && (path[n - 4] == '.') && (path[n - 3] | 32) == 'w' &&
+                     (path[n - 2] | 32) == 'a' && (path[n - 1] | 32) == 'v';
+    return wav ? path.substr(0, n - 4) + "_ptbak.wav" : path + "_ptbak.wav";
+}
+
+// A temp opened fresh for this save only: whatever sits at its name (a stale temp, a link to some
+// other file) is removed first — the link itself, never what it points to — and a local temp is
+// created exclusively ("x"), so the write can only ever land in a new file of its own.
+// The temp name for one save. Local: "<dir>/.ptw-<pid>-<n>.tmp" — beside the target (so the rename
+// stays atomic), unique to this process and write (two app instances never share or remove each
+// other's temp), and short whatever the target's name (a 251-byte name saves as before).
+// URI storage (SAF) keeps "<path>.tmp": one app owns that tree.
+constexpr const char* kTempPrefix = ".ptw-";
+inline std::string temp_path_for(const std::string& path) {
+    if (pt_path_is_uri(path.c_str())) return path + ".tmp";
+    static std::atomic<unsigned> counter{0};
+#if defined(_WIN32)
+    const long pid = static_cast<long>(_getpid());
+#else
+    const long pid = static_cast<long>(::getpid());
+#endif
+    const size_t slash = path.find_last_of('/');
+    const std::string dir = slash == std::string::npos ? std::string() : path.substr(0, slash + 1);
+    return dir + kTempPrefix + std::to_string(pid) + "-" + std::to_string(counter.fetch_add(1)) + ".tmp";
+}
+
+// "<digits>-<digits>": exactly the pid and counter temp_path_for writes, nothing looser.
+inline bool parse_temp_tag(const std::string& tag, long& pid) {
+    const size_t dash = tag.find('-');
+    if (dash == std::string::npos || dash == 0 || dash + 1 >= tag.size()) return false;
+    if (tag.find('-', dash + 1) != std::string::npos) return false;
+    for (size_t k = 0; k < tag.size(); ++k)
+        if (k != dash && (tag[k] < '0' || tag[k] > '9')) return false;
+    // Only values this writer can produce: a pid that fits pid_t exactly, a counter that fits
+    // `unsigned` (at most 10 digits each, so the parse cannot overflow either).
+    const std::string pidText = tag.substr(0, dash), counterText = tag.substr(dash + 1);
+    if (pidText.size() > 10 || counterText.size() > 10) return false;
+    const long long pidValue = std::strtoll(pidText.c_str(), nullptr, 10);
+    const unsigned long long counter = std::strtoull(counterText.c_str(), nullptr, 10);
+#if defined(_WIN32)
+    const long long pidMax = std::numeric_limits<int>::max();
+#else
+    const long long pidMax = std::numeric_limits<pid_t>::max();
+#endif
+    if (pidValue <= 0 || pidValue > pidMax || counter > std::numeric_limits<unsigned>::max()) return false;
+    pid = static_cast<long>(pidValue);
+    return true;
+}
+
+// Temps a crashed earlier save left beside `path` ("<path>.<pid>-<n>.tmp" of a process that no longer
+// runs) are removed; a live writer's temp — another instance saving right now — is never touched.
+inline void remove_orphan_temps(const std::string& path) {
+#if !defined(_WIN32)
+    if (pt_path_is_uri(path.c_str())) return;
+    std::error_code ec;
+    const std::filesystem::path folder = std::filesystem::path(path).parent_path();
+    const std::string prefix = kTempPrefix;
+    for (const auto& entry : std::filesystem::directory_iterator(folder.empty() ? "." : folder, ec)) {
+        const std::string name = entry.path().filename().string();
+        if (name.size() <= prefix.size() + 4 || name.compare(0, prefix.size(), prefix) != 0 ||
+            name.compare(name.size() - 4, 4, ".tmp") != 0) continue;
+        long pid = 0;
+        if (!parse_temp_tag(name.substr(prefix.size(), name.size() - prefix.size() - 4), pid)) continue;
+        if (pid == static_cast<long>(::getpid())) continue;
+        if (::kill(static_cast<pid_t>(pid), 0) == 0 || errno != ESRCH) continue;   // alive, or unsure
+        if (entry.is_regular_file(ec) && !entry.is_symlink(ec)) std::filesystem::remove(entry.path(), ec);
+    }
+#else
+    (void)path;
+#endif
+}
+
+inline std::FILE* open_fresh_temp(const char* tmp, const std::string& path) {
+    try { remove_orphan_temps(path); } catch (...) {}   // housekeeping only; never blocks a save
+    // Only a file (or a link to one) is cleared; a folder, or anything unreadable, is left alone and
+    // the exclusive create below then fails — the save is refused, nothing else touched.
+    if (probe_path(tmp) == PathKind::FILE) pt_remove(tmp);
+    return pt_fopen(tmp, pt_path_is_uri(tmp) ? "wb" : "wbx");
+}
+
+// Set when a save was refused because "<path>.ptbak" already holds an earlier file (the only copy of
+// it, possibly): the writer never deletes a backup it did not make in this same save.
+inline bool& last_publish_backup_in_way() { static bool inWay = false; return inWay; }
+
+// Put the finished `tmp` at `path`; `bak` is "<path>.ptbak", built before the file was written so
+// nothing here allocates. ⚠️ The target cannot simply be removed first and the rename hoped for: a
+// failed rename would then leave neither file. And it must be gone before the rename (`rename()`
+// fails on an existing target on Windows, SAF's `renameDocument` de-duplicates to `song (1).wav`).
+// So the old file is moved ASIDE, the temp renamed into place, the old one renamed back if that
+// fails, and the backup dropped only once the new file is there. Never touches what is not ours:
+// a directory (or anything unreadable) at the target refuses the save.
+inline bool publish_replacing(const char* tmp, const char* path, const char* bak, const char* rescue,
+                              bool noReplace = false) {
+    last_publish_target_taken() = false;
+    if (noReplace) {
+        // A name chosen as free (a numbered export) is claimed only if it still is: never replaced.
+#if !defined(_WIN32)
+        if (!pt_path_is_uri(path)) {
+            // link() fails with EEXIST on a taken name — atomically, also against another instance.
+            if (::link(tmp, path) == 0) {
+                pt_remove(tmp);
+                return true;
+            }
+            if (errno == EEXIST) {
+                last_publish_target_taken() = true;
+                pt_remove(tmp);
+                return false;
+            }
+            // No hard links here (FAT32/exFAT cards: ENOTSUP, EPERM, …): the name is checked, then
+            // the temp renamed onto it. Not atomic against a second app instance — out of scope, one
+            // app runs on the device — but a file there before the save is never replaced.
+            if (probe_path(path) != PathKind::ABSENT) {
+                last_publish_target_taken() = true;
+                pt_remove(tmp);
+                return false;
+            }
+            if (pt_rename(tmp, path) != 0) {
+                pt_remove(tmp);
+                return false;
+            }
+            return true;
+        }
+#endif
+        if (probe_path(path) != PathKind::ABSENT) {
+            last_publish_target_taken() = true;
+            pt_remove(tmp);
+            return false;
+        }
+    }
+    last_publish_kept_backup() = false;
+    last_publish_backup_in_way() = false;
+    last_publish_rescued_backup() = false;
+    const PathKind target = probe_path(path);
+    if (target == PathKind::OTHER) {   // a folder, or a file that cannot be read: never replaced
+        pt_remove(tmp);
+        return false;
+    }
+    // A foreign backup beside the target (an earlier save's original) is never deleted: when it is a
+    // WAV and its visible name is free, it moves there and stays; otherwise it is left where it is.
+    const auto rescue_backup = [&] {
+        if (probe_path(bak) == PathKind::FILE && is_wav_file(bak) &&
+            probe_path(rescue) == PathKind::ABSENT && pt_rename(bak, rescue) == 0)
+            last_publish_rescued_backup() = true;
+    };
+#if !defined(_WIN32)
+    if (!pt_path_is_uri(path)) {
+        // A local POSIX rename replaces the target atomically: the old file stays until the new one
+        // is in its place, so no backup is made. A foreign backup is moved aside only AFTER the
+        // publish: until the new file stands, it stays where the load finds it.
+        if (pt_rename(tmp, path) != 0) {
+            pt_remove(tmp);
+            return false;
+        }
+        rescue_backup();
+        return true;
+    }
+#endif
+    rescue_backup();   // SAF/Windows: it must leave "<path>.ptbak" free before the move aside
+    const PathKind backup = probe_path(bak);
+    // Storage that cannot rename over an existing file (SAF, Windows): the old file is moved aside
+    // to "<path>.ptbak" first, put back if the publish fails, and dropped only once the new file is
+    // there. A backup still in the way (not a WAV, or its visible name taken) refuses the save.
+    if (backup != PathKind::ABSENT) {
+        pt_remove(tmp);
+        last_publish_backup_in_way() = true;
+        return false;
+    }
+    bool movedAside = false;
+    if (target == PathKind::FILE) {
+        if (pt_rename(path, bak) != 0) {   // cannot move it: replace nothing
+            pt_remove(tmp);
+            return false;
+        }
+        movedAside = true;
+    }
+    if (pt_rename(tmp, path) != 0) {
+        pt_remove(tmp);
+        if (movedAside && pt_rename(bak, path) != 0) last_publish_kept_backup() = true;
+        return false;
+    }
+    if (movedAside) pt_remove(bak);   // only the backup this save made
+    return true;
+}
+}  // namespace detail
+
+// An interrupted save (or one whose restore failed) can leave the original only at "<path>.ptbak".
+// With nothing at `path` itself, that backup is unambiguously the file that belongs there: put it
+// back. Called before a WAV is loaded by path. True when something was restored.
+inline bool recover_interrupted_save(const std::string& path) {
+    try {
+        const std::string bak = path + detail::kBackupSuffix;
+        if (detail::probe_path(path.c_str()) != detail::PathKind::ABSENT) return false;
+        if (detail::probe_path(bak.c_str()) != detail::PathKind::FILE || !is_wav_file(bak)) return false;
+        return pt_rename(bak.c_str(), path.c_str()) == 0;
+    } catch (const std::bad_alloc&) {
+        return false;
+    }
+}
+
 class WavStreamWriter {
   public:
-    WavStreamWriter(const std::string& path, int sampleRate, int channels = 2)
-        : path_(path), tmpPath_(path + ".tmp"), sampleRate_(sampleRate), channels_(channels) {
-        file_ = pt_fopen(tmpPath_.c_str(), "wb");
+    // `noReplace`: the target is a name chosen as free (a numbered export) — publish only if it still
+    // is, never over a file that appeared meanwhile.
+    WavStreamWriter(const std::string& path, int sampleRate, int channels = 2, bool noReplace = false)
+        : sampleRate_(sampleRate), channels_(channels) {
+        noReplace_ = noReplace;
+        // Every path the publish needs is built here, before anything is written: no allocation can
+        // then fail between a finished temp and its rename. Without the memory, not open.
+        detail::last_publish_kept_backup() = false;   // this write's own outcome only
+        detail::last_publish_backup_in_way() = false;
+        detail::last_publish_rescued_backup() = false;
+        detail::last_publish_target_taken() = false;
+        try {
+            path_ = path;
+            tmpPath_ = detail::temp_path_for(path);
+            bakPath_ = path + detail::kBackupSuffix;
+            rescuePath_ = detail::rescue_path_for(path);
+        } catch (const std::bad_alloc&) {
+            return;
+        }
+        file_ = detail::open_fresh_temp(tmpPath_.c_str(), path_);
         if (!file_) return;
         uint8_t header[44];
         build_header(header, 0);
@@ -49,7 +313,12 @@ class WavStreamWriter {
         const int samples = frames * channels_;
         // Little-endian bytes assembled explicitly (WAV is little-endian by spec, whatever the host).
         // One fwrite per chunk.
-        buf_.resize(static_cast<size_t>(samples) * 2);
+        try {
+            buf_.resize(static_cast<size_t>(samples) * 2);
+        } catch (const std::bad_alloc&) {   // a write that cannot happen: finish() drops the temp
+            writeFailed_ = true;
+            return;
+        }
         for (int i = 0; i < samples; ++i) {
             const uint16_t u = static_cast<uint16_t>(float_to_int16(data[i]));
             buf_[static_cast<size_t>(i) * 2 + 0] = static_cast<uint8_t>(u & 0xFF);
@@ -92,14 +361,9 @@ class WavStreamWriter {
             return false;
         }
 
-        // ⚠️ The target goes FIRST: `rename()` fails on an existing target on Windows, and SAF's
-        // `renameDocument` de-duplicates (leaving `song (1).wav` beside the old render).
-        pt_remove(path_.c_str());
-        if (pt_rename(tmpPath_.c_str(), path_.c_str()) != 0) {
-            pt_remove(tmpPath_.c_str());
-            return false;
-        }
-        return true;
+        // The old file is kept until the new one is in place (see detail::publish_replacing).
+        return detail::publish_replacing(tmpPath_.c_str(), path_.c_str(), bakPath_.c_str(),
+                                         rescuePath_.c_str(), noReplace_);
     }
 
     // Discard everything written so far. Safe any time; the destructor calls it, so no early return
@@ -154,6 +418,9 @@ class WavStreamWriter {
 
     std::string path_;
     std::string tmpPath_;
+    std::string bakPath_;
+    std::string rescuePath_;
+    bool noReplace_ = false;
     int      sampleRate_ = 44100;
     int      channels_   = 2;
     std::FILE* file_     = nullptr;
@@ -215,8 +482,20 @@ inline void wav_put_sample(std::vector<uint8_t>& b, float v, int bits, bool isFl
 
 /** Write `bytes` to `path` via "<path>.tmp" + rename, so a failed write leaves no partial file. */
 inline bool wav_write_atomic(const std::string& path, const std::vector<uint8_t>& bytes) {
-    const std::string tmp = path + ".tmp";
-    std::FILE* f = pt_fopen(tmp.c_str(), "wb");
+    last_publish_kept_backup() = false;   // this write's own outcome only
+    last_publish_backup_in_way() = false;
+    last_publish_rescued_backup() = false;
+    last_publish_target_taken() = false;
+    // Both helper paths first: nothing may need memory once the temp is written.
+    std::string tmp, bak, rescue;
+    try {
+        tmp = temp_path_for(path);
+        bak = path + kBackupSuffix;
+        rescue = rescue_path_for(path);
+    } catch (const std::bad_alloc&) {
+        return false;
+    }
+    std::FILE* f = open_fresh_temp(tmp.c_str(), path);
     if (!f) return false;
     const size_t written = bytes.empty() ? 0 : std::fwrite(bytes.data(), 1, bytes.size(), f);
     // ⚠️ `fclose` checked, and on its own line: a full card surfaces in this flush or nowhere.
@@ -226,12 +505,7 @@ inline bool wav_write_atomic(const std::string& path, const std::vector<uint8_t>
         pt_remove(tmp.c_str());
         return false;
     }
-    pt_remove(path.c_str());   // see WavStreamWriter::finish — the target must go before the rename
-    if (pt_rename(tmp.c_str(), path.c_str()) != 0) {
-        pt_remove(tmp.c_str());
-        return false;
-    }
-    return true;
+    return publish_replacing(tmp.c_str(), path.c_str(), bak.c_str(), rescue.c_str());   // the original stays until replaced
 }
 
 }  // namespace detail
@@ -320,9 +594,15 @@ inline std::vector<int> read_cue_points(const std::string& path) {
 
     std::FILE* f = pt_fopen(path.c_str(), "rb");
     if (!f) return frames;
+    // Closed on every way out, an allocation failure in the cue list included.
+    struct Closer {
+        std::FILE*& file;
+        ~Closer() { if (file) std::fclose(file); }
+    } closer{f};
 
     auto close_and_return = [&](std::vector<int> out) {
         std::fclose(f);
+        f = nullptr;
         return out;
     };
 

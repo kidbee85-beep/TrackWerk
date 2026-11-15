@@ -360,6 +360,7 @@ enum class HelpTopic {
     SE_FIND_HITS,
     OVERLAY_KEYBOARD,
     OVERLAY_CONFIRM,
+    SCREEN_PERFORM,
 
     COUNT
 };
@@ -1782,11 +1783,12 @@ inline constexpr HelpEntry HELP_ENTRIES[] = {
       "A+←/→ changes by 1, A+↑/↓ by 16",
       "START plays, B closes"}},
     /* THEME_NAME */
-    {"THEME: the built-in palettes", "A+D-PAD steps through them and", "sets every colour below.",
-     {"Steps through the built-in",
-      "palettes. Choosing one replaces",
-      "every colour below."},
-     {"A+D-PAD picks a palette"}},
+    {"THEME: scenes and palettes", "A opens 32 complete looks.", "A+D-PAD changes classic looks.",
+     {"Scenes include fonts, panels",
+      "and both tracker step grids."},
+     {"A opens the scene browser",
+      "LEFT/RIGHT family, UP/DOWN look",
+      "A applies, B keeps your theme"}},
     /* THEME_SAVE */
     {"SAVE: keep this theme", "Writes a theme file you can", "load again or share.",
      {"Saves colours and grid styles",
@@ -2586,6 +2588,20 @@ inline constexpr HelpEntry HELP_ENTRIES[] = {
       "Check the named item first."},
      {"A confirms the shown action",
       "B goes back"}},
+    /* SCREEN_PERFORM */
+    {"PERFORM: play the song live", "Eight controls and the CPU", "of every track.",
+     {"Each tile mutes a group of",
+      "tracks, sweeps the master",
+      "filter or moves a macro of a",
+      "synth. The bars show how much",
+      "of the CPU each track takes."},
+     {"A+↑/↓ by 16, A+←/→ by 4",
+      "A mutes a group or filter off",
+      "B+←/→ changes the tile kind",
+      "B+↑/↓ picks the synth",
+      "L+←/→, L+A: tracks or macro",
+      "START plays the song from 00",
+      "R+↓ goes to PROJECT"}},
 };
 
 // ─── Rules 2 and 3, as compile errors — at runtime they fail silently ────────────────────────────
@@ -2693,6 +2709,7 @@ inline HelpTopic help_screen_topic(ScreenType screen) {
         case ScreenType::SAMPLE_EDITOR: return HelpTopic::SCREEN_SAMPLE_EDITOR;
         case ScreenType::MIDI:          return HelpTopic::SCREEN_MIDI;
         case ScreenType::MIDI_MAP:      return HelpTopic::SCREEN_MIDI_MAP;
+        case ScreenType::PERFORM:       return HelpTopic::SCREEN_PERFORM;
     }
     return HelpTopic::NONE;
 }

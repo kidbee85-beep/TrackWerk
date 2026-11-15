@@ -17,6 +17,9 @@ constexpr int FIRST_METER_X  = 10;
 
 constexpr int TRACK_METER_TOP = 24;
 constexpr int TRACK_METER_H   = 143;
+// A band at the head of every meter column for its track number: the meters start below it, so
+// no level, up to the +6 dB top of the scale, ever runs under the number.
+constexpr int NUMBER_BAND     = 12;
 
 constexpr int MASTER_METER_H  = 200;   // taller than a track's; same top
 
@@ -152,12 +155,29 @@ void MixerModule::draw(Canvas& c, int x, int y, const MixerState& s) {
         // Muted, unsoloed under another solo, or under a soloed send: meter and value say so.
         const bool audible = track_audible(p, i) && dry_audible(p);
 
-        draw_stereo_meter(c, mX, y + TRACK_METER_TOP, TRACK_METER_H, peak_at(s.trackPeaks, i * 2),
+        draw_stereo_meter(c, mX, y + TRACK_METER_TOP + NUMBER_BAND, TRACK_METER_H - NUMBER_BAND,
+                          peak_at(s.trackPeaks, i * 2),
                           peak_at(s.trackPeaks, i * 2 + 1), isSel, /*is_muted=*/!audible,
                           t, i * 2, i * 2 + 1, steps);
 
         const int volume = p.tracks[static_cast<size_t>(i)].volume;
         const Argb faderInk = audible ? t.textValue : t.textEmpty;
+        {   // The strip's track number at its head, and the fader: a line at the gain the volume sets,
+            // on the meter's own dB scale, so level and setting read against each other.
+            const int pairW = BAR_W + BAR_SEP + BAR_W;
+            const int inY = y + TRACK_METER_TOP + NUMBER_BAND + METER_INSET;
+            const int inH = TRACK_METER_H - NUMBER_BAND - 2 * METER_INSET;
+            const std::string number = std::to_string(i + 1);
+            c.draw_label(number, mX + (pairW - Canvas::label_width(number, 11)) / 2, y + TRACK_METER_TOP,
+                         isSel ? t.rowCursor : t.textParam, 11);
+            // The fader line eases to a new volume; the number below shows it at once.
+            const float gain = songcore::hex_to_float(c.tween(0x3000000u + static_cast<uint32_t>(i), volume));
+            if (gain > 0.0f) {
+                const int fy = inY + inH - level_to_height_px(gain, inH);
+                c.fill_rect(mX - 1, std::clamp(fy - 1, inY, inY + inH - 2), pairW + 2, 2,
+                            with_alpha(isSel ? t.rowCursor : faderInk, .9f));
+            }
+        }
         draw_cursor_cell(c, hex2(volume), mX + 5, y + TRACK_VOL_Y, isSel, faderInk, t);
         const auto gain = fader_db(volume);
         c.draw_label(gain, mX + (BAR_W * 2 + BAR_SEP - Canvas::label_width(gain, 11)) / 2,
@@ -167,7 +187,7 @@ void MixerModule::draw(Canvas& c, int x, int y, const MixerState& s) {
     // ── The master meter ─────────────────────────────────────────────────────────────────────────
     // ⚠️ Selected on column alone, so the meter stays lit while the cursor is down on LIM.
     const bool masterSel = (s.cursorColumn == 8);
-    draw_stereo_meter(c, x + MASTER_X, y + TRACK_METER_TOP, MASTER_METER_H,
+    draw_stereo_meter(c, x + MASTER_X, y + TRACK_METER_TOP + NUMBER_BAND, MASTER_METER_H - NUMBER_BAND,
                       peak_at(s.masterPeaks, 0), peak_at(s.masterPeaks, 1), masterSel,
                       /*is_muted=*/false, t, 16, 17, steps);
 
@@ -191,10 +211,18 @@ void MixerModule::draw(Canvas& c, int x, int y, const MixerState& s) {
     const int delCX = x + FIRST_METER_X + METER_SPACING + (BAR_W + BAR_SEP + BAR_W) / 2;
 
     // The headers are these cells' labels, above rather than beside.
-    c.draw_text("REV", revCX - (3 * CHAR_W) / 2, y + SEND_HEADER_Y,
-                revSendSel ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING, FONT_SCALE);
-    c.draw_text("DEL", delCX - (3 * CHAR_W) / 2, y + SEND_HEADER_Y,
-                delSendSel ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING, FONT_SCALE);
+    // A Scene's wide face runs the two headers together: there they take the narrower label face.
+    if (t.sceneChrome > 0) {
+        c.draw_label("REV", revCX - Canvas::label_width("REV", 12) / 2, y + SEND_HEADER_Y,
+                     revSendSel ? cursor_mark_ink(t) : t.textParam, 12);
+        c.draw_label("DEL", delCX - Canvas::label_width("DEL", 12) / 2, y + SEND_HEADER_Y,
+                     delSendSel ? cursor_mark_ink(t) : t.textParam, 12);
+    } else {
+        c.draw_text("REV", revCX - (3 * CHAR_W) / 2, y + SEND_HEADER_Y,
+                    revSendSel ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING, FONT_SCALE);
+        c.draw_text("DEL", delCX - (3 * CHAR_W) / 2, y + SEND_HEADER_Y,
+                    delSendSel ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING, FONT_SCALE);
+    }
 
     draw_cursor_cell(c, hex2(p.reverbWet), revCX - (2 * CHAR_W) / 2, y + SEND_VALUE_Y, revSendSel,
                      revAudible ? t.textValue : t.textEmpty, t);

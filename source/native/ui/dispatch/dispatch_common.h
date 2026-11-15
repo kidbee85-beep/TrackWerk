@@ -50,7 +50,12 @@ inline int page_clamping(int value, int direction, int count) {
 /** `base`, or the first free `base_0001`, `base_0002`, … — a WAV name in `dir` that nothing holds yet. */
 inline std::string free_wav_stem(FileSystem& fs, const std::string& dir, const std::string& base) {
     std::string stem = base;
-    for (int n = 1; fs.file_exists(dir + "/" + stem + ".wav"); ++n) {
+    // A name whose file survives only as the writer's backup (".wav.ptbak") is taken too.
+    const auto taken = [&](const std::string& candidate) {
+        const std::string wav = dir + "/" + candidate + ".wav";
+        return fs.file_exists(wav) || fs.file_exists(wav + ".ptbak");
+    };
+    for (int n = 1; taken(stem); ++n) {
         char suffix[16];   // "_%04d" of an int can be 12 bytes (-Wformat-truncation)
         std::snprintf(suffix, sizeof(suffix), "_%04d", n);
         stem = base + suffix;

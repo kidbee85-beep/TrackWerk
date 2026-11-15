@@ -1,4 +1,4 @@
-name: Beta software checks
+name: TrackWerk software checks
 
 on:
   push:
@@ -60,14 +60,9 @@ jobs:
       - name: Verify independent Brick launcher
         working-directory: ${{ steps.app_source.outputs.directory }}
         run: python3 tests/brick-launcher/check_launcher.py
-      - name: Check core workflows
+      - name: Run the complete host check manifest
         working-directory: ${{ steps.app_source.outputs.directory }}
-        run: |
-          set -eu
-          for name in ptstudio-check ptsample-editor-check ptsample-tools-check ptcapture-check ptdrumlab-check ptsource-sampler-check ptsource-integration-check ptsource-query-check ptstudio-access-check ptlive-dsp-check ptstudio-live-check ptinstrument-load-check ptm8-import-check ptpunch-theme-check ptrecorder-workflow-check; do
-            "build/host/native/$name" "$RUNNER_TEMP/$name"
-          done
-          "build/host/native/ptbraids-pcm-check"
+        run: python3 ../release-tools/run_host_checks.py --source . --build build/host/native --output "$RUNNER_TEMP/trackwerk-host-checks"
       - name: Verify data-preserving updater and portable preparation
         working-directory: ${{ steps.app_source.outputs.directory }}
         run: |

@@ -7,6 +7,21 @@ project("pockettracker")
 # an older default (MSVC → C++14) failed on <algorithm>'s std::clamp. State it, and require it.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# KissFFT (BSD-3-Clause, see THIRD-PARTY-NOTICES.md) as its own library: the engine (spectrum view,
+# transient detector) and the Studio synths in pt-mutable (spectral engines) share one copy instead
+# of two definitions of the same symbols in one binary. Same flags it had inside `pockettracker`.
+add_library(pt-kissfft STATIC kissfft/kiss_fft.c kissfft/kiss_fftr.c)
+set_target_properties(pt-kissfft PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(pt-kissfft PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/kissfft)
+if(MSVC)
+    target_compile_options(pt-kissfft PRIVATE /W0)   # vendored
+else()
+    target_compile_options(pt-kissfft PRIVATE -w)    # vendored
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm")
+        target_compile_options(pt-kissfft PRIVATE -ffast-math)
+    endif ()
+endif()
 add_subdirectory(studio)
 
 # Oboe is the ANDROID audio backend only (via Prefab). A desktop build provides its own
@@ -228,8 +243,6 @@ set(ENGINE_CORE_SOURCES
         audio-decoders.cpp
         vendor/stb_vorbis/stb_vorbis.c
         vendor/minimp4/minimp4_impl.c
-        kissfft/kiss_fft.c
-        kissfft/kiss_fftr.c
         effects/primitives/daisysp/svf.cpp
         effects/primitives/daisysp/overdrive.cpp
         effects/primitives/daisysp/decimator.cpp
@@ -289,8 +302,6 @@ endif()
 option(PT_WERROR "Treat warnings in PocketTracker's own sources as errors" OFF)
 set(PT_VENDORED_ENGINE_SOURCES
         effects/soundpipe/pareq.c
-        kissfft/kiss_fft.c
-        kissfft/kiss_fftr.c
         effects/primitives/daisysp/svf.cpp
         effects/primitives/daisysp/overdrive.cpp
         effects/primitives/daisysp/decimator.cpp
@@ -475,13 +486,18 @@ add_library(pt-ui STATIC
         ui/live_resample.cpp
         ui/studio_help.cpp
         ui/studio_synth.cpp
+        ui/fm_library.cpp
         ui/sample_granular_ui.cpp
         ui/sample_granular_view.cpp
         ui/sample_granular_presets.cpp
         ui/sample_granular_recording.cpp
         ui/studio_view.cpp
         ui/drumlab.cpp
+        ui/harmony.cpp
+        ui/scene_picker.cpp
         ui/source_sampler.cpp
+        ui/source_credits.cpp
+        ui/demo_fx.cpp
         ui/canvas.cpp
         ui/clipboard.cpp
         ui/input_dispatcher.cpp
@@ -503,6 +519,8 @@ add_library(pt-ui STATIC
         ui/dispatch/screens/instrument.cpp
         ui/dispatch/screens/midi.cpp
         ui/dispatch/screens/mixer.cpp
+        ui/dispatch/screens/perform.cpp
+        ui/perform.cpp
         ui/dispatch/screens/project.cpp
         ui/dispatch/screens/sample_editor.cpp
         ui/dispatch/screens/scale_groove.cpp
@@ -746,6 +764,24 @@ if(PT_STUDIO_CHECK)
  add_executable(ptsource-sampler-check ../tests/studio/source_sampler.cpp)
  target_link_libraries(ptsource-sampler-check PRIVATE pt-ui)
  target_compile_options(ptsource-sampler-check PRIVATE -UNDEBUG)
+ add_executable(ptsource-credits-check ../tests/studio/source_credits.cpp)
+ target_link_libraries(ptsource-credits-check PRIVATE pt-ui)
+ target_compile_options(ptsource-credits-check PRIVATE -UNDEBUG)
+ add_executable(ptsource-bars-check ../tests/studio/source_bars.cpp)
+ target_link_libraries(ptsource-bars-check PRIVATE pt-ui)
+ target_compile_options(ptsource-bars-check PRIVATE -UNDEBUG)
+ add_executable(ptsource-youtube-check ../tests/studio/source_youtube.cpp)
+ target_link_libraries(ptsource-youtube-check PRIVATE pt-ui)
+ target_compile_options(ptsource-youtube-check PRIVATE -UNDEBUG)
+ add_executable(ptdemo-fx-check ../tests/studio/demo_fx.cpp)
+ target_link_libraries(ptdemo-fx-check PRIVATE pt-ui)
+ target_compile_options(ptdemo-fx-check PRIVATE -UNDEBUG)
+ add_executable(ptshow-view-check ../tests/studio/show_view.cpp)
+ target_link_libraries(ptshow-view-check PRIVATE pt-ui)
+ target_compile_options(ptshow-view-check PRIVATE -UNDEBUG)
+ add_executable(ptbutton-conflicts-check ../tests/studio/button_conflicts.cpp)
+ target_link_libraries(ptbutton-conflicts-check PRIVATE pt-ui)
+ target_compile_options(ptbutton-conflicts-check PRIVATE -UNDEBUG)
  add_executable(ptsource-integration-check ../tests/studio/source_integration.cpp)
  target_link_libraries(ptsource-integration-check PRIVATE pt-ui)
  add_executable(ptsource-query-check ../tests/studio/source_query.cpp)
@@ -755,12 +791,113 @@ if(PT_STUDIO_CHECK)
  add_executable(ptstudio-access-check ../tests/studio/studio_access.cpp)
  target_link_libraries(ptstudio-access-check PRIVATE pt-ui)
  target_compile_options(ptstudio-access-check PRIVATE -UNDEBUG)
+ add_executable(ptharmony-check ../tests/studio/harmony.cpp)
+ target_link_libraries(ptharmony-check PRIVATE pt-ui)
+ target_compile_options(ptharmony-check PRIVATE -UNDEBUG)
  add_executable(ptstudio-navigation-check ../tests/studio/navigation.cpp)
  target_link_libraries(ptstudio-navigation-check PRIVATE pt-ui)
  target_compile_options(ptstudio-navigation-check PRIVATE -UNDEBUG)
+ add_executable(ptfm-sysex-song-check ../tests/studio/fm_sysex_song.cpp)
+ target_link_libraries(ptfm-sysex-song-check PRIVATE pt-ui)
+ target_compile_options(ptfm-sysex-song-check PRIVATE -UNDEBUG)
+ add_executable(ptperform-check ../tests/studio/perform.cpp)
+ target_link_libraries(ptperform-check PRIVATE pt-ui)
+ target_compile_options(ptperform-check PRIVATE -UNDEBUG)
  add_executable(ptlive-dsp-check ../tests/studio/live_dsp.cpp)
  target_link_libraries(ptlive-dsp-check PRIVATE pt-ui)
  target_compile_options(ptlive-dsp-check PRIVATE -UNDEBUG)
+ add_executable(ptsynth-quality-check ../tests/studio/synth_quality.cpp)
+ target_link_libraries(ptsynth-quality-check PRIVATE pt-mutable)
+ target_include_directories(ptsynth-quality-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptsynth-quality-check PRIVATE -UNDEBUG)
+ add_executable(ptfm-sysex-check ../tests/studio/fm_sysex.cpp)
+ target_link_libraries(ptfm-sysex-check PRIVATE pt-mutable)
+ target_include_directories(ptfm-sysex-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio" "${CMAKE_CURRENT_SOURCE_DIR}/vendor/mutable")
+ target_compile_options(ptfm-sysex-check PRIVATE -UNDEBUG)
+ add_executable(ptdco-poly-check ../tests/studio/dco_poly.cpp)
+ target_link_libraries(ptdco-poly-check PRIVATE pt-mutable)
+ target_include_directories(ptdco-poly-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptdco-poly-check PRIVATE -UNDEBUG)
+ add_executable(ptsid-chip-check ../tests/studio/sid_chip.cpp)
+ target_link_libraries(ptsid-chip-check PRIVATE pt-mutable)
+ target_include_directories(ptsid-chip-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptsid-chip-check PRIVATE -UNDEBUG)
+ add_executable(ptformant-choir-check ../tests/studio/formant_choir.cpp)
+ target_link_libraries(ptformant-choir-check PRIVATE pt-mutable)
+ target_include_directories(ptformant-choir-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptformant-choir-check PRIVATE -UNDEBUG)
+ add_executable(ptspectral-morph-check ../tests/studio/spectral_morph.cpp)
+ target_link_libraries(ptspectral-morph-check PRIVATE pt-mutable)
+ target_include_directories(ptspectral-morph-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptspectral-morph-check PRIVATE -UNDEBUG)
+ add_executable(ptspectral-additive-check ../tests/studio/spectral_additive.cpp)
+ target_link_libraries(ptspectral-additive-check PRIVATE pt-mutable)
+ target_include_directories(ptspectral-additive-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptspectral-additive-check PRIVATE -UNDEBUG)
+ add_executable(ptspectral-freeze-check ../tests/studio/spectral_freeze.cpp)
+ target_link_libraries(ptspectral-freeze-check PRIVATE pt-ui)
+ target_include_directories(ptspectral-freeze-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
+ target_compile_options(ptspectral-freeze-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-preview-faults-check ../tests/studio/sample_editor_preview_faults.cpp)
+ target_link_libraries(ptsample-editor-preview-faults-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-preview-faults-check PRIVATE -UNDEBUG)
+ add_executable(ptsync-budget-check ../tests/studio/sync_budget.cpp)
+ target_link_libraries(ptsync-budget-check PRIVATE pt-ui)
+ target_compile_options(ptsync-budget-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-preview-aborts-check ../tests/studio/sample_editor_preview_aborts.cpp)
+ target_link_libraries(ptsample-editor-preview-aborts-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-preview-aborts-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-marker-budget-check ../tests/studio/sample_editor_marker_budget.cpp)
+ target_link_libraries(ptsample-editor-marker-budget-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-marker-budget-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-save-exit-check ../tests/studio/sample_editor_save_exit.cpp)
+ target_link_libraries(ptsample-editor-save-exit-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-save-exit-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-save-memory-check ../tests/studio/sample_editor_save_memory.cpp)
+ target_link_libraries(ptsample-editor-save-memory-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-save-memory-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-save-io-check ../tests/studio/sample_editor_save_io.cpp)
+ target_link_libraries(ptsample-editor-save-io-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-save-io-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-publish-recovery-check ../tests/studio/wav_publish_recovery.cpp)
+ target_link_libraries(ptwav-publish-recovery-check PRIVATE pt-ui)
+ target_compile_options(ptwav-publish-recovery-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-publish-boundaries-check ../tests/studio/wav_publish_boundaries.cpp)
+ target_link_libraries(ptwav-publish-boundaries-check PRIVATE pt-ui)
+ target_compile_options(ptwav-publish-boundaries-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-name-protection-check ../tests/studio/wav_name_protection.cpp)
+ target_link_libraries(ptwav-name-protection-check PRIVATE pt-ui)
+ target_compile_options(ptwav-name-protection-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-recovery-guards-check ../tests/studio/wav_recovery_guards.cpp)
+ target_link_libraries(ptwav-recovery-guards-check PRIVATE pt-ui)
+ target_compile_options(ptwav-recovery-guards-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-interruption-check ../tests/studio/wav_interruption.cpp)
+ target_link_libraries(ptwav-interruption-check PRIVATE pt-ui)
+ target_compile_options(ptwav-interruption-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-save-limits-check ../tests/studio/wav_save_limits.cpp)
+ target_link_libraries(ptwav-save-limits-check PRIVATE pt-ui)
+ target_compile_options(ptwav-save-limits-check PRIVATE -UNDEBUG)
+ add_executable(ptwav-publish-filesystems-check ../tests/studio/wav_publish_filesystems.cpp)
+ target_link_libraries(ptwav-publish-filesystems-check PRIVATE pt-ui)
+ target_compile_options(ptwav-publish-filesystems-check PRIVATE -UNDEBUG)
+ add_executable(ptfont-atlas-check ../tests/studio/font_atlas.cpp)
+ target_link_libraries(ptfont-atlas-check PRIVATE pt-ui)
+ target_compile_options(ptfont-atlas-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-preview-check ../tests/studio/sample_editor_preview.cpp)
+ target_link_libraries(ptsample-editor-preview-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-preview-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-atomic-check ../tests/studio/sample_editor_atomic.cpp)
+ target_link_libraries(ptsample-editor-atomic-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-atomic-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-memory-check ../tests/studio/sample_editor_memory.cpp)
+ target_link_libraries(ptsample-editor-memory-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-memory-check PRIVATE -UNDEBUG)
+ add_executable(ptsample-editor-edges-check ../tests/studio/sample_editor_edges.cpp)
+ target_link_libraries(ptsample-editor-edges-check PRIVATE pt-ui)
+ target_compile_options(ptsample-editor-edges-check PRIVATE -UNDEBUG)
+ add_executable(ptsynth-cpu-bench ../tests/studio/synth_cpu.cpp)
+ target_link_libraries(ptsynth-cpu-bench PRIVATE pt-mutable)
+ target_include_directories(ptsynth-cpu-bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/studio")
  add_executable(ptbraids-pcm-check ../tests/studio/braids_pcm.cpp)
  target_link_libraries(ptbraids-pcm-check PRIVATE pt-mutable)
  target_include_directories(ptbraids-pcm-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/mutable")
@@ -777,6 +914,9 @@ if(PT_STUDIO_CHECK)
  add_executable(pttheme-grid-check ../tests/studio/theme_grid.cpp)
  target_link_libraries(pttheme-grid-check PRIVATE pt-ui)
  target_compile_options(pttheme-grid-check PRIVATE -UNDEBUG)
+ add_executable(ptscene-presets-check ../tests/studio/scene_presets.cpp)
+ target_link_libraries(ptscene-presets-check PRIVATE pt-ui)
+ target_compile_options(ptscene-presets-check PRIVATE -UNDEBUG)
  add_executable(ptinstrument-load-check ../tests/studio/instrument_load.cpp)
  target_link_libraries(ptinstrument-load-check PRIVATE pt-ui)
  target_compile_options(ptinstrument-load-check PRIVATE -UNDEBUG)
@@ -795,6 +935,9 @@ if(PT_STUDIO_CHECK)
  add_executable(ptcontext-help-check ../tests/studio/context_help.cpp)
  target_link_libraries(ptcontext-help-check PRIVATE pt-ui)
  target_compile_options(ptcontext-help-check PRIVATE -UNDEBUG)
+ add_executable(ptdrumlab-map-check ../tests/studio/drumlab_map.cpp)
+ target_link_libraries(ptdrumlab-map-check PRIVATE pt-ui)
+ target_compile_options(ptdrumlab-map-check PRIVATE -UNDEBUG)
  add_executable(ptdrumlab-swing-check ../tests/studio/drumlab_swing.cpp)
  target_link_libraries(ptdrumlab-swing-check PRIVATE pt-ui)
  target_compile_options(ptdrumlab-swing-check PRIVATE -UNDEBUG)
@@ -813,6 +956,15 @@ if(PT_STUDIO_CHECK)
  add_executable(ptfont-style-check ../tests/studio/font_style.cpp)
  target_link_libraries(ptfont-style-check PRIVATE pt-ui)
  target_compile_options(ptfont-style-check PRIVATE -UNDEBUG)
+ add_executable(pthandover-fixes-check ../tests/studio/handover_fixes.cpp)
+ target_link_libraries(pthandover-fixes-check PRIVATE pt-ui)
+ target_compile_options(pthandover-fixes-check PRIVATE -UNDEBUG)
+ add_executable(ptui-polish-check ../tests/studio/ui_polish.cpp)
+ target_link_libraries(ptui-polish-check PRIVATE pt-ui)
+ target_compile_options(ptui-polish-check PRIVATE -UNDEBUG)
+ add_executable(ptsettings-autosave-check ../tests/studio/settings_autosave.cpp)
+ target_link_libraries(ptsettings-autosave-check PRIVATE pt-ui)
+ target_compile_options(ptsettings-autosave-check PRIVATE -UNDEBUG)
 endif()
 
 # Reproducible public metadata; test fixture paths remain test-local.

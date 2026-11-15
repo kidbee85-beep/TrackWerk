@@ -326,7 +326,9 @@ private:
     }
     float delayed(float length) const {
         const float index = wrap((float(write_) - length) / float(delay_.size())) * float(delay_.size());
-        const int i = int(index); const float frac = index - i;
+        // wrap() of a tiny negative value rounds to exactly 1.0f, so index can equal size(): mask it.
+        const int whole = int(index); const float frac = index - float(whole);
+        const int i = whole & 4095;
         return delay_[size_t(i)] + (delay_[size_t((i + 1) & 4095)] - delay_[size_t(i)]) * frac;
     }
     float oscillator(float hz, float step, float a, float b, float c) {

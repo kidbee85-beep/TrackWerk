@@ -1,8 +1,12 @@
 #include "ui/modules/oscilloscope.h"
 
 #include <algorithm>  // std::max — libstdc++ does not pull it in
+#include <cmath>
+#include <iterator>
 
+#include "ui/demo_fx.h"
 #include "ui/helpers.h"
+#include "ui/scene_animation.h"
 
 namespace pt::ui {
 
@@ -18,6 +22,13 @@ void OscilloscopeModule::draw(Canvas& c, int x, int y, const OscilloscopeState& 
     const bool isOcta =
         (t.visualizerType == VisualizerType::OCTA || t.visualizerType == VisualizerType::OCTA_FULL);
     c.fill_rect(x, y, WIDTH, HEIGHT, isOcta ? t.background : t.vizBackground);
+    // The afterglow belongs to one SCOPE strip at one place: another mode or position drops it.
+    if (t.visualizerType != VisualizerType::SCOPE || x != phosphorX_ || y != phosphorY_) phosphorFrames_ = 0;
+    phosphorX_ = x;
+    phosphorY_ = y;
+    const int family = scene_animation::family_of(t);
+    if (s.playing && family == scene_animation::RASTER)
+        scene_animation::raster_bars(c, x, y, WIDTH, HEIGHT, t, s.animationMs, s.bpm);
 
     switch (t.visualizerType) {
         case VisualizerType::SCOPE:
@@ -36,20 +47,115 @@ void OscilloscopeModule::draw(Canvas& c, int x, int y, const OscilloscopeState& 
         case VisualizerType::SPECTRUM_PEAKS:
             draw_bar_amps(c, x, y, s.spectrum, t, /*peak_mode=*/true);
             break;
+        case VisualizerType::COPPER:
+        case VisualizerType::STARFIELD:
+        case VisualizerType::PLASMA:
+            draw_demo(c, x, y, s);
+            break;
     }
+    // On the one of every bar a bright scanline sweeps once down the strip (Motion on, playing).
+    if (s.playing && s.bpm > 0) {
+        const uint64_t barMs = 240000ull / static_cast<uint64_t>(s.bpm);
+        const uint64_t into = s.animationMs % barMs, sweep = std::min<uint64_t>(barMs / 4, 220);
+        if (into < sweep) {
+            const int line = y + static_cast<int>(into * (HEIGHT - 2) / sweep);
+            const float fade = 1.f - float(into) / float(sweep);
+            c.fill_rect(x, line, WIDTH, 2, with_alpha(t.vizWave, .45f * fade));
+            c.fill_rect(x, std::max(y, line - 6), WIDTH, std::min(6, line - y), with_alpha(t.vizWave, .10f * fade));
+        }
+    }
+    // Along the foot of the strip, clear of the status line at its top.
+    if (s.playing && family == scene_animation::CRACKTRO)
+        scene_animation::sine_scroller(c, x + 2, y + HEIGHT - 30, WIDTH - 4, 28, t, s.animationMs);
 }
 
-void OscilloscopeModule::draw_scope(Canvas& c, int x, int y, const float* wave,
-                                    const Theme& t) const {
+namespace {
+// Loudness of a waveform window, 0…1 (RMS, lifted so a quiet mix still moves the effect).
+float energy(const float* wave) {
+    if (!wave) return 0.f;
+    double sum = 0;
+    for (int i = 0; i < WAVEFORM_SIZE; i += 2) sum += double(wave[i]) * wave[i];
+    return std::min(1.f, float(std::sqrt(sum / (WAVEFORM_SIZE / 2))) * 3.f);
+}
+}  // namespace
+
+// The demo visualizers. Inside the strip only; the animation clock moves them while playing.
+void OscilloscopeModule::draw_demo(Canvas& c, int x, int y, const OscilloscopeState& s) const {
+    const Theme& t = s.theme;
+    Canvas::ClipScope clip(c, x, y, WIDTH, HEIGHT);
+    c.fill_rect(x, y, WIDTH, HEIGHT, t.vizBackground);
+    const uint64_t ms = s.animationMs;
+    switch (t.visualizerType) {
+        case VisualizerType::COPPER: {
+            float bars[8] = {};
+            int count = 0;
+            for (int track = 0; track < 8; ++track)
+                if (s.trackWaveforms && ((s.activeTrackMask >> track) & 1))
+                    bars[count++] = energy(s.trackWaveforms + static_cast<size_t>(track) * WAVEFORM_SIZE);
+            if (count == 0) { bars[0] = .1f; count = 1; }
+            demo_fx::copper(c, x, y, WIDTH, HEIGHT, t, ms, bars, count);
+            break;
+        }
+        case VisualizerType::STARFIELD:
+            demo_fx::starfield(c, x, y, WIDTH, HEIGHT, t, ms, energy(s.waveform), 170);
+            break;
+        default:
+            demo_fx::plasma(c, x, y, WIDTH, HEIGHT, t, ms, 6, energy(s.waveform));
+            break;
+    }
+    // Faint scanlines, and a dark band along the top where the status line is written.
+    for (int py = y + 1; py < y + HEIGHT; py += 2) c.fill_rect(x, py, WIDTH, 1, 0x30000000u);
+    c.fill_rect(x, y, WIDTH, 26, with_alpha(t.vizBackground, .72f));
+    c.fill_rect(x, y + 26, WIDTH, 3, with_alpha(t.vizBackground, .35f));
+}
+
+void OscilloscopeModule::draw_scope(Canvas& c, int x, int y, const float* wave, const Theme& t) {
     const int centerY      = y + HEIGHT / 2;
     const int maxAmplitude = (HEIGHT / 2) - 4;
 
+    if (t.sceneChrome > 0) draw_graticule(c, x, y, t);
     c.fill_rect(x, centerY, WIDTH, 1, t.vizCenterLine);
-    draw_wave_dots(c, x, WIDTH, wave, centerY, maxAmplitude, t.vizWave);
+    if (!wave || t.sceneChrome == 0) {
+        phosphorFrames_ = 0;
+        draw_wave_dots(c, x, WIDTH, wave, centerY, maxAmplitude, t.vizWave);
+        return;
+    }
+    // Oldest first, dimmer: the afterglow sits under the live trace.
+    constexpr int N = SCOPE_PIXEL_BLOCK;
+    for (int age = phosphorFrames_ - 1; age >= 0; --age) {
+        const Argb glow = with_alpha(t.vizWave, age == 0 ? .30f : .12f);
+        for (int b = 0; b < SCOPE_BLOCKS; ++b) c.fill_rect(x + b * N, y + phosphor_[age][b], N, N, glow);
+    }
+    int16_t live[SCOPE_BLOCKS];
+    draw_wave_dots(c, x, WIDTH, wave, centerY, maxAmplitude, t.vizWave, live);
+    std::copy(std::begin(phosphor_[0]), std::end(phosphor_[0]), std::begin(phosphor_[1]));
+    for (int b = 0; b < SCOPE_BLOCKS; ++b) phosphor_[0][b] = static_cast<int16_t>(live[b] - y);
+    phosphorFrames_ = std::min(phosphorFrames_ + 1, 2);
+}
+
+// A bench scope's graticule, Scenes only: ten divisions across, dotted quarter lines, and ticks on
+// the centre line. Static, under the trace, faint enough that a stopped strip still reads as empty.
+void OscilloscopeModule::draw_graticule(Canvas& c, int x, int y, const Theme& t) const {
+    const Argb dot = with_alpha(t.vizCenterLine, .55f);
+    const Argb tick = with_alpha(t.vizCenterLine, .85f);
+    const int centerY = y + HEIGHT / 2;
+    constexpr int kDivisions = 10;
+    for (int d = 1; d < kDivisions; ++d) {
+        const int gx = x + d * WIDTH / kDivisions;
+        for (int gy = y + 4; gy < y + HEIGHT - 3; gy += 4) c.fill_rect(gx, gy, 1, 1, dot);
+        c.fill_rect(gx, centerY - 3, 1, 7, tick);
+    }
+    for (int q : {1, 3}) {
+        const int gy = y + q * HEIGHT / 4;
+        for (int gx = x + 4; gx < x + WIDTH - 3; gx += 4) c.fill_rect(gx, gy, 1, 1, dot);
+    }
+    for (int gx = x + WIDTH / (kDivisions * 5); gx < x + WIDTH; gx += WIDTH / (kDivisions * 5))
+        c.fill_rect(gx, centerY - 1, 1, 3, dot);
 }
 
 void OscilloscopeModule::draw_wave_dots(Canvas& c, int scope_x, int scope_w, const float* wave,
-                                        int center_y, int max_amplitude, Argb color) const {
+                                        int center_y, int max_amplitude, Argb color,
+                                        int16_t* record) const {
     // Time zoom: the centred WAVEFORM_SIZE/Z samples across the strip.
     constexpr int N          = SCOPE_PIXEL_BLOCK;
     const int     windowSize = WAVEFORM_SIZE / SCOPE_TIME_ZOOM;
@@ -67,6 +173,7 @@ void OscilloscopeModule::draw_wave_dots(Canvas& c, int scope_x, int scope_w, con
         // Snap the block to an N-px grid aligned on the centre line.
         dotY = center_y + ((dotY - center_y) / N) * N;
         c.fill_rect(scope_x + bx, dotY, blockW, N, color);
+        if (record && bx / N < SCOPE_BLOCKS) record[bx / N] = static_cast<int16_t>(dotY);
     }
 }
 
@@ -80,9 +187,17 @@ void OscilloscopeModule::draw_octa(Canvas& c, int x, int y, const float* tracks,
     const int maxAmplitude = (HEIGHT / 2) - 4;
 
     if (!tracks || mask == 0) {
-        // Nothing scheduled: one panel and a centre line.
-        c.fill_rect(x, y, WIDTH, HEIGHT, t.vizBackground);
-        c.fill_rect(x, centerY, WIDTH, 1, t.vizCenterLine);
+        // Nothing scheduled: the eight lanes at rest, faint, with their track numbers along the foot,
+        // so the strip reads as the visualizer it becomes on START rather than as an empty box.
+        const int restW = (WIDTH - OCTA_TRACK_GAP * 7) / 8;
+        for (int lane = 0; lane < 8; ++lane) {
+            const int laneX = x + lane * (restW + OCTA_TRACK_GAP);
+            c.fill_rect(laneX, y, restW, HEIGHT, t.vizBackground);
+            c.fill_rect(laneX + 4, centerY, restW - 8, 1, with_alpha(t.vizCenterLine, .6f));
+            const std::string number = std::to_string(lane + 1);
+            c.draw_label(number, laneX + restW - 6 - Canvas::label_width(number, 11), y + HEIGHT - 15,
+                         with_alpha(t.textEmpty, .8f), 11);
+        }
         return;
     }
 
@@ -158,7 +273,7 @@ void OscilloscopeModule::draw_bar_amps(Canvas& c, int x, int y, const float* amp
         const int peakDy = (peakH / SEG_STEP) * SEG_STEP;
         if (peakDy > barH) {
             c.fill_rect(barX, barBottom - peakDy - SEGMENT_H + 1, BAR_W, SEGMENT_H,
-                        darken(t.vizWave, 0.55f));
+                        recess(t.background,t.vizWave, 0.55f));
         }
     }
 }

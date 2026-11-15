@@ -178,6 +178,8 @@ void InputDispatcher::settings_action() {
     switch (static_cast<SettingsRow>(s_.settingsCursorRow)) {
         case SettingsRow::APPEARANCE:
             open_studio_appearance(s_);
+            // The press that opens Appearance must not open its first control on release.
+            s_.studioAUsed = true;
             break;
         case SettingsRow::THEME:
             open_theme_editor();

@@ -3,6 +3,7 @@
 
 #include "ui/dispatch/dispatch_common.h"
 
+#include "ui/scene_picker.h"
 #include "ui/theme_io.h"         // .ptt — save_theme_file
 
 #include <string>
@@ -11,6 +12,21 @@ namespace pt::ui {
 
 GestureResult InputDispatcher::theme_layer(Gesture g) {
     ThemeEditorState& es = s_.themeEditor;
+    if (s_.scenePicker >= 0) {
+        Button button;
+        switch (g) {
+            case Gesture::DPAD_UP:    button = Button::DPAD_UP; break;
+            case Gesture::DPAD_DOWN:  button = Button::DPAD_DOWN; break;
+            case Gesture::DPAD_LEFT:  button = Button::DPAD_LEFT; break;
+            case Gesture::DPAD_RIGHT: button = Button::DPAD_RIGHT; break;
+            case Gesture::A: button = Button::A; break;
+            case Gesture::B: button = Button::B; break;
+            case Gesture::START: case Gesture::SELECT: return GestureResult::PASS;
+            default: return GestureResult::TAKEN;
+        }
+        scene_picker_button(button, s_.scenePicker, s_.theme);
+        return GestureResult::TAKEN;
+    }
     switch (g) {
         // Both axes WRAP: UP/DOWN walk the rows, LEFT/RIGHT the row's own cells.
         case Gesture::DPAD_UP:    theme_move_cursor(-1, 0); break;
@@ -158,7 +174,8 @@ void InputDispatcher::theme_row_action() {
                               {"ptt"});
             break;
         }
-        default:    // column 0 is the NAME; a bare A on it does nothing
+        default:
+            s_.scenePicker = scene_picker_start(s_.theme);
             break;
     }
 }

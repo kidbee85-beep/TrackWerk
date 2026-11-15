@@ -15,6 +15,9 @@ struct NavigationMapState {
     int  sourceColumn       = 2;
     bool instrumentFromPool = false;  // on INSTRUMENT, entered via the pool's R+RIGHT
     Theme theme = theme_classic();
+    // The arrival banner: the full name of the screen just reached, `bannerLevel` 1 … 0 as it fades
+    // (0 = none). The shell times it (AppState::navBannerUntilMs).
+    float bannerLevel = 0.f;
 };
 
 class NavigationMapModule {

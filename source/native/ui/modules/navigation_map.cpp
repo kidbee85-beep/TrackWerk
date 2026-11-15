@@ -38,18 +38,34 @@ void NavigationMapModule::draw(Canvas& c, int x, int y, const NavigationMapState
             const bool isCurrent = onPoolInstrument ? (row == 0 && gcol == 4)
                                                     : (screen == s.currentScreen);
 
-            const std::string label  = screen_short_label(screen);
-            const int         labelW = Canvas::text_width(label, CHAR_SPACING, FONT_SCALE);
+            // Main row: one large letter. Above and below: two smaller letters, a branch, not a peer.
+            const bool        mainRow = row == NAV_MAIN_ROW;
+            const int         scale   = mainRow ? FONT_SCALE : 2;
+            const int         spacing = mainRow ? CHAR_SPACING : 1;   // two letters read as one word
+            const std::string label   = screen_map_label(screen, mainRow);
+            const int         labelW  = Canvas::text_width(label, spacing, scale);
 
             if (isCurrent) {
                 c.fill_rect(cellX + 1, cellY + 1, CELL_WIDTH - 2, CELL_HEIGHT - 2,
                             with_alpha(t.rowCursor, .18f));
                 c.fill_rect(cellX + 4, cellY + CELL_HEIGHT - 2, CELL_WIDTH - 8, 1, t.rowCursor);
+                c.mark_selector(1, cellX + 1, cellY + 1, CELL_WIDTH - 2, CELL_HEIGHT - 2);   // glides (ui/layout.cpp)
             }
 
-            c.draw_text(label, cellX + (CELL_WIDTH - labelW) / 2, cellY + 3,
-                        isCurrent ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING, FONT_SCALE);
+            c.draw_text(label, cellX + (CELL_WIDTH - labelW) / 2, cellY + (mainRow ? 3 : 6),
+                        isCurrent ? cursor_mark_ink(t) : t.textParam, spacing, scale);
         }
+    }
+
+    // Arrival banner across the top of the map: where the last move landed, in words.
+    if (s.bannerLevel > 0.f) {
+        const float a = s.bannerLevel;
+        const std::string name = screen_long_label(s.currentScreen);
+        c.fill_rect(x + 1, y + 1, WIDTH - 2, 19, with_alpha(t.background, .92f * a));
+        c.fill_rect(x + 1, y + 1, WIDTH - 2, 1, with_alpha(t.rowCursor, a));
+        c.fill_rect(x + 1, y + 19, WIDTH - 2, 1, with_alpha(t.rowCursor, .55f * a));
+        c.draw_label(name, x + (WIDTH - Canvas::label_width(name, 12)) / 2, y + 3,
+                     with_alpha(cursor_mark_ink(t), a), 12);
     }
 }
 

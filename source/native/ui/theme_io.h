@@ -12,6 +12,8 @@
 #include "songcore/project_io.h"   // JsonWriter + JsonLayout
 #include "ui/filesystem.h"
 #include "ui/theme.h"
+#include "ui/scene_presets.h"
+#include "ui/demo_font_style.h"
 #include "vendor/nlohmann/json.hpp"
 
 namespace pt::ui {
@@ -24,6 +26,9 @@ inline const char* visualizer_serial_name(VisualizerType v) {
         case VisualizerType::OCTA_FULL:      return "OCTA_FULL";
         case VisualizerType::SPECTRUM:       return "SPECTRUM";
         case VisualizerType::SPECTRUM_PEAKS: return "SPECTRUM_PEAKS";
+        case VisualizerType::COPPER:         return "COPPER";
+        case VisualizerType::STARFIELD:      return "STARFIELD";
+        case VisualizerType::PLASMA:         return "PLASMA";
     }
     return "SCOPE";
 }
@@ -35,6 +40,9 @@ inline VisualizerType visualizer_from_serial_name(const std::string& s) {
     if (s == "OCTA_FULL")      return VisualizerType::OCTA_FULL;
     if (s == "SPECTRUM")       return VisualizerType::SPECTRUM;
     if (s == "SPECTRUM_PEAKS") return VisualizerType::SPECTRUM_PEAKS;
+    if (s == "COPPER")         return VisualizerType::COPPER;
+    if (s == "STARFIELD")      return VisualizerType::STARFIELD;
+    if (s == "PLASMA")         return VisualizerType::PLASMA;
     return VisualizerType::SCOPE;   // incl. "SCOPE", and any value another build might write
 }
 
@@ -85,6 +93,12 @@ inline std::string serialize_theme(const Theme& t) {
     if (t.surfaceStyle != d.surfaceStyle) w.field_int("surfaceStyle", t.surfaceStyle);
     if (t.chainGrid != d.chainGrid) w.field_string("chainGrid", step_grid_style_name(t.chainGrid));
     if (t.phraseGrid != d.phraseGrid) w.field_string("phraseGrid", step_grid_style_name(t.phraseGrid));
+
+    if (t.sceneChrome != d.sceneChrome) {
+        w.field_int("sceneChrome", t.sceneChrome);
+        w.field_int("sceneTypographyVersion", 2);
+    }
+    if (t.fontOverride != d.fontOverride) w.field_int("fontOverride", t.fontOverride);
 
     w.end_object();
     return std::move(w.out);
@@ -154,6 +168,20 @@ inline bool parse_theme(const std::string& text, Theme& out) {
     };
     read_grid("chainGrid", t.chainGrid);
     read_grid("phraseGrid", t.phraseGrid);
+
+    if (const auto it = j.find("sceneChrome"); it != j.end() && it->is_number_integer()) {
+        const auto value = it->get<uint64_t>();
+        if (value <= kSceneCount) t.sceneChrome = static_cast<int>(value);
+    }
+    if (const auto it = j.find("fontOverride"); it != j.end() && it->is_number_integer()) {
+        const auto value = it->get<uint64_t>();
+        if (value < kDemoFontStyleCount) t.fontOverride = static_cast<int>(value);
+    }
+
+    if (t.sceneChrome > 0 && !j.contains("sceneTypographyVersion")) {
+        const int scene = t.sceneChrome - 1;
+        if (t.fontOverride == kOriginalSceneFonts[scene]) t.fontOverride = kScenePresets[scene].font;
+    }
 
     out = t;
     return true;

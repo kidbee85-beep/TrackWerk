@@ -189,6 +189,14 @@ void handle_button(const ButtonEvent& e, Dispatcher& d, MapperState& ms, uint64_
     // SELECT may open help; leave the current audition alone while reading it.
     if (e.button != Button::START && e.button != Button::SELECT && !m.a) d.on_stop_preview();
 
+    // SELECT+START opens the show view. START is otherwise ignored while SELECT is held.
+    if (e.button == Button::START && m.select && !m.l && !m.r && !m.a && !m.b) {
+        ms.selectPressedAlone = false;
+        ms.clear_phrase_keys();
+        d.on_select_start();
+        return;
+    }
+
     // L+SELECT opens Punch directly. L+SELECT had no prior action; both orders work.
     if (!m.r && !m.a && !m.b &&
         ((e.button == Button::SELECT && m.l) || (e.button == Button::L_SHIFT && m.select))) {
@@ -335,6 +343,10 @@ void handle_button(const ButtonEvent& e, Dispatcher& d, MapperState& ms, uint64_
                     ms.bPressedAlone = false;
                     d.on_r_b();
                     ms.rComboArmed = true;
+                } else if (ms.aPressedAlone) {   // likewise an A still waiting: R + A, solo
+                    ms.aPressedAlone = false;
+                    d.on_r_a();
+                    ms.rComboArmed = true;
                 }
                 return;
             case Button::START:      d.on_r_start(); return;   // LIVE's stop; the song from below SONG
@@ -344,6 +356,15 @@ void handle_button(const ButtonEvent& e, Dispatcher& d, MapperState& ms, uint64_
 
     // ── A, and the A,A double-tap (300 ms) ───────────────────────────────────────────────────────
     if (e.button == Button::A && !m.l && !m.r) {
+        // B is down: A completes the delete chord as A + B does, if B is still waiting for its
+        // release; a B that already acted makes this A nothing rather than a plain A (order-free).
+        if (m.b) {
+            if (ms.bPressedAlone) {
+                ms.bPressedAlone = false;
+                d.on_a_b();
+            }
+            return;
+        }
         // Defer first; a deferred cell is never a double-tap cell, so the window is cleared.
         if (d.defer_a_to_release()) {
             ms.aPressedAlone = true;

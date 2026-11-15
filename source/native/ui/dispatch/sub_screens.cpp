@@ -47,6 +47,9 @@ bool InputDispatcher::defer_a_to_release() const {
         case ScreenType::MIXER:
             if (mixer_cell_at(s_.mixerMasterRow, s_.mixerCursorColumn) == MixerCell::MASTER_VOL) return true;
             break;
+        // A alone toggles a mute or switches the filter off on its release; A + D-pad plays the value.
+        case ScreenType::PERFORM:
+            return true;
         case ScreenType::INSTRUMENT:
             if (self.instrument_open_at_cursor(/*peek=*/true)) return true;
             break;

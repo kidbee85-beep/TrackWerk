@@ -227,6 +227,12 @@ cp "$SRC/native/vendor/opus/COPYING"                 "$GAMEDIR/licenses/libopus-
 cp "$SRC/native/vendor/opus/LICENSE_PLEASE_READ.txt" "$GAMEDIR/licenses/libopus-LICENSE_PLEASE_READ.txt"
 cp "$SRC/docs/licenses/OFL-1.1-LiberationSans.txt"   "$GAMEDIR/licenses/OFL-1.1-LiberationSans.txt"
 cp "$SRC/docs/licenses/OFL-1.1-QuinqueFive.txt"      "$GAMEDIR/licenses/OFL-1.1-QuinqueFive.txt"
+# The Studio's Mutable Instruments/stmlib DSP (MIT) and the DaisySP conversion record ship in
+# every artifact too; THIRD-PARTY-NOTICES.md cites them by these names (see app/build.gradle.kts).
+cp "$SRC/docs/licenses/Mutable-Instruments-MIT.txt" "$GAMEDIR/licenses/Mutable-Instruments-MIT.txt"
+cp "$SRC/docs/licenses/Mutable-Instruments-PROVENANCE.txt" "$GAMEDIR/licenses/Mutable-Instruments-PROVENANCE.txt"
+cp "$SRC/native/vendor/mutable/stmlib/LICENSE" "$GAMEDIR/licenses/Mutable-stmlib-LICENSE"
+cp "$SRC/docs/licenses/DaisySP-GPL-CONVERSION.txt" "$GAMEDIR/licenses/DaisySP-GPL-CONVERSION.txt"
 
 # ⚠️ THESE TWO SHIP ONLY HERE. Every other package links the device's own SDL2 and therefore owes it
 # no notice; this one carries the binary, so it carries SDL's zlib text and the fork's GPL-3.0 text
@@ -409,7 +415,7 @@ MISSING=""
 VENDORED=""
 for D in "$SRC"/native/vendor/*/; do VENDORED="$VENDORED $(basename "$D")"; done
 for COMPONENT in $VENDORED kissfft daisysp soundpipe; do
-    if grep -qi -- "$COMPONENT" "$NOTICES"; then
+    if grep -qiw -- "$COMPONENT" "$NOTICES"; then
         echo "  ok      $COMPONENT"
     else
         echo "  MISSING $COMPONENT"
@@ -615,6 +621,10 @@ MEMBERS=( Roms/PORTS/Shortcuts/PocketTracker.port
           $G/licenses/libopus-LICENSE_PLEASE_READ.txt
           $G/licenses/OFL-1.1-LiberationSans.txt
           $G/licenses/OFL-1.1-QuinqueFive.txt
+          $G/licenses/Mutable-Instruments-MIT.txt
+          $G/licenses/Mutable-Instruments-PROVENANCE.txt
+          $G/licenses/Mutable-stmlib-LICENSE
+          $G/licenses/DaisySP-GPL-CONVERSION.txt
           $G/licenses/libSDL2-zlib-LICENSE.txt
           $G/licenses/libSDL2-miyoo-fork-GPL-3.0.txt )
 # ⚠️ An ARRAY, and the demo's members are APPENDED FROM THE STAGING TREE rather than typed: the file

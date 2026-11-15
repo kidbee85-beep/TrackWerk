@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
+#include <cerrno>
 #include <cstring>
 
 // A .cpp so <windows.h> stays out of every includer.
@@ -99,8 +101,21 @@ int64_t load_budget_bytes() {
     const int64_t avail = available_memory_bytes();
     const int64_t total = total_memory_bytes();
     // Unknown stays 0, which refuses nothing.
-    if (avail <= 0 && total <= 0) return 0;
-    return std::max(avail, total / 2);
+    const int64_t budget = (avail <= 0 && total <= 0) ? 0 : std::max(avail, total / 2);
+    // `PT_LOAD_BUDGET_MB`: caps the budget, for tests that must hit a refusal on any machine
+    // (`PT_MEMORY_LIMIT_MB` only lowers *available* RAM, and half the total can still exceed it).
+    // Only a whole positive number is taken, and it can only lower what the machine allows.
+    if (const char* v = std::getenv("PT_LOAD_BUDGET_MB"); v && *v >= '1' && *v <= '9') {   // no sign, space or 0
+        char* end = nullptr;
+        errno = 0;
+        const long long mb = std::strtoll(v, &end, 10);
+        constexpr long long kMaxMb = std::numeric_limits<int64_t>::max() / (1024 * 1024);
+        if (errno == 0 && end != v && *end == '\0' && mb > 0 && mb <= kMaxMb) {
+            const int64_t cap = static_cast<int64_t>(mb) * 1024 * 1024;
+            return budget > 0 ? std::min(budget, cap) : cap;
+        }
+    }
+    return budget;
 }
 
 }  // namespace pt

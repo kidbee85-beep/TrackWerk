@@ -116,6 +116,8 @@ int main(int argc,char** argv){assert(argc==2);std::filesystem::create_directori
  studio_button({Button::SELECT,ButtonAction::PRESSED,{}},s,host,*engine,fs);assert(engine->studioRack.punch.load()==0);
  studio_button({Button::SELECT,ButtonAction::RELEASED,{}},s,host,*engine,fs);assert(s.studioHelp);
  studio_button(a,s,host,*engine,fs);assert(!s.studioAUsed&&engine->studioRack.punch.load()==0);
+ // A whole B press closes help; a lone release is swallowed (the help guard's release safety).
+ studio_button({Button::B,ButtonAction::PRESSED,{}},s,host,*engine,fs);
  studio_button({Button::B,ButtonAction::RELEASED,{}},s,host,*engine,fs);assert(!s.studioHelp&&s.studioOpen);
  studio_button({Button::A,ButtonAction::PRESSED,{}},s,host,*engine,fs);engine->stopAllRamped();assert(engine->studioRack.punch.load()==0);
  // A failed source load must not clear or change an external/SoundFont instrument.

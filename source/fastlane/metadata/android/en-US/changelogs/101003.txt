@@ -1,0 +1,1 @@
+TrackWerk 1.1 brings 40 complete interface scenes, new motion and layout options, Harmony chord progressions, expanded synthesis including SID and FM SysEx, and sample-editor reliability improvements. Same Android app identity and signing key; install as an update.

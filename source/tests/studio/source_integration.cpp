@@ -124,7 +124,7 @@ int main(int argc,char** argv){
     evicted.sourceImportedPath=(out/"no-longer-present.wav").string();action(evicted,host,*engine,fs);
     assert(evicted.pendingSampleEditor&&fs.file_exists(evicted.sourceImportedPath)&&bytes(evicted.sourceImportedPath)==bytes(file));
 
-    // Sources participates in the seven musical tabs, skipping Settings-only Appearance.
+    // Sources participates in the eight musical tabs (Harmony after it), skipping Settings-only Appearance.
     // A held edit key must not cause the release
     // to execute a source command or a synth action after changing pages.
     AppState navigation;navigation.project=&host.edit_project();navigation.studioOpen=true;navigation.studioTab=5;
@@ -141,11 +141,11 @@ int main(int argc,char** argv){
     const auto version=navigation.projectVersion;
     studio_button({Button::A,ButtonAction::RELEASED,{}},navigation,host,*engine,fs);assert(navigation.projectVersion==version);
     studio_button({Button::B,ButtonAction::RELEASED,{}},navigation,host,*engine,fs);assert(navigation.studioOpen);
-    page.a=false;studio_button({Button::DPAD_RIGHT,ButtonAction::PRESSED,page},navigation,host,*engine,fs);assert(navigation.studioTab==0);
+    page.a=false;studio_button({Button::DPAD_RIGHT,ButtonAction::PRESSED,page},navigation,host,*engine,fs);assert(navigation.studioTab==8);   // Harmony follows Sources
     studio_button({Button::B,ButtonAction::RELEASED,{}},navigation,host,*engine,fs);assert(navigation.studioOpen);
     page.a=false;studio_button({Button::DPAD_LEFT,ButtonAction::PRESSED,page},navigation,host,*engine,fs);assert(navigation.studioTab==7);
     studio_button({Button::B,ButtonAction::RELEASED,{}},navigation,host,*engine,fs);
     studio_button({Button::B,ButtonAction::RELEASED,{}},navigation,host,*engine,fs);assert(!navigation.studioOpen);
     assert(!backend.actions.empty());
-    std::puts("PASS: source page import/editor handoff, fresh instrument, provenance failure/retry, cached/stale destinations, seven music tabs and settings-only Appearance");
+    std::puts("PASS: source page import/editor handoff, fresh instrument, provenance failure/retry, cached/stale destinations, eight music tabs and settings-only Appearance");
 }

@@ -60,6 +60,8 @@ void InstrumentPoolModule::draw(Canvas& c, int x, int y, const InstrumentPoolSta
         if (slot >= count) break;
         draw_row(c, x, dataTop + i * ROW_HEIGHT, slot, pool[static_cast<size_t>(slot)], s, t);
     }
+    // The rows scroll smoothly as the selection recentres (shell/app.cpp).
+    c.mark_scroll(3, x, dataTop, WIDTH, VISIBLE_ROWS * ROW_HEIGHT, scroll * ROW_HEIGHT);
 }
 
 void InstrumentPoolModule::draw_row(Canvas& c, int x, int rowY, int slot, const Instrument& ins,

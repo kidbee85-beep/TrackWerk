@@ -227,7 +227,7 @@ void QwertyKeyboardOverlay::draw(Canvas& c, const QwertyKeyboardState& s, const 
     if (startX < INNERX) startX = INNERX;
     const int  textX   = startX + leftPad * CHARW;
 
-    const Argb markerColor = darken(t.textValue, 0.5f);
+    const Argb markerColor = recess(t.background,t.textValue, 0.5f);
     if (win.clipLeft) c.draw_text(ELLIPSIS, startX, textRowY + 3, markerColor, CS, FS);
 
     for (int k = 0; k < win.cols; ++k) {

@@ -1,4 +1,5 @@
 #include "rack.h"
+#include <cstring>
 #include "punch.h"
 #include "preset_catalog.h"
 #include <algorithm>
@@ -58,10 +59,24 @@ struct Rack::State {
  float in[48][2]{},out[48][2]{},tmpL[48]{},tmpR[48]{},src[48]{};
  warps::ShortFrame wi[96]{},wo[96]{};clouds::ShortFrame ci[32]{},co[32]{};
  int pos=0,lastFx=-1;float envelope=0,prevIn[2]{},hp[2]{};
+ bool wasEnabled=false;
  PunchProcessor punchProcessor;
- State(){rings.Init(reverb);rings.set_polyphony(1);warps.Init(96000);clouds.Init(large,sizeof(large),small,sizeof(small));clouds.set_num_channels(2);clouds.set_low_fidelity(false);}
+ void init_effects(){rings.Init(reverb);rings.set_polyphony(1);warps.Init(96000);clouds.Init(large,sizeof(large),small,sizeof(small));clouds.set_num_channels(2);clouds.set_low_fidelity(false);}
+ State(){init_effects();}
+ // ENABLE off → on: nothing recorded before the bypass may sound again — neither the 48-frame
+ // block (it held the last input before ENABLE went off) nor an effect's own memory (resonator,
+ // reverb, granular buffer). The Punch processor runs regardless of ENABLE and keeps its state.
+ // Called on the audio thread once per edge: plain stores and memsets, no allocation.
+ void restart(){
+  std::memset(in,0,sizeof(in));std::memset(out,0,sizeof(out));
+  std::memset(reverb,0,sizeof(reverb));std::memset(large,0,sizeof(large));std::memset(small,0,sizeof(small));
+  init_effects();pos=0;lastFx=-1;envelope=0;prevIn[0]=prevIn[1]=hp[0]=hp[1]=0;
+ }
  void effect(const std::array<int,COUNT>& p){
-  int fx=p[FX];float color=p[COLOR]/255.f,texture=p[TEXTURE]/255.f;
+  int fx=p[FX];
+  // FX off or fully dry: the block delay still runs (constant latency, no step), the effect does not.
+  // lastFx stays, so a Clouds mode chosen meanwhile is still applied when the effect comes back.
+  if(!fx||!p[FX_MIX]){for(int i=0;i<48;++i){out[i][0]=in[i][0];out[i][1]=in[i][1];}return;}float color=p[COLOR]/255.f,texture=p[TEXTURE]/255.f;
   if(fx>=1&&fx<=6){
    rings.set_model(static_cast<rings::ResonatorModel>(fx-1));
    rings::PerformanceState v{};v.note=48;v.internal_exciter=false;
@@ -95,9 +110,13 @@ void Rack::process(float* buf,int frames,int ch,float sr){
  const float attack=std::exp(-1.f/(sr*(.001f+.099f*p[ATTACK]/255.f))),release=std::exp(-1.f/(sr*(.02f+.98f*p[RELEASE]/255.f)));
  const float drive=1+7*p[DRIVE]/255.f,gain=std::pow(10.f,(p[OUTPUT]-128)/128.f),ceiling=std::pow(10.f,(-12+12*p[CEILING]/255.f)/20);
  const float high=std::exp(-6.2831853f*(10+190*p[HIGH_PASS]/255.f)/sr);
+ if(enabled&&!s_->wasEnabled)s_->restart();
+ s_->wasEnabled=enabled;
  for(int i=0;i<frames;++i){float l=buf[2*i],r=buf[2*i+1];
   if(enabled){
-   if(p[FX]&&p[FX_MIX]){float ol=s_->out[s_->pos][0],orr=s_->out[s_->pos][1];s_->in[s_->pos][0]=l;s_->in[s_->pos][1]=r;if(++s_->pos==48){s_->pos=0;s_->effect(p);}l=ol;r=orr;}
+   // Always through the 48-frame block delay while the rack is on. Switching it per FX/FX_MIX
+   // jumped the signal by 1 ms (a click) and replayed a stale block when the effect returned.
+   {float ol=s_->out[s_->pos][0],orr=s_->out[s_->pos][1];s_->in[s_->pos][0]=l;s_->in[s_->pos][1]=r;if(++s_->pos==48){s_->pos=0;s_->effect(p);}l=ol;r=orr;}
    float* x[2]={&l,&r};for(int c=0;c<2;++c){if(p[HIGH_PASS]){float y=high*(s_->hp[c]+*x[c]-s_->prevIn[c]);s_->prevIn[c]=*x[c];s_->hp[c]=y;*x[c]=y;}if(p[DRIVE])*x[c]=std::tanh(*x[c]*drive)/std::tanh(drive);}
    float peak=std::max(std::fabs(l),std::fabs(r));float coeff=peak>s_->envelope?attack:release;s_->envelope=coeff*s_->envelope+(1-coeff)*peak;
    float reduction=s_->envelope>threshold?std::pow(threshold/std::max(.000001f,s_->envelope),1-1/ratio):1;

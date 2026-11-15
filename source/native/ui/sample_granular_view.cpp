@@ -74,7 +74,7 @@ bool has_waveform(const AppState& state, bool sourceReady) {
 }
 
 void draw_grid(Canvas& canvas, const Theme& theme) {
-    const Argb ground = darken(theme.vizBackground, .83f);
+    const Argb ground = recess(theme.background,theme.vizBackground, .83f);
     const Argb trace = theme.textParam;
     canvas.fill_rect(kWaveX, kWaveY, kWaveWidth, kWaveHeight, ground);
     // The raster and registration marks stay still. Motion is driven by the current voice snapshot.
@@ -207,7 +207,7 @@ void draw_position(Canvas& canvas, const FrameRange& view, double frame, Argb in
 void draw_overview(Canvas& canvas, const Theme& theme, const FrameRange& region,
                    const FrameRange& view, double position, double scan,
                    const Snapshot& snapshot, Argb positionInk, Argb forward, Argb reverse) {
-    canvas.fill_rect(kWaveX, kOverviewY, kWaveWidth, kOverviewHeight, darken(theme.vizBackground, .73f));
+    canvas.fill_rect(kWaveX, kOverviewY, kWaveWidth, kOverviewHeight, recess(theme.background,theme.vizBackground, .73f));
     const int left = region.column(view.first);
     const int right = region.column(view.end);
     canvas.fill_rect(left, kOverviewY, right - left + 1, kOverviewHeight, with_alpha(theme.rowCursor, .24f));

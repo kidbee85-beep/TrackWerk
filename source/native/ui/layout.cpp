@@ -1,5 +1,10 @@
+#include "ui/demo_fx.h"
+#include "ui/perform.h"
 #include "ui/layout.h"
 #include "ui/studio.h"
+#include "ui/scene_picker.h"
+#include "ui/scene_layout.h"
+#include "ui/scene_animation.h"
 #include "ui/live_resample.h"
 #include "ui/extreme_splash.h"
 #include "ui/brand_graphics.h"
@@ -36,16 +41,29 @@ bool phrase_overview_visible(const AppState& s) {
 }  // namespace
 
 void TrackerLayout::draw(Canvas& c, const AppState& s) {
-    c.set_surface_style(s.theme.surfaceStyle);
-    c.set_font_style(s.settings.fontStyle);
+    c.set_appearance(s.theme, s.settings.fontStyle);
+    c.clear_cursor_mark();
+    c.set_clock(s.animationMs, s.settings.sceneMotion,
+                s.scenePicker >= 0 ? 3000 : s.studioOpen ? 1000 + s.studioTab : static_cast<int>(s.currentScreen));
+    // Motion switched off (or no clock): effects already under way end at once, not when they run out.
+    if (s.animationMs == 0 || !s.settings.sceneMotion) {
+        statusUntil_ = railUntil_ = selectorUntil_ = 0;
+        std::fill(std::begin(railStart_), std::end(railStart_), uint64_t{0});
+    }
     if(s.splashProgress>=0){draw_extreme_splash(c,s.theme,s.splashProgress);return;}
+    if(s.attractActive){demo_fx::draw_attract(c,s,s.animationMs-s.attractStarted);return;}
+    if(s.showActive){demo_fx::draw_show(c,s,&showPeaks_);return;}
     if(s.localSampleRange.isOpen){draw_local_sample_range(c,s.localSampleRange,s.theme);draw_loading_strip(c,s.loading,s.theme);return;}
-    if (s.studioOpen) {
+    if (s.scenePicker >= 0) {
+        draw_scene_picker(c, s.scenePicker, s.theme, s.settings.sceneMotion ? s.animationMs : 0);
+    } else if (s.studioOpen) {
         draw_studio(c, s);
         if (s.qwerty.isOpen) qwerty_.draw(c, s.qwerty, s.theme);
     } else {
         draw_frame(c, s);
     }
+    apply_glide(c, s);
+    apply_selector_glide(c, s);
 
     if (s.project) {
         if (s.helpFull) helpOverlay_.draw(c, help_topic(s), s.theme);
@@ -53,6 +71,110 @@ void TrackerLayout::draw(Canvas& c, const AppState& s) {
     }
     draw_loading_strip(c, s.loading, s.theme);
     draw_live_resample_indicator(c,s);
+}
+
+// The cursor's highlight glides from its last cell to the new one: 110 ms, ease-out, a translucent bar
+// with a bright edge over the content, while the real cursor already shows the destination. Nothing
+// without a running clock (tests, stills), with Motion off, on a page change (the blinds cover that)
+// or under a help panel.
+void TrackerLayout::apply_glide(Canvas& c, const AppState& s) {
+    constexpr uint64_t kGlideMs = 110;
+    const auto mark = c.cursor_mark();
+    const uint64_t now = s.animationMs;
+    const int page = s.scenePicker >= 0 ? 3000 : s.studioOpen ? 1000 + s.studioTab : static_cast<int>(s.currentScreen);
+    if (now == 0 || !s.settings.sceneMotion || mark.w <= 0 || s.helpOpen || s.helpFull) {
+        glideHave_ = false;
+        glideUntil_ = flashUntil_ = 0;
+        flashVersion_ = s.projectVersion;
+        return;
+    }
+    // An edit landed (the project changed) while the cursor stayed: its cell flashes for 150 ms.
+    constexpr uint64_t kFlashMs = 150;
+    if (flashVersion_ >= 0 && s.projectVersion != flashVersion_ && glideHave_ && page == glidePage_) {
+        flashStart_ = now;
+        flashUntil_ = now + kFlashMs;
+    }
+    flashVersion_ = s.projectVersion;
+    if (flashUntil_ > now) {
+        const float p = float(now - flashStart_) / float(kFlashMs);
+        c.fill_rect(mark.x, mark.y, mark.w, mark.h, with_alpha(s.theme.textValue, .38f * (1.f - p) * (1.f - p)));
+    }
+    const auto same = [](const Canvas::Rect& a, const Canvas::Rect& b) {
+        return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
+    };
+    const auto at = [&](float t) {
+        const auto lerp = [t](int a, int b) { return a + static_cast<int>(std::lround((b - a) * t)); };
+        return Canvas::Rect{lerp(glideFrom_.x, glideTarget_.x), lerp(glideFrom_.y, glideTarget_.y),
+                            lerp(glideFrom_.w, glideTarget_.w), lerp(glideFrom_.h, glideTarget_.h)};
+    };
+    const auto eased = [&](uint64_t time) {
+        const float p = std::min(1.f, float(time - glideStart_) / float(kGlideMs));
+        return 1.f - (1.f - p) * (1.f - p) * (1.f - p);
+    };
+    if (!glideHave_ || page != glidePage_) {
+        glideHave_ = true;
+        glidePage_ = page;
+        glideTarget_ = glideFrom_ = mark;
+        glideUntil_ = 0;
+        return;
+    }
+    if (!same(mark, glideTarget_)) {
+        glideFrom_ = glideUntil_ > now ? at(eased(now)) : glideTarget_;   // from wherever it is now
+        glideTarget_ = mark;
+        glideStart_ = now;
+        glideUntil_ = now + kGlideMs;
+    }
+    if (glideUntil_ <= now) return;
+    const float e = eased(now);
+    const auto r = at(e);
+    if (same(r, glideTarget_)) return;
+    const Argb ink = s.theme.rowCursor;
+    const float fade = 1.f - e * .7f;
+    c.fill_rect(r.x, r.y, r.w, r.h, with_alpha(ink, .30f * fade));
+    c.fill_rect(r.x, r.y, r.w, 1, with_alpha(ink, .85f * fade));
+    c.fill_rect(r.x, r.y + r.h - 1, r.w, 1, with_alpha(ink, .85f * fade));
+}
+
+// A selector's highlight (Studio tabs, the screen map) glides 140 ms, ease-out, from the entry it
+// left to the new one, while the page behind it changes. Like the cursor glide: a translucent bar
+// over the content, the real highlight already at the destination; nothing without a clock, with
+// Motion off, or between two different selectors.
+void TrackerLayout::apply_selector_glide(Canvas& c, const AppState& s) {
+    constexpr uint64_t kSelectorMs = 140;
+    const auto mark = c.selector_mark();
+    const uint64_t now = s.animationMs;
+    if (now == 0 || !s.settings.sceneMotion || mark.id < 0 || mark.at.w <= 0 || mark.id != selectorId_) {
+        selectorId_ = now == 0 || !s.settings.sceneMotion ? -1 : mark.id;
+        selectorFrom_ = selectorTarget_ = mark.at;
+        selectorUntil_ = 0;
+        return;
+    }
+    const auto same = [](const Canvas::Rect& a, const Canvas::Rect& b) {
+        return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
+    };
+    const auto at = [&](float t) {
+        const auto lerp = [t](int a, int b) { return a + static_cast<int>(std::lround((b - a) * t)); };
+        return Canvas::Rect{lerp(selectorFrom_.x, selectorTarget_.x), lerp(selectorFrom_.y, selectorTarget_.y),
+                            lerp(selectorFrom_.w, selectorTarget_.w), lerp(selectorFrom_.h, selectorTarget_.h)};
+    };
+    const auto eased = [&](uint64_t time) {
+        const float p = std::min(1.f, float(time - selectorStart_) / float(kSelectorMs));
+        return 1.f - (1.f - p) * (1.f - p) * (1.f - p);
+    };
+    if (!same(mark.at, selectorTarget_)) {
+        selectorFrom_ = selectorUntil_ > now ? at(eased(now)) : selectorTarget_;   // from wherever it is now
+        selectorTarget_ = mark.at;
+        selectorStart_ = now;
+        selectorUntil_ = now + kSelectorMs;
+    }
+    if (selectorUntil_ <= now) return;
+    const float e = eased(now);
+    const auto r = at(e);
+    if (same(r, selectorTarget_)) return;
+    const Argb ink = s.theme.rowCursor;
+    const float fade = 1.f - e * .6f;
+    c.fill_rect(r.x, r.y, r.w, r.h, with_alpha(ink, .32f * fade));
+    c.fill_rect(r.x, r.y + r.h - 2, r.w, 2, with_alpha(ink, .9f * fade));
 }
 
 void TrackerLayout::draw_frame(Canvas& c, const AppState& s) {
@@ -65,20 +187,35 @@ void TrackerLayout::draw_frame(Canvas& c, const AppState& s) {
         return;
     }
 
-    draw_scope_strip(c, s);
-    draw_editor(c, s);
+    const bool settings = s.currentScreen == ScreenType::SETTINGS;
+    const auto scene = settings ? SceneLayout{} : scene_layout(s.theme);
+    constexpr int editorWidth = EDITOR_CLIP_RIGHT - SIDE_SPACER;
+    const int editorX = scene.railLeft ? DESIGN_W - SIDE_SPACER - editorWidth : SIDE_SPACER;
+    const int editorY = scene.scopeBottom ? SCREEN_SPACER : EDITOR_Y;
+    const int scopeY = scene.scopeBottom ? DESIGN_H - SCREEN_SPACER - OscilloscopeModule::HEIGHT
+                                         : SCREEN_SPACER;
 
-    // Fixed separators give every editor the same visual hierarchy without moving its cells.
-    c.fill_rect(SIDE_SPACER, EDITOR_Y + ROW_HEIGHT + 4,
-                EDITOR_CLIP_RIGHT - SIDE_SPACER, 1, with_alpha(s.theme.textParam, .22f));
-    c.fill_rect(SIDE_SPACER, EDITOR_Y + ROW_HEIGHT + 4, 36, 1, s.theme.rowCursor);
-    c.stroke_rect(SIDE_SPACER, SCREEN_SPACER, OscilloscopeModule::WIDTH,
+    draw_scope_strip(c, s, scopeY);
+    draw_editor(c, s, editorX, editorY);
+
+    c.fill_rect(editorX, editorY + ROW_HEIGHT + 4, editorWidth, 1,
+                with_alpha(s.theme.textParam, .22f));
+    c.fill_rect(editorX, editorY + ROW_HEIGHT + 4, 36, 1, s.theme.rowCursor);
+    c.stroke_rect(SIDE_SPACER, scopeY, OscilloscopeModule::WIDTH,
                   OscilloscopeModule::HEIGHT, with_alpha(s.theme.textParam, .18f));
 
-    if (s.currentScreen != ScreenType::SETTINGS) draw_right_bar(c, s);
+    if (s.theme.sceneChrome) {
+        const Argb frame = with_alpha(s.theme.textTitle, .44f);
+        c.scene_edge(SIDE_SPACER, scopeY, OscilloscopeModule::WIDTH, OscilloscopeModule::HEIGHT, frame);
+        c.scene_edge(editorX - 3, editorY - 2, editorWidth + 6, DESIGN_H - EDITOR_Y - 4, frame);
+    }
+    if (!settings) draw_track_rail(c, s, scene.railLeft ? SIDE_SPACER : RIGHT_BAR_X,
+                                  editorY, scene.railLeft);
 
-    draw_status_line(c, s);
-    draw_selection_clipboard(c, s);
+    draw_status_line(c, s, scopeY);
+    draw_selection_clipboard(c, s, scopeY);
+    // The editor is the page; title, scope and track rail stay while it changes (shell/app.cpp).
+    c.mark_stage(editorX - 3, editorY - 2, editorWidth + 6, DESIGN_H - EDITOR_Y - 4);
 
     draw_overlays(c, s);
 }
@@ -96,7 +233,7 @@ void TrackerLayout::draw_full_screen(Canvas& c, const AppState& s) {
 }
 
 // ─── The oscilloscope or Phrase overview ──────────────────────────────────────────────────────────
-void TrackerLayout::draw_scope_strip(Canvas& c, const AppState& s) {
+void TrackerLayout::draw_scope_strip(Canvas& c, const AppState& s, int y) {
     const Theme& t = s.theme;
 
     if (phrase_overview_visible(s)) {
@@ -107,17 +244,23 @@ void TrackerLayout::draw_scope_strip(Canvas& c, const AppState& s) {
             view.selectedFirst = bounds.topLeftRow;
             view.selectedLast = bounds.bottomRightRow;
         }
-        phraseEditor_.draw_overview(c, SIDE_SPACER, SCREEN_SPACER, view);
+        phraseEditor_.draw_overview(c, SIDE_SPACER, y, view);
         return;
     }
 
     OscilloscopeState os;
     os.waveform = s.waveform;
     os.theme    = t;
+    os.playing     = s.isPlaying && s.settings.sceneMotion;   // Appearance > Motion
+    os.animationMs = s.animationMs;
+    os.bpm         = s.project ? songcore::tempo_in_force(*s.project) : 120;
 
     const bool isOctaFull = (t.visualizerType == VisualizerType::OCTA_FULL);
     const bool isOcta     = (t.visualizerType == VisualizerType::OCTA);
-    if (isOcta || isOctaFull) os.trackWaveforms = s.trackWaveforms;
+    if (isOcta || isOctaFull || t.visualizerType == VisualizerType::COPPER) {
+        os.trackWaveforms = s.trackWaveforms;
+        if (t.visualizerType == VisualizerType::COPPER) os.activeTrackMask = s.trackMask & 0xFF;
+    }
 
     // OCTA_FULL shows all eight lanes; OCTA the tracks that have played, plus the preview lane when stopped.
     if (isOctaFull) {
@@ -132,7 +275,7 @@ void TrackerLayout::draw_scope_strip(Canvas& c, const AppState& s) {
         os.spectrum = s.spectrum;
     }
 
-    oscilloscope_.draw(c, SIDE_SPACER, SCREEN_SPACER, os);
+    oscilloscope_.draw(c, SIDE_SPACER, y, os);
 }
 
 // ─── What each screen's module is handed ─────────────────────────────────────────────────────────
@@ -364,10 +507,9 @@ ThemeState theme_state(const AppState& s) {
 
 // ─── The editor, left of the right bar ───────────────────────────────────────────────────────────
 // The EQ and theme editors replace the module but leave the furniture: the scope keeps moving under them.
-void TrackerLayout::draw_editor(Canvas& c, const AppState& s) {
-    Canvas::ClipScope clip(c, 0, 0, EDITOR_CLIP_RIGHT, DESIGN_H);
-    const int         x = SIDE_SPACER;
-    const int         y = EDITOR_Y;
+void TrackerLayout::draw_editor(Canvas& c, const AppState& s, int x, int y) {
+    constexpr int editorWidth = EDITOR_CLIP_RIGHT - SIDE_SPACER;
+    Canvas::ClipScope clip(c, x - SIDE_SPACER, 0, editorWidth + SIDE_SPACER, DESIGN_H);
 
     if (s.eq.isOpen) {
         eq_.draw(c, x, y, eq_state(s));
@@ -389,6 +531,7 @@ void TrackerLayout::draw_editor(Canvas& c, const AppState& s) {
         case ScreenType::INST_POOL:  instrumentPool_.draw(c, x, y, pool_state(s)); break;
         case ScreenType::MODS:       modulation_.draw(c, x, y, mods_state(s)); break;
         case ScreenType::MIXER:      mixer_.draw(c, x, y, mixer_state(s)); break;
+        case ScreenType::PERFORM:    draw_perform(c, x, y, s); break;
         case ScreenType::EFFECTS:    effects_.draw(c, x, y, effects_state(s)); break;
         case ScreenType::PROJECT:    project_.draw(c, x, y, project_state(s)); break;
         case ScreenType::SETTINGS:   settings_.draw(c, x, y, settings_state(s)); break;
@@ -412,6 +555,10 @@ void TrackerLayout::draw_overlays(Canvas& c, const AppState& s) {
 bool TrackerLayout::has_falling_meters(const AppState& s) const {
     if (!s.project) return false;
 
+    // ⚠️ Same early-outs as `draw()`: these screens hide the scope, MIXER and EQ, so nothing of
+    // theirs can fall to rest, and the loop would pin at 60 Hz (SPECTRUM bars frozen by START).
+    if (s.splashProgress >= 0 || s.localSampleRange.isOpen || s.scenePicker >= 0) return false;
+
     // Momentary performance animation continues even for silence-producing gestures such as
     // DROP OUT. Releasing A (or opening help/leaving Punch) immediately restores idle skipping.
     if (s.studioOpen) return s.studioTab == 3 && s.studioAUsed && !s.studioHelp;
@@ -431,24 +578,46 @@ bool TrackerLayout::has_falling_meters(const AppState& s) const {
 }
 
 // ─── The status line, top-left of the scope strip ────────────────────────────────────────────────
-void TrackerLayout::draw_status_line(Canvas& c, const AppState& s) const {
-    if (draw_chord_hint(c, s)) return;
+void TrackerLayout::draw_status_line(Canvas& c, const AppState& s, int scopeY) const {
+    if (draw_chord_hint(c, s, scopeY)) return;
     if (s.statusMessage.empty()) {
+        statusShown_.clear();   // the same message later enters again
         if (s.settings.helpMode != static_cast<int>(HelpMode::OFF))
-            c.draw_label("SELECT HELP", SIDE_SPACER + 10, SCREEN_SPACER + 10, s.theme.textParam, 12);
+            c.draw_label("SELECT HELP", SIDE_SPACER + 10, scopeY + 10, s.theme.textParam, 12);
         return;
     }
 
     const std::string text = Canvas::clip_text(s.statusMessage, STATUS_MAX_CHARS);
-    const Argb        color = s.statusSuccess ? s.theme.vizWave : 0xFFFF0000;
-    c.draw_text(text, SIDE_SPACER + 10, SCREEN_SPACER + 10, color, CHAR_SPACING, FONT_SCALE);
+    const Argb        color = s.statusSuccess ? s.theme.vizWave : error_ink(s.theme);
+    // A new message slides in from the left and fades up over 220 ms, a fine line running out under
+    // it; an error shakes instead. Only with a running clock and Motion on; a still draws it in place.
+    constexpr uint64_t kEnterMs = 220;
+    const uint64_t now = s.animationMs;
+    const std::string key = (s.statusSuccess ? "+" : "-") + s.statusMessage;
+    if (key != statusShown_) {
+        statusShown_ = key;
+        statusStart_ = now;
+        statusUntil_ = now && s.settings.sceneMotion ? now + kEnterMs : 0;
+    }
+    if (statusUntil_ > now && now >= statusStart_) {
+        const float p = float(now - statusStart_) / float(kEnterMs);
+        const float e = 1.f - (1.f - p) * (1.f - p) * (1.f - p);
+        const int width = Canvas::text_width(text, CHAR_SPACING, FONT_SCALE);
+        int dx = s.statusSuccess ? static_cast<int>((1.f - e) * -26.f)
+                                 : static_cast<int>(std::sin(p * 18.f) * 5.f * (1.f - p));
+        c.draw_text(text, SIDE_SPACER + 10 + dx, scopeY + 10, with_alpha(color, .25f + .75f * e), CHAR_SPACING, FONT_SCALE);
+        c.fill_rect(SIDE_SPACER + 10, scopeY + 10 + ROW_HEIGHT - 6, static_cast<int>(width * e), 1,
+                    with_alpha(color, .7f * (1.f - p)));
+        return;
+    }
+    c.draw_text(text, SIDE_SPACER + 10, scopeY + 10, color, CHAR_SPACING, FONT_SCALE);
 }
 
 // A held on a CHD value: the chord's name and its notes. In a PHRASE, made of this row's note in the
 // track's scale as far as this phrase shows it; in a TABLE, on C-4 moved by the row's transpose, as the
 // table plays it — unsnapped, and named as the note it lands on.
 // False when the cursor is elsewhere.
-bool TrackerLayout::draw_chord_hint(Canvas& c, const AppState& s) const {
+bool TrackerLayout::draw_chord_hint(Canvas& c, const AppState& s, int scopeY) const {
     if (!s.aHeld || s.selection.active) return false;
     const songcore::Project& p = *s.project;
     int value = -1, root = 60;
@@ -503,7 +672,7 @@ bool TrackerLayout::draw_chord_hint(Canvas& c, const AppState& s) const {
             notes += songcore::note_name(songcore::note_from_midi(root + semis[i]));
         }
     }
-    const int x = SIDE_SPACER + 10, y = SCREEN_SPACER + 10;
+    const int x = SIDE_SPACER + 10, y = scopeY + 10;
     c.draw_text(Canvas::clip_text(head, STATUS_MAX_CHARS), x, y, s.theme.vizWave, CHAR_SPACING, FONT_SCALE);
     c.draw_text(Canvas::clip_text(notes, STATUS_MAX_CHARS), x, y + 21, s.theme.textTitle, CHAR_SPACING,
                 FONT_SCALE);
@@ -511,13 +680,13 @@ bool TrackerLayout::draw_chord_hint(Canvas& c, const AppState& s) const {
 }
 
 // ─── The selection scope ("SEL:ROW") over the clipboard ("PHR:2x3"), top-right of the strip ──────
-void TrackerLayout::draw_selection_clipboard(Canvas& c, const AppState& s) const {
+void TrackerLayout::draw_selection_clipboard(Canvas& c, const AppState& s, int scopeY) const {
     const std::string sel  = s.selection.info();
     const std::string clip = s.clipboard ? s.clipboard->info() : std::string();
     if (sel.empty() && clip.empty()) return;
 
     const int x = SIDE_SPACER + OscilloscopeModule::WIDTH - 150;
-    const int y = SCREEN_SPACER + 10;
+    const int y = scopeY + 10;
 
     if (!sel.empty())
         c.draw_text(sel, x, y, s.theme.vizWave, CHAR_SPACING, FONT_SCALE);
@@ -525,52 +694,114 @@ void TrackerLayout::draw_selection_clipboard(Canvas& c, const AppState& s) const
         c.draw_text(clip, x, sel.empty() ? y : y + 21, s.theme.textTitle, CHAR_SPACING, FONT_SCALE);
 }
 
-void TrackerLayout::draw_right_bar(Canvas& c, const AppState& s) const {
+void TrackerLayout::draw_track_rail(Canvas& c, const AppState& s, int x, int y, bool left) const {
     const Theme&             t = s.theme;
     const songcore::Project& p = *s.project;
 
-    c.panel_rect(RIGHT_BAR_X, EDITOR_Y, NavigationMapModule::WIDTH,
-                 DESIGN_H - EDITOR_Y - SCREEN_SPACER, darken(t.rowEvery4th, .72f),
-                 with_alpha(t.textParam, .2f), 5);
-    c.fill_rect(RIGHT_BAR_X - 4, EDITOR_Y, 1,
-                DESIGN_H - EDITOR_Y - SCREEN_SPACER, with_alpha(t.textParam, .2f));
-    c.fill_rect(RIGHT_BAR_X + 8, EDITOR_Y + 8, 5, 5,
-                s.isPlaying ? t.vizWave : t.textEmpty);
-    c.draw_text(s.isPlaying ? "PLAYING" : "READY", RIGHT_BAR_X + 22, EDITOR_Y + 5,
-                t.textParam, 1, 2);
+    constexpr int height = DESIGN_H - EDITOR_Y - SCREEN_SPACER;
+    constexpr int width = NavigationMapModule::WIDTH;
+    const bool mixed = t.sceneChrome || light_ground(t.background);
+    const Argb panel = mixed ? mix_rgb(t.rowEvery4th, t.background, 42) : darken(t.rowEvery4th, .72f);
+    c.panel_rect(x, y, width, height, panel, with_alpha(t.textParam, .2f), 5);
+    c.fill_rect(left ? x + width + 3 : x - 4, y, 1, height, with_alpha(t.textParam, .2f));
 
-    // On the editors' column header row.
-    const int bpmRowY  = EDITOR_Y + ROW_HEIGHT + 14;  // 117
-    const int bpmTextY = bpmRowY + TEXT_PADDING;      // 120
+    const int statusY = y + (left ? 128 : 5);
+    c.fill_rect(x + 8, statusY + 3, 5, 5, s.isPlaying ? t.vizWave : t.textEmpty);
+    c.draw_text(s.isPlaying ? "PLAYING" : "READY", x + 22, statusY, t.textParam, 1, 2);
 
-    c.draw_text("T>", RIGHT_BAR_X + 2, bpmTextY, t.textEmpty, CHAR_SPACING, FONT_SCALE);
-    // What plays: a leading clock's tempo, else the song's.
-    c.draw_text(std::to_string(songcore::tempo_in_force(p)), RIGHT_BAR_X + 2 + 34, bpmTextY, t.textValue,
+    const int bpmRowY = y + (left ? 149 : ROW_HEIGHT + 14);
+    const int bpmTextY = bpmRowY + TEXT_PADDING;
+    c.draw_text("T>", x + 2, bpmTextY, t.textEmpty, CHAR_SPACING, FONT_SCALE);
+    c.draw_text(std::to_string(songcore::tempo_in_force(p)), x + 36, bpmTextY, t.textValue,
                 CHAR_SPACING, FONT_SCALE);
 
-    // The note monitor: a blank row, then "1  C-4" per track.
-    const int trackRowsStartY = bpmRowY + ROW_HEIGHT + ROW_HEIGHT;  // 159
+    const int trackRowsStartY = bpmRowY + (left ? 29 : ROW_HEIGHT * 2);
     for (int i = 0; i < 8; ++i) {
-        const int            textY = trackRowsStartY + (i * ROW_HEIGHT) + TEXT_PADDING;
-        const songcore::Note note  = s.trackNotes[i];
-        const bool           empty = (note == songcore::Note::EMPTY());
+        const int textY = trackRowsStartY + (i * ROW_HEIGHT) + TEXT_PADDING;
+        const auto note = s.trackNotes[i];
+        const bool empty = note == songcore::Note::EMPTY();
+        const Argb row = empty ? (mixed ? panel : darken(t.rowEvery4th, .8f)) : t.rowEvery4th;
 
-        c.fill_rect(RIGHT_BAR_X + 4, textY - 2, NavigationMapModule::WIDTH - 8,
-                    ROW_HEIGHT - 2, empty ? darken(t.rowEvery4th, .8f) : t.rowEvery4th);
-        if (!empty) c.fill_rect(RIGHT_BAR_X + 4, textY - 2, 2, ROW_HEIGHT - 2, t.vizWave);
+        c.fill_rect(x + 4, textY - 2, width - 8, ROW_HEIGHT - 2, row);
+        if (!empty) c.fill_rect(x + 4, textY - 2, 2, ROW_HEIGHT - 2, t.vizWave);
+        // A trigger LED: each step that plays a note on this track flashes its row for 220 ms.
+        {
+            constexpr uint64_t kPulseMs = 220;
+            const TrackPlayhead& ph = s.playheads[i];
+            int key = -1;
+            if (s.isPlaying && ph.phraseId >= 0 && ph.phraseId < static_cast<int>(p.phrases.size()) && ph.step >= 0 &&
+                ph.step < static_cast<int>(p.phrases[static_cast<size_t>(ph.phraseId)].steps.size())) {
+                const auto n = p.phrases[static_cast<size_t>(ph.phraseId)].steps[static_cast<size_t>(ph.step)].note;
+                if (n != songcore::Note::EMPTY() && n != songcore::Note::OFF()) key = ph.phraseId * 256 + ph.step;
+            }
+            const uint64_t now = s.animationMs;
+            if (key != railStep_[i]) {
+                railStep_[i] = key;
+                if (key >= 0 && now && s.settings.sceneMotion) {
+                    railStart_[i] = now;
+                    railUntil_ = std::max(railUntil_, now + kPulseMs);
+                }
+            }
+            if (now && railStart_[i] && now < railStart_[i] + kPulseMs) {
+                const float q = 1.f - float(now - railStart_[i]) / float(kPulseMs);
+                c.fill_rect(x + 4, textY - 2, width - 8, ROW_HEIGHT - 2, with_alpha(t.vizWave, .30f * q * q));
+                c.fill_rect(x + 4, textY - 2, 4, ROW_HEIGHT - 2, with_alpha(t.textValue, .8f * q));
+            }
+        }
 
-        c.draw_text(std::to_string(i + 1), RIGHT_BAR_X + 2, textY, t.textParam, CHAR_SPACING,
-                    FONT_SCALE);
-        c.draw_text(note_name(note), RIGHT_BAR_X + 2 + 34, textY, empty ? t.textEmpty : t.textValue,
+        c.draw_text(std::to_string(i + 1), x + (t.sceneChrome ? 8 : 2), textY, t.textParam, CHAR_SPACING, FONT_SCALE);
+        c.draw_text(note_name(note), x + 36, textY, empty ? t.textEmpty : t.textValue,
                     CHAR_SPACING, FONT_SCALE);
     }
 
-    // New material choices opt into an original maker's mark in the unused sidebar gap.
-    // The tracker data, current notes and navigation cells retain their existing coordinates.
-    if (brand::expressive_material(t)) {
-        brand::mark(c, RIGHT_BAR_X + 12, 337, 21, t.rowCursor, with_alpha(t.textTitle, .35f));
-        c.draw_label("BUNKA LAB", RIGHT_BAR_X + 41, 341, t.textParam, 12);
-        brand::registration(c, RIGHT_BAR_X + 12, 362, 91, t, s.blinkPhaseMs, s.isPlaying);
+    const int markY = y + (left ? 356 : 255);
+    if (t.sceneChrome) {
+        brand::mark(c, x + 10, markY, 20, t.rowCursor, with_alpha(t.textTitle, .35f));
+        const int family = static_cast<int>(scene_look(t.sceneChrome - 1).family);
+        const Argb ink = with_alpha(t.rowCursor, .55f);
+        const int markX = x + 42;
+        // While playing every family animates its own pattern (ui/scene_animation.h).
+        const int bpm = songcore::tempo_in_force(p);
+        int playStep = -1;
+        for (const auto& head : s.playheads) if (head.step >= 0) { playStep = head.step; break; }
+        namespace sa = scene_animation;
+        const bool animate = s.isPlaying && s.settings.sceneMotion;
+        if (animate && (family == 0 || family == 4)) { sa::dot_matrix(c, markX, markY, t, s.animationMs, bpm, family == 4); }
+        else if (animate && family == 1) { sa::ascii_meter(c, markX, markY, t, s.animationMs, bpm); }
+        else if (animate && family == 2) { sa::dos_progress(c, markX + 2, markY + 3, t, playStep, 16); }
+        else if (animate && family == 3) { sa::terminal_prompt(c, markX, markY, t, s.animationMs, bpm); }
+        else switch (family % 4) {
+            case 0:
+                for (int i = 0; i < 11; ++i)
+                    for (int row = 0; row < 3; ++row)
+                        if ((i * i + row * 7 + family) % 5 < 3)
+                            c.fill_rect(markX + i * 5, markY + 2 + row * 5, 3, 3, ink);
+                break;
+            case 1:
+                for (int i = 0; i < 6; ++i)
+                    c.fill_rect(markX, markY + i * 3, 38 - ((i * 19) % 28), 1, ink);
+                break;
+            case 2:
+                for (int i = 0; i < 7; ++i)
+                    c.fill_rect(markX + i * 7, markY + 2 + i % 2 * 7, 5, 7, ink);
+                break;
+            case 3:
+                // VECTOR while playing: a turning wireframe cube; otherwise the static zigzag.
+                if (family == scene_animation::VECTOR && s.isPlaying && s.settings.sceneMotion) {
+                    scene_animation::wire_cube(c, markX + 28, markY + 10, 8.f, with_alpha(t.rowCursor, .85f),
+                                               s.animationMs, songcore::tempo_in_force(p));
+                    break;
+                }
+                for (int i = 0; i < 4; ++i) {
+                    c.line(markX + i * 11, markY + 17, markX + i * 11 + 11, markY + 2, ink);
+                    c.line(markX + i * 11 + 11, markY + 2, markX + i * 11 + 21, markY + 17, ink);
+                }
+                break;
+        }
+    } else if (brand::expressive_material(t)) {
+        brand::mark(c, x + 12, markY, 21, t.rowCursor, with_alpha(t.textTitle, .35f));
+        c.draw_label("BUNKA LAB", x + 41, markY + 4, t.textParam, 12);
+        brand::registration(c, x + 12, markY + 25, 91, t, s.blinkPhaseMs, s.isPlaying);
     }
 
     NavigationMapState ns;
@@ -578,7 +809,12 @@ void TrackerLayout::draw_right_bar(Canvas& c, const AppState& s) const {
     ns.sourceColumn       = s.previousColumn;
     ns.instrumentFromPool = s.instrumentFromPool;
     ns.theme              = t;
-    navigationMap_.draw(c, RIGHT_BAR_X, DESIGN_H - NavigationMapModule::HEIGHT - SCREEN_SPACER, ns);
+    if (s.navBannerUntilMs > s.animationMs) {
+        // 900 ms in all: full for 650, then a 250 ms fade.
+        const float remainingMs = float(s.navBannerUntilMs - s.animationMs);
+        ns.bannerLevel = std::min(1.f, remainingMs / 250.f);
+    }
+    navigationMap_.draw(c, x, y + (left ? 10 : height - NavigationMapModule::HEIGHT), ns);
 }
 
 void TrackerLayout::draw_placeholder(Canvas& c, int x, int y, ScreenType screen,

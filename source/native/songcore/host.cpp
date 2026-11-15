@@ -1,7 +1,10 @@
 // SongcoreHost's bodies; what each one is for is said at its declaration in host.h.
 
 #include "host.h"
+#include "common/platform_memory.h"
 #include "studio/synth.h"
+#include "songcore/chords.h"
+#include "songcore/timing.h"
 
 #include <algorithm>
 #include <cmath>
@@ -170,11 +173,13 @@ void SongcoreHost::prepare_render(int startRow, int endRow) {
 
 RenderStats SongcoreHost::render_to_wav(const std::string& path, int64_t songFrames,
                                         int stemsMode, bool applyMasterBus,
-                                        const std::function<void(float)>& progress) {
+                                        const std::function<void(float)>& progress,
+                                        bool keepExisting) {
     if (!engine_) return RenderStats();
     RenderOptions opts;
     opts.stemsMode      = stemsMode;
     opts.applyMasterBus = applyMasterBus;
+    opts.keepExisting   = keepExisting;
     return songcore::render_to_wav(*engine_, project_, songFrames, path, opts, progress);
 }
 
@@ -192,7 +197,8 @@ RenderStats SongcoreHost::render_song_range_to_wav(int startRow, int endRow, con
     if (!engine_) return RenderStats();
     prepare_render(startRow, endRow);
     const int64_t songFrames = schedule_song_range(startRow, endRow, nullptr, repeat);
-    RenderStats stats = render_to_wav(path, songFrames, opts.stemsMode, opts.applyMasterBus, progress);
+    RenderStats stats = render_to_wav(path, songFrames, opts.stemsMode, opts.applyMasterBus, progress,
+                                      opts.keepExisting);
     finish_render();
     return stats;
 }
@@ -419,7 +425,8 @@ bool SongcoreHost::load_sample(int id, const std::string& path) {
     return true;
 }
 
-bool SongcoreHost::update_studio_synth(int id,const std::string& uri,const studio::SynthParams& params) {
+bool SongcoreHost::update_studio_synth(int id,const std::string& uri,const studio::SynthParams& params,
+                                      const std::optional<std::array<uint8_t,128>>* fmVoice) {
     if(!engine_||id<0||id>=static_cast<int>(project_.instruments.size()))return false;
     Instrument& ins=project_.instruments[id];
     const int code=studio::uri_code(uri.c_str());
@@ -429,10 +436,17 @@ bool SongcoreHost::update_studio_synth(int id,const std::string& uri,const studi
     // Allocate the metadata string before publishing. An allocation failure cannot leave the
     // callback playing a different preset from the one held by the document.
     std::string stored(uri);
-    if(!engine_->setLiveStudioCode(ins.sampleId,code))return false;
-    engine_->setStudioSynthParams(ins.sampleId,params);
+    // The voice first: it rides on the slot's row, which keeps the old model until the code below
+    // changes it, and a non-FM model never reads it.
+    const auto previousVoice=ins.fmVoice;
+    if(fmVoice)engine_->setStudioFmVoice(ins.sampleId,*fmVoice?(*fmVoice)->data():nullptr);
+    if(!engine_->setLiveStudioSynth(ins.sampleId,code,params)){
+        if(fmVoice)engine_->setStudioFmVoice(ins.sampleId,previousVoice?previousVoice->data():nullptr);
+        return false;
+    }
     *ins.sampleFilePath=std::move(stored);
     ins.studioSynthParams=params;
+    if(fmVoice)ins.fmVoice=*fmVoice;
     ins.granularEnabled=false;
     push_sample_granular(*engine_,ins,routing_,0);
     return true;
@@ -447,7 +461,8 @@ bool SongcoreHost::preview_studio_synth(const Instrument& draft,const std::strin
         if(engine_->studioCodes[slot].load(std::memory_order_acquire)<0&&
            engine_->loadSampleFromWavFile(slot,uri.c_str())<=0)return false;
     }
-    if(!engine_->setLiveStudioCode(slot,code))return false;
+    engine_->setStudioFmVoice(slot,draft.fmVoice?draft.fmVoice->data():nullptr);
+    if(!engine_->setLiveStudioSynth(slot,code,draft.studioSynthParams))return false;
     Instrument preview=draft;
     preview.sampleId=slot;preview.instrumentType=InstrumentType::SAMPLER;
     preview.sampleFilePath=uri;preview.soundfontPath.reset();
@@ -455,7 +470,6 @@ bool SongcoreHost::preview_studio_synth(const Instrument& draft,const std::strin
     // scratch slot's playback/filter/modulation/send rows are changed here.
     push_instrument_playback_params(*engine_,preview);
     push_instrument_mod_eq_sends(*engine_,preview,tempo_in_force(project_),engine_->getSampleRate());
-    engine_->setStudioSynthParams(slot,preview.studioSynthParams);
     engine_->setStudioVoiceDefaults(slot,preview.volume,preview.pan,preview.detune);
     if(!restart)return true;
     engine_->requestResume();
@@ -524,6 +538,10 @@ bool SongcoreHost::load_instrument_preset(int id, const std::string& path) {
         for(const auto& value:params)if(!value.is_number_integer()||value.get<int64_t>()< -1||value.get<int64_t>()>255)return false;
     }
     if(values.contains("granular")&&!detail::valid_granular_object(values["granular"]))return false;
+    if(values.contains("fmVoice")){
+        studio::fm_sysex::PackedVoice voice{};
+        if(!values.at("fmVoice").is_string()||!studio::fm_sysex::from_hex(values.at("fmVoice").get<std::string>(),voice))return false;
+    }
     InstrumentPreset ip = parse_instrument_preset(j);
     if(ip.instrument.granularEnabled){
         if(!ip.instrument.sampleFilePath)return false;
@@ -607,11 +625,68 @@ bool SongcoreHost::instrument_media_ready(int id) const {
 }
 
 void SongcoreHost::apply_rate_and_bits(int id, int factor, int bits) {
+    // A buffer at RATE 1 is its own basis: any edit since the last step (crop, fade, paste...) made it
+    // the original in the engine, so the ratio it plays at now is the one to step from.
+    if (!engine_ || !RateCache::in_range(id)) return;
+    const float ratioBefore = routing_.sampleRateRatio[id], origBefore = rateCache_.orig[id];
+    if (engine_->getSampleRateFactor(id) == 1) rateCache_.clear(id);
     songcore::apply_rate_and_bits(engine_, routing_, rateCache_, id, factor, bits);
+    // A step the engine refused (too short a buffer for the factor) leaves pitch and basis as they were.
+    if (engine_->getSampleRateFactor(id) != std::max(factor, 1)) {
+        routing_.sampleRateRatio[id] = ratioBefore;
+        rateCache_.orig[id] = origBefore;
+    }
 }
 
-void SongcoreHost::pitch_shift_sample(int id, float semitones) {
-    songcore::pitch_shift_sample(engine_, rateCache_, id, semitones);
+bool SongcoreHost::backup_sample(int id, int64_t extraBytes) {
+    if (!engine_ || !engine_->backupSample(id, extraBytes)) return false;
+    if (RateCache::in_range(id)) {
+        heldRatio_[id] = backupRatio_[id];
+        heldCacheOrig_[id] = backupCacheOrig_[id];
+        heldFileRate_[id] = backupFileRate_[id];
+        backupRatio_[id] = routing_.sampleRateRatio[id];
+        backupCacheOrig_[id] = rateCache_.orig[id];
+        backupFileRate_[id] = engine_->getSampleFileRate(id);
+    }
+    return true;
+}
+
+bool SongcoreHost::edit_fits(int64_t bytes) {
+    const int64_t budget = pt::load_budget_bytes();
+    return budget <= 0 || bytes <= budget;
+}
+
+void SongcoreHost::revert_backup(int id) {
+    if (!engine_) return;
+    engine_->revertBackup(id);
+    if (RateCache::in_range(id)) {   // and the previous backup's ratio snapshot with it
+        backupRatio_[id] = heldRatio_[id];
+        backupCacheOrig_[id] = heldCacheOrig_[id];
+        backupFileRate_[id] = heldFileRate_[id];
+    }
+}
+
+bool SongcoreHost::undo_sample(int id) {
+    if (!engine_) return false;
+    if (!engine_->undoSample(id)) return false;   // level Undo or nothing: ratio stays
+    if (!RateCache::in_range(id)) return true;
+    // The routing ratio is the pitch and the rate a save writes. It was set for the buffer before the
+    // Undo; the restored one is the backup's, so is its ratio and RATE basis — exactly as they were.
+    const int fileRate = engine_->getSampleFileRate(id);
+    if (backupRatio_[id] > 0.f && backupFileRate_[id] == fileRate) {
+        routing_.sampleRateRatio[id] = backupRatio_[id];
+        rateCache_.orig[id] = backupCacheOrig_[id];
+    } else if (fileRate > 0) {   // a backup taken past the host (tests): derive from the buffer's rate
+        routing_.sampleRateRatio[id] = static_cast<float>(engine_->getSampleRate()) / static_cast<float>(fileRate);
+        const int factor = engine_->getSampleRateFactor(id);
+        if (factor > 1) rateCache_.orig[id] = routing_.sampleRateRatio[id] / static_cast<float>(factor);
+        else rateCache_.clear(id);
+    }
+    return true;
+}
+
+bool SongcoreHost::pitch_shift_sample(int id, float semitones) {
+    return songcore::pitch_shift_sample(engine_, rateCache_, id, semitones);
 }
 
 void SongcoreHost::time_stretch_sample(int id, float ratio, float grainMs) {
@@ -619,15 +694,19 @@ void SongcoreHost::time_stretch_sample(int id, float ratio, float grainMs) {
                                   static_cast<float>(sample_rate_of(id)));
 }
 
-void SongcoreHost::sync_sample(int id, const SampleSync& sync) {
-    if (!engine_) return;
+bool SongcoreHost::sync_sample(int id, const SampleSync& sync) {
+    if (!engine_) return false;
+    if (sync.kind == SampleSync::Kind::NONE) return true;
+    const int frames = sync.kind == SampleSync::Kind::STRETCH ? sync.frames : 0;
+    if (!engine_->syncSample(id, sync.semitones, frames, sync.grainMs, static_cast<float>(sample_rate_of(id))))
+        return false;
     rateCache_.clear(id);   // the rewritten buffer is the new original, as for the two resamplers
-    run_sample_sync(*engine_, id, sync, static_cast<float>(sample_rate_of(id)));
+    return true;
 }
 
-void SongcoreHost::preview_sample_editor(int id, int sourceMode, int64_t selStart, int64_t selEnd,
+bool SongcoreHost::preview_sample_editor(int id, int sourceMode, int64_t selStart, int64_t selEnd,
                                          int totalFrames, int pitchSemitones, const SampleSync& sync) {
-    if (!engine_ || id < 0 || id >= POOL_INSTRUMENTS) return;
+    if (!engine_ || id < 0 || id >= POOL_INSTRUMENTS) return false;
     engine_->local_wav_source().close();
     Instrument& ins = project_.instruments[static_cast<size_t>(id)];
 
@@ -638,6 +717,11 @@ void SongcoreHost::preview_sample_editor(int id, int sourceMode, int64_t selStar
 
     const int slot = prepare_sync_preview(*engine_, id, sourceMode, sync,
                                           static_cast<float>(sample_rate_of(id)));
+    if (slot < 0) {   // refused: no audition — the one ringing stops and one still queued never starts
+        ins.root = savedRoot;
+        stop_preview();
+        return false;
+    }
 
     // A voice's window is keyed on the SLOT it plays from, so the params go to the scratch slot
     // when there is one.
@@ -656,6 +740,7 @@ void SongcoreHost::preview_sample_editor(int id, int sourceMode, int64_t selStar
     if (slot != id) ins.sampleId = savedSampleId;
 
     ins.root = savedRoot;   // read at SCHEDULE time, so it can go back at once
+    return true;
 }
 
 void SongcoreHost::finish_sample_preview(int id) {
@@ -732,7 +817,7 @@ int SongcoreHost::chop_sample(int id, const std::string& dir, const std::string&
 }
 
 void SongcoreHost::preview_note(int instrumentId, const Note& note, int64_t durationFrames,
-                                bool rootAudition, int tableIdOverride) {
+                                bool rootAudition, int tableIdOverride, int chord, int strumTicks) {
     if (!engine_) return;
     if (!note_is_pitch(note)) return;   // A on an empty cell or an OFF must not thump the lane
     if (instrumentId < 0 || instrumentId >= static_cast<int>(project_.instruments.size())) return;
@@ -761,6 +846,17 @@ void SongcoreHost::preview_note(int instrumentId, const Note& note, int64_t dura
     n.start = -1; n.slice = -1; n.tableId = tableIdOverride; n.tableRow = -1;
     n.transpose = 0; n.pit = 0; n.arp = 0;
     n.pslOffBits = n.pslDurBits = n.pbnRateBits = n.vibSpdBits = n.vibDepBits = f32_bits(0.0f);
+
+    if (chord >= 0) {
+        int intervals[CHORD_MAX_NOTES];
+        n.chordCount = chord_notes(chord, n.note, nullptr, 0, intervals);
+        for (int i = 0; i < n.chordCount; ++i) {
+            n.chord[i] = intervals[i];
+            n.strumOrder[i] = i;
+        }
+        n.strumStep = std::clamp(strumTicks, 0, 15) *
+                      frames_per_tic(frames_per_step(std::clamp(tempo_in_force(project_),1,999), sampleRate_));
+    }
 
     // ⚠️ Whatever the routing: on a lane last used by an EXTERNAL instrument this ends the cable's note.
     external_.consume(ev);

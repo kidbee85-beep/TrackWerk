@@ -9,6 +9,7 @@
 // fixed-size arrays and fields with no default; nulls omitted; enums by NAME. Legacy values
 // remain integers; optional granular settings use round-trip-safe physical-unit float numbers.
 
+#include "../studio/fm_sysex.h"
 #include "midi_map.h"
 #include "model.h"
 #include "../vendor/nlohmann/json.hpp"
@@ -281,6 +282,11 @@ inline Instrument parse_instrument(const json& j, int index) {
                 const auto v=(*it)[k].get<int64_t>();
                 if(v>=-1&&v<=255)i.studioSynthParams[k]=static_cast<int>(v);
             }
+    // A voice that is not exactly 256 hex digits of 7-bit bytes is dropped, not half-read.
+    if (const auto it=j.find("fmVoice");it!=j.end()&&it->is_string()) {
+        studio::fm_sysex::PackedVoice v{};
+        if(studio::fm_sysex::from_hex(it->get<std::string>(),v))i.fmVoice=v;
+    }
     i.tableId        = get_int(j, "tableId", i.tableId);
     i.tableTicRate   = get_int(j, "tableTicRate", i.tableTicRate);
     { auto it = j.find("modSlots");
@@ -403,6 +409,25 @@ inline Project parse_project(const json& j) {
     p.delayMute       = get_bool(j, "delayMute", p.delayMute);
     p.delaySolo       = get_bool(j, "delaySolo", p.delaySolo);
     p.masterEqSlot    = get_int(j, "masterEqSlot", p.masterEqSlot);
+    // PERFORM: each slot read on its own; a malformed one keeps its default, the rest still load.
+    if (const auto it = j.find("perform"); it != j.end() && it->is_array()) {
+        for (size_t s = 0; s < p.perform.size() && s < it->size(); ++s) {
+            const json& o = (*it)[s];
+            if (!o.is_object() || !o.contains("type") || !o["type"].is_string()) continue;
+            const std::string type = o["type"].get<std::string>();
+            PerformSlot slot;
+            if (type == "mute") slot.type = PerformSlot::Type::MUTE;
+            else if (type == "filter") slot.type = PerformSlot::Type::FILTER;
+            else if (type == "macro") slot.type = PerformSlot::Type::MACRO;
+            else if (type == "empty") slot.type = PerformSlot::Type::EMPTY;
+            else continue;
+            slot.tracks = std::clamp(get_int(o, "tracks", 0), 0, 0xFF);
+            slot.instrument = get_int(o, "instrument", -1);
+            if (slot.instrument < -1 || slot.instrument >= POOL_INSTRUMENTS) slot.instrument = -1;
+            slot.macro = std::clamp(get_int(o, "macro", 0), 0, 2);
+            p.perform[s] = slot;
+        }
+    }
     p.phrases     = parse_pool<Phrase>(j, "phrases", parse_phrase);
     p.chains      = parse_pool<Chain>(j, "chains", parse_chain);
     p.tracks      = parse_pool<Track>(j, "tracks", parse_track);
@@ -741,6 +766,7 @@ inline void emit_instrument(JsonWriter& w, const Instrument& i) {
         for(int v:i.studioSynthParams){w.element();w.value_int(std::clamp(v,-1,255));}
         w.end_array();
     }
+    if (i.fmVoice) w.field_string("fmVoice", studio::fm_sysex::to_hex(*i.fmVoice));
     if(granular_has_settings(i)){w.key("granular");w.out+=granular_object(i).dump();}
     if (i.tableId != -1)    w.field_int("tableId", i.tableId);
     if (i.tableTicRate != 0x06) w.field_int("tableTicRate", i.tableTicRate);
@@ -841,6 +867,20 @@ inline std::string serialize_project(const Project& p) {
     if (p.delayMute)              w.field_bool("delayMute", p.delayMute);
     if (p.delaySolo)              w.field_bool("delaySolo", p.delaySolo);
     if (p.masterEqSlot != -1)     w.field_int("masterEqSlot", p.masterEqSlot);
+    if (p.perform != default_perform_slots()) {
+        w.key("perform");
+        w.begin_array();
+        for (const PerformSlot& s : p.perform) {
+            w.element();
+            w.begin_object();
+            using T = PerformSlot::Type;
+            w.field_string("type", s.type == T::MUTE ? "mute" : s.type == T::FILTER ? "filter" : s.type == T::MACRO ? "macro" : "empty");
+            if (s.type == T::MUTE) w.field_int("tracks", s.tracks);
+            if (s.type == T::MACRO) { w.field_int("instrument", s.instrument); w.field_int("macro", s.macro); }
+            w.end_object();
+        }
+        w.end_array();
+    }
     emit_pool(w, "phrases",     p.phrases,     emit_phrase);
     emit_pool(w, "chains",      p.chains,      emit_chain);
     emit_pool(w, "tracks",      p.tracks,      emit_track);

@@ -11,11 +11,19 @@
 
 namespace pt::ui {
 namespace {
-constexpr const char* topics[]={"Synth","FX Rack","Master","Punch / Resample","Input Recorder","Drumlab","Settings / Appearance","Sources"};
+constexpr const char* topics[]={"Synth","FX Rack","Master","Punch / Resample","Input Recorder","Drumlab","Settings / Appearance","Sources","Harmony"};
 constexpr const char* pages[]={"Workflow","Controls","Current context"};
 std::string short_text(const std::string& s,int chars=74){return Canvas::clip_text(s,chars);}
-std::string control_hint(std::string name) {
+std::string control_hint(std::string name,int model=-1) {
     for(char& c:name)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    // FM SYSEX: its own meanings of Brightness, Envelope, Velocity, Bank and Voice.
+    if(model==studio::kFmSysexModel){
+        if(name=="brightness")return "Brightness turns the modulators up or down. As stored at the centre.";
+        if(name=="envelope")return "Envelope shortens or stretches the voice's envelopes. As stored at the centre.";
+        if(name=="velocity")return "Velocity is the key strength the voice responds to, as on the original keyboard.";
+        if(name=="bank")return "Bank: three built-in banks, then the .syx files of the SysEx folder (DX7 format).";
+        if(name=="voice")return "Voice picks one of the bank's 32 voices. The song keeps a copy of it.";
+    }
     if(name=="attack")return "Attack sets the fade-in time after the note starts.";
     if(name=="decay")return "Decay sets the transition from the peak to sustain.";
     if(name=="sustain")return "Sustain is the level while the note remains held.";
@@ -33,6 +41,56 @@ std::string control_hint(std::string name) {
     if(name=="eccentricity")return "Eccentricity bunches the bell strikes in one part of the orbit.";
     if(name=="rain density")return "Rain density adds independent streams of drops.";
     if(name=="pitch spread")return "Pitch spread sets how far impacts can travel up the selected scale.";
+    // SP ADDITIVE (Spectral). Brightness is also a Rings/Elements macro; the wording fits both.
+    if(name=="brightness")return "Brightness lifts the upper partials. Loudness stays about the same.";
+    if(name=="spectral comb")return "Spectral comb cuts slowly gliding notches into the partials.";
+    if(name=="stretch")return "Stretch spreads the partials apart: organ at zero, bell and gong at the top.";
+    if(name=="partials")return "Partials sets how many harmonics sound. Fewer are softer and lighter on the CPU.";
+    if(name=="even harmonics")return "Even harmonics at zero leaves only the odd ones: a hollow, clarinet-like tone.";
+    if(name=="formant")return "Formant adds a resonant peak and sweeps it from low to high. Off at zero.";
+    if(name=="shimmer")return "Shimmer lets each partial's level drift slowly, so held notes stay alive.";
+    // SP FREEZE.
+    if(name=="position")return "Position picks the moment of the source sample that is frozen.";
+    if(name=="smear")return "Smear keeps blending in the sound around the position, so the freeze breathes.";
+    if(name=="tilt")return "Tilt darkens below the centre and brightens above it.";
+    if(name=="source slot")return "Source slot: the sampler instrument whose sample is frozen. Empty: a sung vowel.";
+    if(name=="jitter")return "Jitter loosens the phases: steady partials at zero, airy texture when raised.";
+    // SP MORPH.
+    if(name=="morph")return "Morph glides from shape A to shape B: formants, brightness and spread move together.";
+    if(name=="motion")return "Motion sweeps the morph back and forth on its own. Still at zero.";
+    if(name=="warp")return "Warp moves every formant down or up by up to an octave. As drawn at the centre.";
+    if(name=="shape a")return "Shape A is where the morph starts. Factory: the sound's own pair.";
+    if(name=="shape b")return "Shape B is where the morph ends. Factory: the sound's own pair.";
+    if(name=="motion rate")return "Motion rate sets how fast Motion sweeps, from slow drift to a quick wobble.";
+    // FORMANT CHOIR.
+    if(name=="vowel")return "Vowel glides through A, E, I, O and U, and sings the sounds between them too.";
+    if(name=="ensemble")return "Ensemble brings in more singers and spreads their tuning. One solo singer at zero.";
+    if(name=="breath")return "Breath adds air: a softer voice and breath noise sung through the same vowel.";
+    if(name=="voice")return "Voice picks bass, tenor, alto or soprano formants. Factory: the sound's own voice.";
+    if(name=="singers")return "Singers sets how many voices Ensemble can bring in. Fewer are lighter on the CPU.";
+    if(name=="vibrato")return "Vibrato sets how far the pitch sways around the note. Zero holds it steady.";
+    if(name=="vibrato rate")return "Vibrato rate sets the speed of the sway. Each singer drifts a little around it.";
+    // SID CHIP.
+    if(name=="colour")return "Colour: pulse width on pulse waves, the partner pitch on Sync and Ring, bit grit otherwise.";
+    if(name=="arp")return "Arp plays a chord as a fast tracker arpeggio: octave, fifth, major, minor and more.";
+    if(name=="wave")return "Wave picks the chip waveform. The combined waves are thinner and buzzier.";
+    if(name=="chip")return "Chip: the 6581 is darker and saturates, the 8580 is clean with a wider filter.";
+    if(name=="filter")return "Filter picks low pass, band pass or high pass, or leaves the voice unfiltered.";
+    if(name=="pwm")return "PWM sweeps the pulse width slowly for a moving, chorused pulse sound.";
+    if(name=="arp speed")return "Arp speed: chip frames (50 per second) per arpeggio note. One is the classic blur.";
+    // DCO POLY.
+    if(name=="chorus")return "Chorus picks Off, I, II or I+II: the classic bucket-brigade shimmer, slow to quick.";
+    if(name=="saw")return "Saw sets the sawtooth level: the bright, full base of most poly sounds.";
+    if(name=="pulse")return "Pulse sets the pulse wave level. Mix it with the saw for a thicker tone.";
+    if(name=="pulse width")return "Pulse width narrows the pulse from square to thin and nasal.";
+    if(name=="sub")return "Sub adds a square one octave below for weight in the bass.";
+    if(name=="noise")return "Noise adds white noise: breath on pads, a hiss for effects.";
+    if(name=="hpf")return "HPF: 0 lifts the bass, 1 is flat, 2 and 3 thin out the low end.";
+    if(name=="env amount")return "Env amount sets how far the envelope opens the filter at each note.";
+    if(name=="env decay")return "Env decay sets how fast the filter closes after the attack.";
+    if(name=="env sustain")return "Env sustain is where the filter envelope settles while the note is held.";
+    if(name=="lfo rate")return "LFO rate sets the speed of vibrato and pulse-width modulation.";
+    if(name=="key follow")return "Key follow lets higher notes open the filter further.";
     return "This engine defines the parameter's response. Hold L and compare small changes.";
 }
 uint16_t bit(Button b){return uint16_t(1u<<static_cast<unsigned>(b));}
@@ -40,6 +98,7 @@ void release_momentary_inputs(AppState& s,songcore::SongcoreHost& host,AudioEngi
     if(!s.resampleView.ownsSynthRoot&&!s.sampleGranular.recording.ownsRoot)
         studio_synth_stop_audition(s,host);
     if(s.studioTab==5)drumlab_release_grid_audition(s.drumLab,host);
+    if(s.studioTab==8)harmony_stop(s.harmony,host);
     engine.studioRack.punch.store(0);
     s.studioAUsed=false;s.studioConfirm=false;s.studioPunchBankHeld=0;
     s.studioSynthPicker.chooseArmed=false;
@@ -104,8 +163,12 @@ StudioHelpContent studio_help_quick_content(const AppState& s) {
         return {"Drumlab", {"Up / Down  Choose a setting or lane", "A + arrows  Edit a value",
             "A on Slot  Open Step Edit", "A on Preview  Start or stop the loop",
             "A on Apply twice  Add the pattern to the song"}};
-    case 6: return {"Appearance", {"Up / Down  Choose palette, material or typeface",
+    case 6: return {"Appearance", {"A on Design collection  Open Scene Presets",
         "A + arrows  Change the selected value", "B  Return to Settings"}};
+    case 8: return {"Harmony", {"Choose a style, preset and loaded instrument.",
+        "Hold A on a slot to hear it. L locks the slot.",
+        "Generate varies unlocked slots. Loop previews the sequence.",
+        "Write fills an empty Phrase. On PHRASE, Select + Up undoes it."}};
     case 7: {
         const auto& source=s.sourceSampler;
         if(source.collectionOpen)
@@ -157,36 +220,39 @@ StudioHelpContent studio_help_content(const AppState& s,int topic,int page) {
     }
     if(page==0){
         switch(topic){
-        case 0:v={"Choose a target slot. Press A on SYNTH MODEL to browse families.","Press A on PRESET to choose a sound for the current model.","In either browser, hold L and move to audition before choosing.","APPLY puts a draft into the slot. LIVE edits reach the linked slot.","On the bottom row, Right selects A/B. Press A to store sound A.","Edit the working sound B. Press A on A/B to swap while listening.","L + R + Start captures a WAV. With transport stopped, it holds the root."};break;
+        case 0:v={"Choose a target slot. Press A on SYNTH MODEL to browse families.","Choose a model to open its presets, or use PRESET for the current model.","In either browser, hold L and move to audition before choosing.","APPLY puts a draft into the slot. LIVE edits reach the linked slot.","On the bottom row, Right selects A/B. Press A to store sound A.","Edit the working sound B. Press A on A/B to swap while listening.","L + R + Start captures a WAV. With transport stopped, it holds the root."};break;
         case 1:v={"FX Rack adds character to the mix. Choose a factory preset, then press A.","Adjust MODULE, MIX, COLOR, TEXTURE and FEEDBACK while listening.","The selected module determines how Color and Texture shape the effect.","ACTIVE switches the Studio processing path. Compare at a similar level.","USER SLOT plus SAVE CUSTOM / LOAD CUSTOM keeps your own FX settings.","The preset library also offers categorized effect starting points."};break;
         case 2:v={"Balance instruments and tracks before raising the master output.","Choose a master preset with A, then refine dynamics and tone.","Threshold and ratio control compression; attack and release shape its motion.","Output gain raises the result; peak ceiling limits final peaks.","Stereo width and high pass change the image and low-frequency content.","Save a custom slot and the project. Listen to an exported mix too."};break;
         case 3:v={"Eight banks contain 64 momentary effects; the visible grid has 4 x 2 pads.","Hold A to perform a pad. Release A to restore the mix.","L + R + Start starts/stops LIVE RESAMPLE from the main tracker or Studio.","This records internal output, including live synth edits and Punch.","In Punch: B + Down chooses Free or 1 / 2 / 4 / 8 bars (60-second cap).","Stop playback, then B + Up imports the take into a free slot for slicing."};break;
         case 4:v={"Instrument RECORD and Sample Editor RECORD both open this recorder.","Internal master resamples the mix after FX/Master, including Punch.","Start plays the song. A on START RESAMPLE records; A again stops and saves.","Choose Free / 1 / 2 / 4 / 8 bars and an empty target slot.","Stop playback; A on USE TAKE opens the completed take in Edit & Slice.","REFRESH MIC / USB discovers external sources. Internal mix needs no input."};break;
         case 5:v={"Assign loaded samples or synths to the Drumlab lanes.","Choose EUCLIDEAN under Style for a separate cycle on each lane.","PERIOD sets the cycle. HITS are spread evenly. ROTATE moves them later.","GENERATE refreshes unlocked lanes. A on SLOT opens Step Edit.","In Step Edit, A toggles a hit and A + Down previews the loop.","APPLY twice appends it to the song in free chains and phrases.","Lane locks protect triggers, velocities and timing."};break;
-        case 6:v={"Appearance belongs to app Settings, separate from musical Studio tabs.","Choose palette, texture/material and Typeface independently.","A + arrows changes the selected appearance value immediately.","Typeface reaches the grid, Studio, browser and Sample Editor.","B returns to Settings. Theme Colors opens detailed color editing.","Existing themes and fonts are retained through the normal settings save."};break;
+        case 8:v={"Pick a style and preset. Tonic transposes the complete set.","Move to Chord Slot, then Left / Right to choose a chord.","Hold A to hear it, L to lock it, or edit Root, Shape and Voicing.","Generate changes unlocked slots. Loop plays the full phrase.","From an empty Phrase, Write twice inserts normal CHD / ARC steps.","Samples, SoundFonts and external MIDI support this workflow."};break;
+        case 6:v={"Appearance belongs to app Settings, separate from musical Studio tabs.","Press A on Design collection to browse 40 complete scene presets.","A + arrows changes the selected appearance value immediately.","Typeface reaches the grid, Studio, browser and Sample Editor.","B returns to Settings. Theme Colors opens detailed color editing.","Motion OFF stops the Scene animations; the playing row stays marked."};break;
         case 7:v={"A on Browse sources opens the browser. L/R changes provider.","Archive shelves: Left/Right group, Up/Down shelf, A opens.","Radio genres: Up/Down shows stations, A opens the list.","Files: mark IN/OUT or set a Quick clip from the playhead.",
             s.sourceSampler.liveHistoryAvailable?"Rewind with Left/Right. A returns live. Save last makes a WAV.":"Record live: Left/Right picks 10 to 60 s. A starts a take.",
-            "Render + Edit opens the saved excerpt in the Sample Editor.","Source and License opens the original page and its reuse terms."};break;
+            "Render + Edit opens the saved excerpt in the Sample Editor.","Source and License opens the original page and its reuse terms.",
+            "License filter hides NC, ND and unknown terms. EXPORT writes the credits."};break;
         }
     }else if(page==1){
         if(topic==0)v={"D-pad moves between target, model, preset, controls and Apply.","A + arrows edits. A + Down on Model opens Sample Granular.","R + Left / Right changes page. Hold L to audition the root.","On A/B, A + Up stores the current sound as a new reference A.","L + R + Start starts or stops resampling. B + Down sets length.","Stop playback, then B + Up loads the take into a free slot.","B + Select opens Studio sections. B + Left / Right steps between tabs.","Start controls playback. B returns to the tracker."};
         if(topic==1||topic==2)v={"Up / Down: select a row. A + arrows: edit the selected value.","A on FACTORY PRESET: apply the chosen preset.","A on SAVE CUSTOM / LOAD CUSTOM: use the selected user slot.","A on the preset Library row: browse categorized preset files.","B + Left / Right: Studio tabs. Start: tracker playback.","B: leave Studio. Select: open this paged guide."};
-        if(topic==3)v={"D-pad: choose a pad. Hold A: perform. Release A: restore.","L / R: category. B + Left / Right: Studio tabs, one step.","L + Select: Punch shortcut. R + Select: leave Studio.","L + R + Start: internal resample. Start alone: playback.","B + Down: length. B + Up: use take with playback stopped.","Help, Stop, category change and leaving release Punch."};
+        if(topic==3)v={"D-pad: choose a pad. Hold A: perform. Release A: restore.","L / R: category. B + Left / Right: Studio tabs, one step.","L + Select: Punch. R + Select: leave (on Granular: audition; B leaves).","L + R + Start: internal resample. Start alone: playback.","B + Down: length. B + Up: use take with playback stopped.","Help, Stop, category change and leaving release Punch."};
         if(topic==4)v={"Up / Down: select a row. Left / Right: change source, length or format.","A on START / STOP: begin capture or keep the completed take.","A on REFRESH MIC / USB: discover external inputs; internal mix stays available.","If external input is stuck: Left on Source returns to internal master.","A on USE TAKE: load the selected empty slot, then open Edit & Slice.","Internal mix: B + Down changes length; B + Up uses the take.","L + R + Start records/stops internal mix. Start alone plays the song.","B returns to the current edit. Unsaved sample edits and old takes are kept."};
         if(topic==5)v={"Up / Down chooses a setting or lane. Left / Right chooses a lane field.","A + arrows edits. On LOCK, A toggles the lane lock.","A on SLOT opens Step Edit. D-pad moves. L / R changes bars.","A toggles the selected hit. A + Down starts or stops loop preview.","In Step Edit, B + Up undoes. B + Down redoes the last step edit.","B leaves Step Edit. A on APPLY twice adds the result to your song.","B + Select opens Studio sections. Start controls tracker playback."};
-        if(topic==6)v={"Settings > Appearance: palette, material and Typeface.","Up / Down: choose a row. A + arrows: change its value.","Select: open this paged guide. B: return to Settings.","This Settings dialog does not switch musical Studio tabs.","Theme Colors remains available for detailed color editing.","The app settings save keeps Typeface independently of the palette."};
+        if(topic==6)v={"Settings > Appearance: palette, material and Typeface.","A on Design collection: open Scene Presets. A + arrows: change a value.","Select: open this paged guide. B: return to Settings.","This Settings dialog does not switch musical Studio tabs.","Theme Colors remains available for detailed color editing.","Motion: A + Left / Right switches the Scene animations on or off."};
         if(topic==7)v={"A opens Browse sources. Inside, L/R changes provider.","A opens a result. B steps back.",
-            s.sourceSampler.liveHistoryAvailable?"R + Left/Right seeks 5 s. On Rewind, A returns to live.":"Files: R + arrows seeks 5 s; A sets IN/OUT at playhead.",
+            s.sourceSampler.liveHistoryAvailable?"R + Left/Right seeks 5 s. On Rewind, A returns to live.":"Files: R + Left/Right seeks 5 s; A sets IN/OUT at playhead.",
             "On IN/OUT: A + arrows trims 10 ms fine or 1 s coarse.",
             s.sourceSampler.liveHistoryAvailable?"Save last opens audio up to the playhead in the Sample Editor.":"Quick clip: Left / Right picks length. A marks from playhead.",
             "Record live: Left/Right chooses length. A starts or finishes.","Render + Edit opens the saved excerpt when it is ready.","B + Left / Right: Studio tabs."};
+        if(topic==8)v={"Up / Down: select a row. Left / Right: change its value.","Tonic moves every chord. Style and Preset load a progression.","Length switches between 4 and 8 chord slots.","On Chord Slot, hold A to hear the chord. L locks or unlocks it.","Root, Shape and Voicing edit the selected slot. Strum spreads the notes.","A on Generate varies the unlocked slots. A on Loop plays them all.","A on Write Phrase twice fills the current empty phrase.","Stop the song first. B + Left / Right: Studio tabs."};
     }else{
         switch(topic){
         case 0:{
             const int count=studio_synth_control_count(s),control=s.studioRow-3;
             v={"Engine: "+std::string(studio::model_name(s.studioModel)),"Parameter page: "+studio_synth_page_name(s),
                studio_synth_live(s)?"LIVE: edits update the linked instrument.":"DRAFT: audition first, then Load once to link it."};
-            if(control>=0&&control<count)v.push_back(control_hint(studio_synth_control_label(s,control)));
+            if(control>=0&&control<count)v.push_back(control_hint(studio_synth_control_label(s,control),s.studioModel));
             for(int i=0;i<count;++i)v.push_back((i==control?"> ":"  ")+studio_synth_control_label(s,i)+" = "+studio_synth_control_value(s,i));
             break;}
         case 1:case 2:{
@@ -202,11 +268,19 @@ StudioHelpContent studio_help_content(const AppState& s,int topic,int page) {
             else v={"Recorder status: "+studio_capture_status(s.capture),"Received frames: "+std::to_string(s.capture.frames),"Direct iPhone USB failed; the phone reports excessive power demand.","A power warning means this setup is not an audio route.","Class-compliant interface capture remains a separate hardware test.","Charging, detection or Trust alone does not confirm audio."};break;
         case 5:v={"Style: "+std::string(drumlab_genre_name(s.drumLab.genre)),"Lanes: "+std::to_string(s.drumLab.activeLanes)+"   Steps: "+std::to_string(s.drumLab.steps),
                  s.drumLab.generated?"Generated pattern ready; preview it before applying.":"Generate a pattern before Preview or Apply.","A lane lock preserves its current rhythm during regeneration.","Apply claims empty resources and appends after occupied song rows.","Save the resulting project so its new arrangement is retained."};break;
-        case 6:v={"Current palette: "+s.theme.name,"Material ID: "+std::to_string(s.theme.surfaceStyle),"Typeface: "+std::string(demo_font_style_name(s.settings.fontStyle)),
+        case 6:v={"Current palette: "+s.theme.name,"Material ID: "+std::to_string(s.theme.surfaceStyle),"Typeface: "+std::string(demo_font_style_name(theme_font(s.theme,s.settings.fontStyle))),
                  "Choose readable values, clear contrast and a texture you enjoy.","Help uses the current palette so it stays consistent with your screen.","No musical parameters are changed by a design selection."};break;
         case 7:v={"Provider: "+std::string(source_sampler_provider_name(s.sourceSampler.provider)),"Genre: "+std::string(source_sampler_genre_name(s.sourceSampler.genre)),
                  "Track: "+short_text(s.sourceSampler.title,58),"A result may contain several playable tracks.",
                  "File: set IN/OUT. Live: choose a short recording length.","Descriptions can be absent. Check Source and License."};break;
+        case 8:{
+            static constexpr const char* keys[]={"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+            const auto& hs=s.harmony;int locked=0;
+            for(int i=0;i<std::clamp(hs.count,0,int(hs.slots.size()));++i)locked+=hs.slots[size_t(i)].locked;
+            v={"Tonic: "+std::string(keys[std::clamp(hs.key,0,11)])+"   Slots: "+std::to_string(hs.count)+"   Locked: "+std::to_string(locked),
+               "Selected slot: "+std::to_string(hs.slot+1)+(hs.slots[size_t(std::clamp(hs.slot,0,int(hs.slots.size())-1))].locked?" (locked)":""),
+               hs.instrument>=0?"Instrument: "+std::to_string(hs.instrument):"Instrument: none chosen yet",
+               "Write Phrase fills only an empty phrase; existing notes stay.","Harmony plays with the song stopped."};break;}
         }
     }
     return h;

@@ -36,7 +36,8 @@ typedef struct kiss_fft_state* kiss_fft_cfg;
 kiss_fft_cfg kiss_fft_alloc(int nfft, int inverse_fft, void* mem, size_t* lenmem);
 
 /*  Perform the FFT on fin[], writing to fout[].
-    fin and fout may alias (in-place). */
+    fin and fout must NOT alias: the bit-reversal pass writes fout while still reading fin.
+    Unlike upstream KISS FFT, an inverse config already scales by 1/nfft. */
 void kiss_fft(kiss_fft_cfg cfg, const kiss_fft_cpx* fin, kiss_fft_cpx* fout);
 
 void kiss_fft_stride(kiss_fft_cfg cfg, const kiss_fft_cpx* fin, kiss_fft_cpx* fout, int fin_stride);

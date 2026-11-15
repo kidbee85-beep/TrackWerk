@@ -35,8 +35,10 @@ inline std::vector<float> stretch(const float* input,
 
     // Already the length, to within two frames (a ratio window would be ms on a long loop).
     if (std::abs(targetLen - inputLen) <= 2) {
-        std::vector<float> out(input, input + inputLen);
-        out.resize((size_t)targetLen, 0.0f);
+        // Allocated at the target length at once (a resize could reserve more): the same samples,
+        // zero-padded or cut, in exactly targetLen floats.
+        std::vector<float> out((size_t)targetLen, 0.0f);
+        std::copy(input, input + std::min(inputLen, targetLen), out.begin());
         return out;
     }
 

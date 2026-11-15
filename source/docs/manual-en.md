@@ -1,9 +1,7 @@
-> Historical PocketTracker upstream reference. Extreme adds studio, synth, capture and online-source features. For this beta, use the [current illustrated guide](site/guide.html), [Extreme quick start](quick-start-guide.md), and [release status](../README.md#beta-feature-and-test-status).
+# TrackWerk 1.1 Reference Manual
 
-# PocketTracker User Manual
-
-**Manual revision:** 1.3  
-**Covers:** PocketTracker 0.9.7
+**Manual revision:** TrackWerk 1.1 core reference  
+**Covers:** the inherited PocketTracker core. For current TrackWerk Studio, design, sampling and installation workflows, use the [illustrated handbook](https://kidbee85-beep.github.io/TrackWerk/guide.html).
 
 ---
 

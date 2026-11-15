@@ -44,6 +44,8 @@ struct RenderOptions {
     int  stemsMode = 0;
     // Stems bypass the master bus (OTT/DUST/master EQ), so they skip it.
     bool applyMasterBus = true;
+    // A numbered name chosen as free: published only if no file took it meanwhile.
+    bool keepExisting = false;
 };
 
 // ⚠️ Wipe the chains FIRST, re-push the project SECOND — the reset leaves factory defaults.
@@ -72,7 +74,7 @@ RenderStats render_to_wav(Engine& engine, const Project& project, int64_t songFr
     if (opts.applyMasterBus) apply_master_bus_for_render(engine, project);
     engine.setStemsMode(opts.stemsMode);
 
-    WavStreamWriter writer(path, sampleRate);
+    WavStreamWriter writer(path, sampleRate, 2, opts.keepExisting);
     if (!writer.is_open()) {
         engine.setStemsMode(0);
         return stats;

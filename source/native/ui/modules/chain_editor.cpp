@@ -1,6 +1,9 @@
 #include "ui/modules/chain_editor.h"
 
 #include "ui/helpers.h"
+#include "ui/scene_layout.h"
+
+#include <algorithm>
 #include "ui/step_grid.h"
 
 namespace pt::ui {
@@ -30,7 +33,33 @@ void ChainEditorModule::draw(Canvas& c, int x, int y, const ChainEditorState& s)
     c.draw_text("PH",  phX,  rowY, header_color(s.cursorColumn, 1, 1, t), CHAR_SPACING, FONT_SCALE);
     c.draw_text("TSP", tspX, rowY, header_color(s.cursorColumn, 2, 2, t), CHAR_SPACING, FONT_SCALE);
 
-    for (int index = 0; index < 16; ++index) draw_row(c, x, y, index, s, stepX, phX, tspX);
+    const bool transposePlot = scene_layout(t).scopeBottom;
+    if (transposePlot) c.draw_label("TRANSPOSE / SEMITONES", x + 210, rowY, t.textParam, 12);
+    for (int index = 0; index < 16; ++index) {
+        draw_row(c, x, y, index, s, stepX, phX, tspX);
+        if (!transposePlot) continue;
+        constexpr int plotWidth = 269, plotCenter = 134;
+        const int left = x + 210, top = y + ROW_HEIGHT * (2 + index) + 14;
+        const int zero = left + plotCenter;
+        const bool current = index == s.cursorRow;
+        const Argb panel = mix_rgb(t.background, t.rowEvery4th, current ? 82 : 47);
+        c.fill_rect(left, top + 2, plotWidth, ROW_HEIGHT - 3, panel);
+        c.fill_rect(zero, top + 2, 1, ROW_HEIGHT - 3, with_alpha(t.textParam, .55f));
+        const int reference = s.chain.phraseRefs[static_cast<size_t>(index)];
+        if (reference < 0) continue;
+        const int raw = s.chain.transposeValues[static_cast<size_t>(index)];
+        const int semitones = raw < 128 ? raw : raw - 256;
+        const int position = zero + std::clamp(semitones * 5, -129, 129);
+        const Argb ink = current ? t.rowCursor : t.textValue;
+        c.fill_rect(std::min(zero, position), top + 9, std::max(3, std::abs(position - zero)), 3, ink);
+        c.fill_rect(position, top + 7, 3, 7, ink);
+    }
+    // The playhead glides from chain row to chain row (draw_playhead_glide).
+    for (const TrackPlayhead& ph : s.playheads) {
+        if (ph.chainId != s.chain.id || ph.chainRow < 0) continue;
+        draw_playhead_glide(c, 0x7000001u, x, y + ROW_HEIGHT + 14 + ROW_HEIGHT, WIDTH, ROW_HEIGHT, ph.chainRow, t);
+        break;
+    }
 }
 
 void ChainEditorModule::draw_row(Canvas& c, int x, int y, int index, const ChainEditorState& s,
@@ -42,6 +71,16 @@ void ChainEditorModule::draw_row(Canvas& c, int x, int y, int index, const Chain
     const bool isEmpty   = (phraseRef == -1);
 
     c.fill_rect(x, dataRowY, WIDTH, ROW_HEIGHT, row_bg_color(index, t));
+    int behind = 0;
+    bool playing = false;
+    for (const TrackPlayhead& ph : s.playheads) {
+        if (ph.chainId != s.chain.id || ph.chainRow < 0) continue;
+        if (ph.chainRow == index) { playing = true; break; }
+        const int d = ph.chainRow - index;
+        if (d >= 1 && d <= 2 && (behind == 0 || d < behind)) behind = d;
+    }
+    if (playing) draw_playback_row(c, x, dataRowY, WIDTH, ROW_HEIGHT, t);
+    else draw_playback_trail(c, x, dataRowY, WIDTH, ROW_HEIGHT, t, behind);
     draw_step_grid(c, t, t.chainGrid, index, x, dataRowY, WIDTH, ROW_HEIGHT, {phX - 6, tspX - 8});
 
     const int textY = dataRowY + TEXT_PADDING;

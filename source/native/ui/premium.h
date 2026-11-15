@@ -11,6 +11,7 @@ inline Argb mix(Argb a,Argb b,float f){
  return out;
 }
 inline void card(Canvas& c,int x,int y,int w,int h,const Theme& t,bool focus=false){
+ if(focus)c.mark_cursor(x,y,w,h);
  c.panel_rect(x,y+2,w,h,0x28000000,0x28000000,7);
  c.panel_rect(x,y,w,h,t.rowEvery4th,focus?t.rowCursor:with_alpha(t.textParam,.22f),7);
  if(focus)c.fill_rect(x+1,y+8,2,std::max(0,h-16),t.rowCursor);
@@ -31,7 +32,7 @@ inline void disc(Canvas& c,int cx,int cy,int r,Argb base){
  }
 }
 inline void knob(Canvas& c,int cx,int cy,int value,const Theme& t,bool focus=false,int radius=25){
- value=std::clamp(value,0,255);
+ value=c.tween(0x1000000u+static_cast<uint32_t>(cx)*1024u+static_cast<uint32_t>(cy),std::clamp(value,0,255));   // eases to a new value
  const float pi=3.14159265359f;
  for(int i=0;i<=32;++i){const float a=(135+270*i/32.f)*pi/180;
   const int r=radius+8;const int x=cx+static_cast<int>(r*std::cos(a)),y=cy+static_cast<int>(r*std::sin(a));
@@ -53,7 +54,7 @@ inline void percent(Canvas& c,int value,int cx,int y,const Theme& t,bool focus=f
 inline void row(Canvas& c,int x,int y,int w,const std::string& name,const std::string& value,const Theme& t,bool focus){
  c.panel_rect(x,y,w,28,focus?mix(t.rowEvery4th,t.rowCursor,.10f):t.rowEvery4th,
               focus?t.rowCursor:with_alpha(t.textParam,.10f),4);
- if(focus)c.fill_rect(x+1,y+5,2,18,t.rowCursor);
+ if(focus){c.fill_rect(x+1,y+5,2,18,t.rowCursor);c.mark_cursor(x,y,w,28);}
  label(c,name,x+11,y+7,focus?t.textValue:t.textParam,w/2-17);
  label(c,value,x+w/2,y+6,focus?t.rowCursor:t.textValue,w/2-10);
 }

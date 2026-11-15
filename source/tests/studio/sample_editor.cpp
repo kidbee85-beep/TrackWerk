@@ -56,7 +56,7 @@ int main(int argc,char** argv) {
     m.handle_input(s,{ActionType::SET_VALUE,99});assert(s.zoomLevel==s.max_zoom());
     assert(SampleEditorModule::row_below(8)==9&&SampleEditorModule::row_above(10)==9);
     assert(SampleEditorModule::row_below(14)==15&&SampleEditorModule::row_above(16)==15);
-    assert(SampleEditorModule::max_col_for_row(9)==4&&SampleEditorModule::max_col_for_row(15)==2);
+    assert(SampleEditorModule::max_col_for_row(9)==4&&SampleEditorModule::max_col_for_row(15)==3);
     // Exercise the actual dispatcher, including removing the last computed divide boundary.
     auto engine=std::make_unique<AudioEngine>();songcore::SongcoreHost host(engine.get(),48000);
     assert(host.push_project(songcore::serialize_project(songcore::make_default_project())));

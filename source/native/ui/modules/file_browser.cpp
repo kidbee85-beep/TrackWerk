@@ -4,6 +4,7 @@
 #include "ui/std_filesystem.h"
 
 #include <algorithm>
+#include <functional>
 #include <cstdio>
 #include <ctime>
 
@@ -380,6 +381,8 @@ void FileBrowserModule::draw(Canvas& c, int x, int y, const FileBrowserState& s,
     constexpr int listH = BROWSER_VISIBLE_ROWS * ROW_HEIGHT - 1;
     c.panel_rect(x + 7, y + listY - 2, WIDTH - 20, listH + 3,
                  library_tint(t.background, t.rowEvery4th, 40), with_alpha(t.textParam, .12f), 5);
+    // The rows scroll smoothly between two positions (shell/app.cpp); the frame around them stays.
+    c.mark_scroll(2 + 16 * static_cast<int>(std::hash<std::string>{}(s.currentDirectory) & 0xffffu), x + 9, y + listY, WIDTH - 25, BROWSER_VISIBLE_ROWS * ROW_HEIGHT - 1, s.scroll * ROW_HEIGHT);
     for (int i = 0; i < BROWSER_VISIBLE_ROWS; ++i) {
         const int index = s.scroll + i;
         if (index < 0 || index >= total) break;
@@ -441,8 +444,9 @@ void FileBrowserModule::draw(Canvas& c, int x, int y, const FileBrowserState& s,
         c.draw_label(tip, x + (WIDTH - c.label_width(tip, 12)) / 2, y + 266, t.textParam, 12);
     } else if (total > BROWSER_VISIBLE_ROWS) {
         const int thumbH = std::max(8, listH * BROWSER_VISIBLE_ROWS / total);
-        const int offset = (listH - thumbH) * std::clamp(s.scroll, 0, total - BROWSER_VISIBLE_ROWS) /
-                           (total - BROWSER_VISIBLE_ROWS);
+        // The thumb glides with the rows (Canvas::tween).
+        const int offset = c.tween(0x6000000u, (listH - thumbH) * std::clamp(s.scroll, 0, total - BROWSER_VISIBLE_ROWS) /
+                                               (total - BROWSER_VISIBLE_ROWS));
         c.fill_rect(x + WIDTH - 6, y + listY, 2, listH, with_alpha(t.textParam, .10f));
         c.fill_rect(x + WIDTH - 6, y + listY + offset, 2, thumbH, with_alpha(t.textTitle, .65f));
     }

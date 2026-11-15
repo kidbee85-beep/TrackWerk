@@ -111,3 +111,13 @@ The same bounded Rings placement-storage probe found `FMVoice::Process` reading
 FM PCM and triggered UBSAN on its phase conversion. `Init` now sets that feedback
 history to zero as well. This one-field reset preserves the old zeroed/BSS PCM;
 it changes neither the feedback amount nor oscillator/phase algorithms.
+
+## Rings and Elements start from zeroed storage (2026-11-14)
+
+No vendor file changes. `studio::Synth::State` (native/studio/synth.cpp) now zeroes `rings::Part`
+and `elements::Part` before their `Init()`, as it already did for Braids. The firmware ran from
+zeroed static storage; `elements::OminousVoice::Init` leaves `damping_` and `feedback_` unset, and
+on a reused heap block the Ominous model processed garbage until the voice crashed in
+`MultistageEnvelope::Process`. Found as a 1-in-6 segfault of `ptperform-check`; with
+`MallocPreScribble=1 MallocScribble=1` it crashed on every run before the change. After it, all
+host checks pass with and without scribbling.

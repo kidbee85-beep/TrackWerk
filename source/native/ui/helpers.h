@@ -1,12 +1,15 @@
 #pragma once
+#include "ui/scene_presets.h"
 
 // The layout grid every screen is built on, and the cell painters the editors share.
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 
 #include "canvas.h"
 #include "theme.h"
+#include "color_space.h"
 #include "theme_rules.h"   // theme_polarity — the mascot reads the same one the roller does
 #include "songcore/effects.h"
 #include "songcore/model.h"
@@ -119,6 +122,60 @@ inline void draw_playhead(Canvas& c, int x, int text_y, const Theme& t) {
     c.draw_text(">", x, text_y, t.textPlayhead, CHAR_SPACING, FONT_SCALE);
 }
 
+// The row that is playing, behind its text: a band in `textPlayhead`, so the eye can follow the
+// sequence from across the room. Scene families draw it in their own idiom — Raster, Crack intro
+// and Vector as a copper bar (brightest at the centre line, fading to both edges), the terminal-like
+// families as a phosphor block with hard top and bottom edges; other themes as a quiet band. Only
+// drawn while a playhead is on the row, so an idle screen costs nothing.
+// The rows the playhead has just left, fading like a phosphor trail: `behind` 1 and 2 rows. Drawn
+// only while a playhead runs, so it reads as motion between the steps rather than jumps.
+inline void draw_playback_trail(Canvas& c, int x, int y, int w, int h, const Theme& t, int behind) {
+    if (behind < 1 || behind > 2) return;
+    c.fill_rect(x, y, w, h, with_alpha(t.textPlayhead, behind == 1 ? .075f : .035f));
+}
+
+// The playhead glides from row to row (PHRASE, CHAIN, TABLE): while it is between two rows a soft
+// band with bright edges sweeps down (Canvas::tween, forward only, so a wrap to the top jumps).
+// Settled, without a clock or with Motion off nothing is added: only the row's own band shows.
+inline void draw_playhead_glide(Canvas& c, uint32_t key, int x, int top, int w, int rowH, int row, const Theme& t) {
+    if (row < 0) return;
+    const int target = top + row * rowH;
+    const int shown = c.tween(key, target, /*forwardOnly=*/true);
+    if (shown == target) return;
+    c.fill_rect(x, shown, w, rowH, with_alpha(t.textPlayhead, .12f));
+    c.fill_rect(x, shown, w, 1, with_alpha(t.textPlayhead, .55f));
+    c.fill_rect(x, shown + rowH - 1, w, 1, with_alpha(t.textPlayhead, .35f));
+}
+
+inline void draw_playback_row(Canvas& c, int x, int y, int w, int h, const Theme& t) {
+    const int family = t.sceneChrome > 0 ? static_cast<int>(scene_look(t.sceneChrome - 1).family) : -1;
+    const bool copper = family == 5 || family == 6 || family == 7;   // RASTER, CRACKTRO, VECTOR
+    if (copper) {
+        const float half = h * .5f;
+        for (int line = 0; line < h; ++line) {
+            const float d = std::fabs((line + .5f) - half) / half;   // 0 centre … 1 edge
+            const float glow = (1.f - d) * (1.f - d);
+            c.fill_rect(x, y + line, w, 1, with_alpha(mix_rgb(t.textPlayhead, t.textTitle, int(40 * glow)), .05f + .30f * glow));
+        }
+        return;
+    }
+    if (family >= 0) {
+        c.fill_rect(x, y, w, h, with_alpha(t.textPlayhead, .14f));
+        c.fill_rect(x, y, w, 1, with_alpha(t.textPlayhead, .55f));
+        c.fill_rect(x, y + h - 1, w, 1, with_alpha(t.textPlayhead, .55f));
+        return;
+    }
+    c.fill_rect(x, y, w, h, with_alpha(t.textPlayhead, .12f));
+}
+
+// An error message over the scope strip: red that stays legible on the theme's own scope ground
+// (pure 0xFFFF0000 vanished into light scenes such as INK ON PAPER).
+inline Argb error_ink(const Theme& t) {
+    for (Argb red : {0xFFFF5A5Au, 0xFFE0303Au, 0xFFB0101Eu, 0xFF7A0010u})
+        if (wcag_contrast(red, t.vizBackground) >= 4.5) return red;
+    return t.textValue;
+}
+
 // Is a LIVE queue marker lit this frame? Slow: waiting for the chain's end; fast: the next phrase.
 inline bool blink_on(int phase_ms, bool fast) {
     const int period = fast ? 200 : 600;
@@ -145,9 +202,15 @@ class RowCells {
             const int from = (is_selected && selectedRight_ >= 0) ? selectedRight_ : left;
             c_.fill_rect(from, textY_ - TEXT_PADDING, right - from, ROW_HEIGHT,
                          is_selected ? t_.rowSelection : t_.rowCursor);
-            if (is_cursor && !is_selected)
-                c_.fill_rect(from, textY_ - TEXT_PADDING + ROW_HEIGHT - 1,
-                             right - from, 1, darken(t_.rowCursor, .68f));
+            if (is_cursor) c_.mark_cursor(from, textY_ - TEXT_PADDING, right - from, ROW_HEIGHT);
+            if (is_cursor && !is_selected) {
+                const int top = textY_ - TEXT_PADDING;
+                if (t_.sceneChrome)
+                    c_.scene_edge(from, top, right - from, ROW_HEIGHT,
+                                  mix_rgb(t_.rowCursor, t_.background, 54));
+                else
+                    c_.fill_rect(from, top + ROW_HEIGHT - 1, right - from, 1, darken(t_.rowCursor, .68f));
+            }
         }
 
         selectedRight_ = is_selected ? right : -1;
@@ -188,6 +251,7 @@ inline void draw_eq_cell(Canvas& c, int value_x, int text_y, int eq_slot, bool i
         const std::string span = show_arrow ? eq_str + ">" : eq_str;
         const int         w = Canvas::text_width(span, CHAR_SPACING, FONT_SCALE) + 2 * CHAR_SPACING;
         c.fill_rect(value_x - CHAR_SPACING, text_y - TEXT_PADDING, w, ROW_HEIGHT, t.rowCursor);
+        c.mark_cursor(value_x - CHAR_SPACING, text_y - TEXT_PADDING, w, ROW_HEIGHT);
     }
 
     const Argb value_color   = is_cursor      ? cursor_cell_ink(t)

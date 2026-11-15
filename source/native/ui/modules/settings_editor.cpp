@@ -19,7 +19,7 @@ constexpr int VAL2_X     = 408;  // the secondary value
 
 const std::vector<std::string>& SettingsModule::visualizer_names() {
     static const std::vector<std::string> names = {
-        "SCOPE", "FLAT", "OCTA", "OCTA.F", "SPECT", "SPCT.P",
+        "SCOPE", "FLAT", "OCTA", "OCTA.F", "SPECT", "SPCT.P", "COPPR", "STARS", "PLASM",
     };
     return names;
 }
@@ -141,7 +141,8 @@ void SettingsModule::draw(Canvas& c, int x, int y, const SettingsState& s) const
     {
         constexpr int VALUE_COLS = (WIDTH - 10 - VAL1_X) / CHAR_W;
         param_row(SettingsRow::APPEARANCE, "APPEARANCE", "PALETTE / FONT >");
-        param_row(SettingsRow::THEME, "THEME COLORS",
+        // "THEME COLORS" (12 letters) ran into its value; the row is the theme.
+        param_row(SettingsRow::THEME, "THEME",
                   Canvas::clip_text(s.themeName, VALUE_COLS - 2) + " >");
     }
 

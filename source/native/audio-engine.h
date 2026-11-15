@@ -31,6 +31,7 @@ extern SoundfontVoice sfVoices[SF_VOICE_COUNT];
 // where memory grows (TSF_MALLOC/TSF_REALLOC, PcmSink::append, load_budget_bytes) — on Android an
 // oversized allocation is killed on the write, not refused.
 
+#include "studio/fm_sysex.h"
 #include "studio/synth.h"
 #include "studio/rack.h"
 #include "live-resampler.h"
@@ -53,6 +54,21 @@ public:
     void clearGranularMonitor(){granularMonitorId.store(-1,std::memory_order_relaxed);}
     bool setLiveStudioCode(int sampleId,int code);
     void setStudioSynthParams(int sampleId,const studio::SynthParams& params);
+    // A model/preset change with its own parameters. The parameters are published first and tagged
+    // with `code`; until the voice sees that code it keeps the parameters it has, so neither model
+    // ever reads the other's values (a Plaits Decay as a Braids Bit depth).
+    bool setLiveStudioSynth(int sampleId,int code,const studio::SynthParams& params);
+    // FM SYSEX's voice for this slot (128 packed bytes, studio/fm_sysex.h), or nullptr to clear it and
+    // play the built-in banks. Published with the slot's row, so a voice of the callback never pairs
+    // it with another model's parameters.
+    void setStudioFmVoice(int sampleId,const uint8_t* packed);
+    // Audio thread: the model and parameters a voice of this slot plays, from the synced row — or,
+    // while the row still describes the slot's previous source (its sampleGen differs), the new
+    // source's code with factory parameters until the callback takes the row loaded with it.
+    int liveStudioCode(int sampleId) const;
+    const studio::SynthParams& liveStudioParams(int sampleId) const;
+    // Audio thread: the slot's FM SYSEX voice from the same synced row, or nullptr (none, or an earlier source's).
+    const uint8_t* liveStudioFmVoice(int sampleId) const;
     void setStudioVoiceDefaults(int sampleId,int volume,int pan,int detune);
     enum StudioVoiceEdit { STUDIO_GAIN=1,STUDIO_PAN=2,STUDIO_TUNE=4,STUDIO_ENVELOPE=8 };
     void updateStudioVoices(int sampleId,float oldGain,float newGain,float pan,float tuneFactor,int changes);
@@ -191,6 +207,10 @@ public:
     void getTrackActiveNotes(int* out, int trackCount);
 
     int getSampleRate();
+    // The PCM's own rate (Hz) of slot `id` as the engine tracks it through load, RATE, copy and Undo; 0 if empty.
+    int getSampleFileRate(int id) const {
+        return id >= 0 && id < 256 && samples[id] ? sampleFileRate[id].load(std::memory_order_acquire) : 0;
+    }
 
     // ===================================
     // SAMPLE EDITOR OPERATIONS
@@ -222,26 +242,56 @@ public:
     void invertPolaritySample(int id, int startFrame, int endFrame);
     void declickSample(int id, int startFrame, int endFrame, int edgeFrames);
     // False leaves both the sample and previous Undo untouched; callers abort the edit then.
-    bool backupSample(int id);
-    void undoSample(int id);
+    // The backup takes the RATE basis along (the cached original, its rate, the RATE/BIT step), so an
+    // Undo brings back the whole state: later RATE steps start from the same original as before.
+    // `extraBytes`: what the edit will allocate on top (a replacement buffer), checked with the
+    // backup and any staged copy as one peak, so the sum, not each part, has to fit the budget.
+    bool backupSample(int id, int64_t extraBytes = 0);
+    // True when the backup buffer was restored; false for a level Undo or nothing to undo.
+    bool undoSample(int id);
+    // A destructive edit off HIGH: the active buffer becomes the new original at its own rate (as
+    // pitch, stretch and sync do), so a later RATE step can never bring back what the edit changed.
+    void adoptSampleAsOriginal(int id);
+    // The RATE step (1, 2, 4) and BIT depth the slot's buffer is at; 0 bits = the source depth.
+    int  getSampleRateFactor(int id) const { return id >= 0 && id < 256 ? sampleLevel[id].rate : 1; }
+    int  getSampleLevelBits(int id) const { return id >= 0 && id < 256 ? sampleLevel[id].bits : 0; }
     // Free the undo copy when the editor closes — nothing can reach it after that.
     void freeSampleUndo(int id);
+    // backupSample keeps the backup it replaces until the edit is settled: commit drops it (the edit
+    // went through), revert puts it back in place of the new one (the edit failed).
+    void commitBackup(int id);
+    void revertBackup(int id);
     // FX preview keeps its own clean copy, apart from undo.
-    void saveFxPreviewBackup(int id);
+    bool saveFxPreviewBackup(int id);   // false: refused, nothing kept
     void restoreFxPreviewBackup();
-    void cropSample(int id, int startFrame, int endFrame);
-    void deleteSampleRegion(int id, int startFrame, int endFrame);
-    void copyRegion(int id, int startFrame, int endFrame);
-    void pasteRegion(int id, int insertAt);
+    // The three resizing edits build the new buffer first (nothrow) and return false, slot untouched,
+    // when it cannot be had.
+    bool cropSample(int id, int startFrame, int endFrame);
+    bool deleteSampleRegion(int id, int startFrame, int endFrame);
+    bool copyRegion(int id, int startFrame, int endFrame);   // false: empty range, clipboard untouched
+    // CUT/DUPL in two steps, so a refused Undo backup changes nothing: stage the copy (false: empty
+    // range or no memory, nothing changed), then commit it once the edit goes ahead, or discard it.
+    bool stageCopy(int id, int startFrame, int endFrame);
+    // Commit swaps: the old clipboard waits in the staged slot until discard (after the edit went
+    // through) or uncommit (it did not), so a failed DUPL/CUT gives the old clipboard back.
+    void commitStagedCopy();
+    void uncommitStagedCopy();
+    void discardStagedCopy();
+    bool pasteRegion(int id, int insertAt);
     // The editor's audition copy of srcId into dstId. mode: 0=L, 1=R, 2=both, 3=avg.
-    void prepareSourcePreview(int dstId, int srcId, int mode);
+    bool prepareSourcePreview(int dstId, int srcId, int mode);
+    // A stereo slot made the one channel of SOURCE `mode` (0 L, 1 R, 3 mono mix), without allocating.
+    bool collapseToChannel(int id, int mode);   // false: refused, slot unchanged
     bool prepareSourcePreviewRange(int dstId, int srcId, int mode, int first, int end);
     int  getClipboardLength();
     // RATE and BIT: rebuilt from the cached original, decimated by `factor` (1/2/4) and quantised to
     // `bits`. One derive for both, so changing one keeps the other. (1, own depth) restores it.
     void applyRateAndBits(int id, int factor, int bits);
     // Destructive; clears the RATE original.
-    void pitchShiftSample(int id, float semitones);
+    // False: refused (memory), the slot exactly as it was.
+    bool pitchShiftSample(int id, float semitones);
+    // Pitch then stretch to `targetFrames` (0 = no stretch), published once at the end.
+    bool syncSample(int id, float semitones, int targetFrames, float grainMs, float sampleRate);
     // SOLA stretch: ratio > 1 is longer. `grainMs` is in the buffer's own `sampleRate`.
     void timeStretchSample(int id, float ratio, float grainMs, float sampleRate);
     // fxType 0=OTT, 1=DUST, 2=DRIVE, 3=EQ.
@@ -277,6 +327,17 @@ public:
         int64_t lateBlocks = 0;
     };
     BlockTiming getBlockTiming() const;
+    // Where that time goes, per lane: 0…7 the song tracks' voices, 8 the preview lane, 9 the buses and
+    // master (sends, returns, Studio rack, master EQ, limiter). Same unit as meanLoad, live blocks only,
+    // published with it once a second. The rest of the callback (events, scopes) is not attributed.
+    static constexpr int kLoadLanes = 10;
+    struct LaneLoads { int load[kLoadLanes] = {}; };
+    LaneLoads getLaneLoads() const;
+
+    // PERFORM's master filter, 0…255: 128 is off (bypassed), below a low-pass closing towards 80 Hz,
+    // above a high-pass opening towards 6 kHz. Live playback only; renders and exports leave it out.
+    void setPerformFilter(int value) { performFilter.store(std::clamp(value, 0, 255), std::memory_order_relaxed); }
+    int performFilterValue() const { return performFilter.load(std::memory_order_relaxed); }
 
     int64_t getCurrentFrame();
 
@@ -801,6 +862,7 @@ private:
     std::atomic<int>      sampleLengths[256];   // ONE length for both channels — samplesRight[id], when
                                                 // non-null, always has exactly this length
     std::atomic<uint32_t> sampleGen[256];
+    std::atomic<int>      sampleFileRate[256];   // the PCM's own rate (Hz), see setSampleBuffers
     void touchSample(int id) { sampleGen[id].fetch_add(1); }   // caller holds sampleEditMutex
     // Undo retains exact working float samples, including 24/32-bit detail and over-unity peaks.
     float*   sampleBackups[256] = {};
@@ -828,6 +890,29 @@ private:
     float*   originalSamplesF[256] = {};
     float*   originalSamplesRightF[256] = {};
     int      originalSampleLengths[256] = {};
+    // The PCM rate of the RATE cache's original (sampleFileRate when the cache was made): a RATE step
+    // leaves original/factor, HIGH restores it. Undo backups keep the rate of the buffer they copy.
+    int      originalFileRate[256] = {};
+    int      sampleBackupRate[256] = {};
+    struct RateBasisBackup {   // the RATE cache as it was at backupSample; empty = HIGH, no cache
+        std::unique_ptr<int16_t[]> left16, right16;
+        std::unique_ptr<float[]>   leftF, rightF;
+        int length = 0, fileRate = 0, rate = 1, bits = 0;
+    };
+    std::array<RateBasisBackup, 256> sampleBackupBasis{};
+    std::unique_ptr<float[]> stagedClipLeft, stagedClipRight;   // stageCopy → commitStagedCopy
+    int stagedClipLength = 0;
+    bool stagedIsOldClipboard = false;   // after commit: the staged slot holds the old clipboard
+    struct HeldBackup {   // the backup a new one replaced, kept until commitBackup/revertBackup
+        bool held = false;
+        float* left = nullptr; float* right = nullptr;
+        int length = 0, rate = 0;
+        RateBasisBackup basis;
+        SampleLevelUndo levelUndo;
+    };
+    std::array<HeldBackup, 256> heldBackup{};
+    void freeHeldBackup(int id);
+    void dropRateBasis(int id) { freeRateCache(id); sampleLevel[id].rate = 1; }   // edit lock held
     uint8_t  sampleBitDepth[256];
     bool     sampleIsFloat[256] = {};
     void     freeRateCache(int id);
@@ -843,7 +928,12 @@ private:
 
     // Replace slot `id`'s buffers (newR null for mono), keeping both channels one length. Caller holds
     // sampleEditMutex; voices on the old buffers end at the next mix.
-    void setSampleBuffers(int id, float* newL, float* newR, int newLen);
+    // `sourceRate` > 0 records the PCM's own rate for this slot (SP FREEZE reads it), stored before the
+    // generation bump so a voice that sees the new generation sees its rate; 0 keeps the slot's rate.
+    // Replacing the buffer ends its RATE basis (the new audio is the original) unless `keepRateBasis`:
+    // only a RATE step itself, which derives the buffer from that basis, keeps it.
+    void setSampleBuffers(int id, float* newL, float* newR, int newLen, int sourceRate = 0,
+                          bool keepRateBasis = false);
     // Lock sampleEditMutex and end every voice on slot `id`. ⚠️ Every destructive edit holds this lock
     // while it changes or frees the buffers; the audio thread's try_lock then skips one block.
     std::unique_lock<std::mutex> beginSampleEdit(int id);
@@ -899,7 +989,17 @@ private:
     // ⚠️ Every per-instrument table below is a StagedTable: a setter edits its copy and publishes;
     // the audio thread takes it in syncInstrumentData. An unpublished edit is never heard.
     StagedTable<InstrumentParams, 256>                        instrumentParams;
-    StagedTable<studio::SynthParams, 256> studioSynthParams;
+    // `code` is the preset these parameters belong to; kStudioParamsAnyCode only before a slot was
+    // first loaded as a synth (then the voice falls back to studioCodes).
+    static constexpr int kStudioParamsAnyCode = -2;
+    // `gen` is the slot's sampleGen when the row was published: a row from before the slot's
+    // current source never describes it (loadSampleFromWavFile in the same slot before a sync).
+    // fmVoice: FM SYSEX's own voice (fm_sysex.h), travelling with the model and parameters it belongs to.
+    struct StudioSynthRow {
+        studio::SynthParams params; int code; uint32_t gen;
+        studio::fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet = false;
+    };
+    StagedTable<StudioSynthRow, 256> studioSynthParams;
     struct GranularControl {
         bool enabled=false;
         studio::granular::Parameters params{};
@@ -988,6 +1088,12 @@ private:
     int     timingWorst  = 0;    // audio thread only
     std::atomic<int> timingPubFrames{0}, timingPubRate{0}, timingPubMean{0}, timingPubWorst{0};
     std::atomic<int64_t> timingLateBlocks{0};
+    int64_t laneBusyNs[kLoadLanes] = {};               // audio thread only
+    std::atomic<int> lanePubLoad[kLoadLanes] = {};
+    std::atomic<int> performFilter{128};
+    // The filter's audio-thread state: smoothed position (−1 LP … +1 HP) and a TPT SVF per channel.
+    float performPosition = 0.f, performS1[2] = {}, performS2[2] = {};
+    void applyPerformFilter(float* output, int numFrames, int channelCount, float sampleRate);
     std::atomic<int> currentTempo{120};
     std::atomic<LiveInputSource*> liveInput{nullptr};
     songcore::DeviceClock deviceClock_;   // fed by every live callback

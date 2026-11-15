@@ -46,7 +46,7 @@ void reference_frame(Canvas& c){
     {Canvas::ClipScope clip(c,17,270,601,46);c.draw_text(grid,-11,263,0x8fe8c18c,1,3);c.draw_label(label,-21,299,0xffe1f4f2,18);}
 }
 void canvas_checks(){
-    static_assert(detail::demoFontAtlasBytes<=1536u*1024u,"Keep immutable typeface atlases within 1.5 MiB");
+    static_assert(detail::demoFontAtlasBytes<=1536u*1024u,"Keep immutable typeface atlases within 1.5 MiB (1-bit packed since stage 5)");
     // Captured independently from the frozen beta.3 canvas.cpp before typeface work.
     // It covers grid scales1..4, proportional Latin1/ellipsis, alpha and clipped edges.
     constexpr uint64_t classicGolden=7351093925236876406ull;
@@ -151,7 +151,7 @@ void studio_checks(StdFileSystem& fs){
     auto event=[&](Button b,ButtonAction a,ButtonMods mods=ButtonMods{}){assert(studio_button({b,a,mods},s,host,*engine,fs));};
     auto change=[&](Button key){event(Button::A,ButtonAction::PRESSED);ButtonMods a;a.a=true;event(key,ButtonAction::PRESSED,a);event(key,ButtonAction::RELEASED,a);event(Button::A,ButtonAction::RELEASED);};
     const int lastFont=kDemoFontStyleCount-1;
-    assert(studio_rows(6)==3);for(int i=1;i<=kDemoFontStyleCount;++i){change(Button::DPAD_RIGHT);assert(s.settings.fontStyle==i%kDemoFontStyleCount);}
+    assert(studio_rows(6)==4);for(int i=1;i<=kDemoFontStyleCount;++i){change(Button::DPAD_RIGHT);assert(s.settings.fontStyle==i%kDemoFontStyleCount);}
     change(Button::DPAD_LEFT);assert(s.settings.fontStyle==lastFont);change(Button::DPAD_UP);assert(s.settings.fontStyle==0);change(Button::DPAD_DOWN);assert(s.settings.fontStyle==lastFont);
     s.studioRow=0;const auto name=s.theme.name;change(Button::DPAD_RIGHT);assert(s.theme.name!=name&&s.settings.fontStyle==lastFont);
     s.studioRow=1;const int surface=s.theme.surfaceStyle;change(Button::DPAD_RIGHT);assert(s.theme.surfaceStyle!=surface&&s.settings.fontStyle==lastFont);

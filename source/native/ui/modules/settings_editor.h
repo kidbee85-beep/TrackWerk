@@ -68,6 +68,13 @@ struct SettingsValues {
     bool scalingBilinear    = true;
     // Stable appearance-only ID; 0 preserves existing installs. Independent of theme presets.
     int fontStyle           = 0;
+    // Appearance > Motion: the Scene animations (ui/scene_animation.h). OFF keeps the screens still;
+    // the playing-row band and the scope stay, they carry information. Saved only when OFF, so an
+    // existing settings.json is unchanged byte for byte.
+    bool sceneMotion        = true;
+    // Sources > Provider: YouTube search through yt-dlp. Off until the player opts in (it runs a
+    // third-party helper and conflicts with YouTube's terms). Saved only when ON, like sceneMotion.
+    bool sourceYoutube      = false;
     bool insertBefore       = true;
     bool cursorRemember     = false;
     bool notePreviewEnabled = true;

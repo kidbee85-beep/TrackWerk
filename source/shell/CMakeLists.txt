@@ -182,6 +182,15 @@ if(UNIX AND NOT ANDROID AND NOT PT_MIYOO_OFFLINE)
         target_sources(pockettracker-sdl PRIVATE linux/sample-recorder.cpp linux/iphone-recorder.cpp linux/capture-router.cpp)
     endif()
     target_compile_definitions(pockettracker-sdl PRIVATE PT_NATIVE_STUDIO_SERVICES=1)
+    # The source backend against a local HTTP fixture:
+    #   python3 tests/studio/linux_sources_fixture.py <build>/ptlinux-sources-check <new directory>
+    if(PT_STUDIO_CHECK)
+        find_package(Threads REQUIRED)
+        add_executable(ptlinux-sources-check ../tests/studio/linux_sources.cpp linux/source-sampler.cpp)
+        target_include_directories(ptlinux-sources-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+        target_link_libraries(ptlinux-sources-check PRIVATE pt-ui ${CMAKE_DL_LIBS} Threads::Threads)
+        target_compile_options(ptlinux-sources-check PRIVATE -UNDEBUG)
+    endif()
 endif()
 
 # app.cpp's boot banner. A bug report arrives as a log file and a sentence, and without this the

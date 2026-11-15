@@ -32,7 +32,7 @@ int main(int argc,char**argv) {
     auto event=[&](Button b,ButtonAction a,ButtonMods mods=ButtonMods{}){return studio_button({b,a,mods},s,host,*engine,fs);};
     auto tap=[&](Button b){assert(event(b,ButtonAction::PRESSED));assert(event(b,ButtonAction::RELEASED));};
     Canvas metrics;size_t maxRows=0;int checked=0;
-    for(int topic=0;topic<8;++topic) {
+    for(int topic=0;topic<STUDIO_HELP_TOPICS;++topic) {
         s.studioTab=topic;s.studioRow=0;s.studioHelp=false;s.studioHelpHeldButtons=0;
         tap(Button::SELECT);assert(s.studioHelp&&s.studioHelpTopic==topic&&s.studioHelpPage==STUDIO_HELP_QUICK);
         const auto quick=studio_help_quick_content(s);
@@ -49,7 +49,7 @@ int main(int argc,char**argv) {
         s.studioHelpPage=0;tap(Button::DPAD_RIGHT);assert(s.studioHelpPage==1);
         tap(Button::DPAD_LEFT);assert(s.studioHelpPage==0);
         tap(Button::DPAD_LEFT);assert(s.studioHelpPage==2);
-        tap(Button::DPAD_DOWN);assert(s.studioHelpTopic==(topic+1)%8&&s.studioHelpPage==0);
+        tap(Button::DPAD_DOWN);assert(s.studioHelpTopic==(topic+1)%STUDIO_HELP_TOPICS&&s.studioHelpPage==0);
         tap(Button::DPAD_UP);assert(s.studioHelpTopic==topic);
         assert(s.studioTab==topic&&s.studioRow==0);
         tap(Button::START);assert(!host.is_playing());  // Modal help never starts hidden playback.
@@ -96,5 +96,5 @@ int main(int argc,char**argv) {
     assert(event(Button::A,ButtonAction::RELEASED));assert(songcore::serialize_project(host.project())==before);
     const auto punch=studio_help_content(s,3,1);assert(contains(punch,"L + R + Start")&&contains(punch,"B + Down")&&contains(punch,"B + Up"));
     const auto digging=studio_help_content(s,7,1);assert(contains(digging,"10 ms")&&contains(digging,"5 s"));
-    std::printf("PASS: %d contextual pages / engine-page views, max %zu wrapped rows, all eight topics, pager/modal controls, descriptor accuracy, release swallowing, Punch restoration and unchanged project\n",checked,maxRows);
+    std::printf("PASS: %d contextual pages / engine-page views, max %zu wrapped rows, all nine topics, pager/modal controls, descriptor accuracy, release swallowing, Punch restoration and unchanged project\n",checked,maxRows);
 }

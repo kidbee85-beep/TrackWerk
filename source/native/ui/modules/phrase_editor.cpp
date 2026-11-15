@@ -1,4 +1,7 @@
+#include "ui/scene_layout.h"
 #include "ui/modules/phrase_editor.h"
+
+#include <cstdlib>
 
 #include "songcore/scales.h"
 #include "ui/helpers.h"
@@ -196,6 +199,15 @@ void PhraseEditorModule::draw(Canvas& c, int x, int y, const PhraseEditorState& 
     // Keep the fixed grid for cells. The proportional labels fit full field names in the same columns.
     rowY = y + ROW_HEIGHT + 14 + TEXT_PADDING + 1;
     const int cc = s.cursorColumn;
+    if (scene_layout(t).railLeft) {
+        const int groupX[] = {stepX - 4, noteX - 4, volX - 4, instX - 4,
+                              fx1NameX - 4, fx2NameX - 4, fx3NameX - 4, x + WIDTH - 12};
+        const int activeGroup = cc <= 3 ? cc : 4 + (cc - 4) / 2;
+        for (int i = 0; i < 7; ++i) {
+            const Argb base = i == activeGroup ? mix_rgb(t.rowEvery4th, t.rowCursor, 16) : t.rowEvery4th;
+            c.fill_rect(groupX[i], rowY - 3, groupX[i+1] - groupX[i] - 3, 18, base);
+        }
+    }
     c.draw_label("STEP", stepX, rowY, header_color(cc, 0, 0, t));
     c.draw_label("NOTE", noteX, rowY, header_color(cc, 1, 1, t));
     c.draw_label("VOL", volX, rowY, header_color(cc, 2, 2, t));
@@ -217,6 +229,12 @@ void PhraseEditorModule::draw(Canvas& c, int x, int y, const PhraseEditorState& 
         draw_row(c, x, y, i, s.phrase.steps[static_cast<size_t>(i)], s, rampCells, hopRow, stepX, noteX,
                  volX, instX, fx1NameX, fx1ValueX, fx2NameX, fx2ValueX, fx3NameX, fx3ValueX);
     }
+    // The playhead glides from step to step (draw_playhead_glide), the first one in this phrase.
+    for (const TrackPlayhead& ph : s.playheads) {
+        if (ph.phraseId != s.phrase.id || ph.step < 0) continue;
+        draw_playhead_glide(c, 0x7000000u, x, y + ROW_HEIGHT + 14 + ROW_HEIGHT, WIDTH, ROW_HEIGHT, ph.step, s.theme);
+        break;
+    }
 }
 
 void PhraseEditorModule::draw_row(Canvas& c, int x, int y, int index, const PhraseStep& step,
@@ -232,10 +250,27 @@ void PhraseEditorModule::draw_row(Canvas& c, int x, int y, int index, const Phra
     const int dataRowY = y + ROW_HEIGHT + 14 + ROW_HEIGHT + (index * ROW_HEIGHT);
 
     c.fill_rect(x, dataRowY, WIDTH, ROW_HEIGHT, row_bg_color(index, t));
+    const bool rowPlaying = std::any_of(std::begin(s.playheads), std::end(s.playheads), [&](const TrackPlayhead& ph) {
+        return ph.phraseId == s.phrase.id && ph.step == index;
+    });
+    if (rowPlaying) draw_playback_row(c, x, dataRowY, WIDTH, ROW_HEIGHT, t);
+    else {
+        // The nearest playhead in this phrase that has just left this row: its fading trail.
+        const int steps = static_cast<int>(s.phrase.steps.size());
+        int behind = 0;
+        for (const TrackPlayhead& ph : s.playheads)
+            if (ph.phraseId == s.phrase.id && ph.step >= 0) {
+                const int d = (ph.step - index + steps) % steps;
+                if (d >= 1 && d <= 2 && (behind == 0 || d < behind)) behind = d;
+            }
+        draw_playback_trail(c, x, dataRowY, WIDTH, ROW_HEIGHT, t, behind);
+    }
     draw_step_grid(c, t, t.phraseGrid, index, x, dataRowY, WIDTH, ROW_HEIGHT,
                    {noteX - 6, fx1NameX - 8, fx2NameX - 8, fx3NameX - 8});
     if (index == s.cursorRow)
-        c.fill_rect(x + 2, dataRowY + 4, 3, ROW_HEIGHT - 8, t.rowCursor);
+        // A small arrowhead, not a bar: a bar beside the step number read as the digit 1 ("I2").
+        for (int i = 0; i < 7; ++i)
+            c.fill_rect(x + 2, dataRowY + ROW_HEIGHT / 2 - 3 + i, 4 - std::abs(i - 3), 1, t.rowCursor);
 
     const int textY = dataRowY + TEXT_PADDING;
 
@@ -259,10 +294,7 @@ void PhraseEditorModule::draw_row(Canvas& c, int x, int y, int index, const Phra
     cells.cell(hex1(index), stepX, cur(0), /*is_selected=*/false, /*is_empty=*/false, stepColor);
 
     // Playback uses an arrow beside STEP; the edit cursor has a tick at the far left and a cell fill.
-    if (std::any_of(std::begin(s.playheads), std::end(s.playheads), [&](const TrackPlayhead& ph) {
-            return ph.phraseId == s.phrase.id && ph.step == index;
-        }))
-        draw_playhead(c, stepX + CHAR_W, textY, t);
+    if (rowPlaying) draw_playhead(c, stepX + CHAR_W, textY, t);
 
     // An OFF plays nothing: its V and I dim.
     const PhraseStep defaults;

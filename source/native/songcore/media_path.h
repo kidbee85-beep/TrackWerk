@@ -7,6 +7,7 @@
 
 #include <filesystem>   // resolve_case_insensitive only
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -103,6 +104,40 @@ inline bool path_is_absolute(const std::string& path) {
            pt_path_is_uri(path.c_str());
 }
 
+// A readable WAV with a "fmt " chunk and a non-empty "data" chunk inside the file. A backup must be
+// one before it may stand in for a file, or be moved anywhere: a folder, a foreign file or a broken
+// WAV under that name stays put.
+inline bool is_wav_file(const std::string& path) {
+    std::FILE* f = pt_fopen(path.c_str(), "rb");
+    if (!f) return false;
+    bool ok = false, fmt = false;
+    unsigned char h[12] = {};
+    long fileLen = -1;
+    if (std::fseek(f, 0, SEEK_END) == 0) fileLen = std::ftell(f);
+    if (fileLen >= 44 && std::fseek(f, 0, SEEK_SET) == 0 && std::fread(h, 1, 12, f) == 12 &&
+        std::memcmp(h, "RIFF", 4) == 0 && std::memcmp(h + 8, "WAVE", 4) == 0) {
+        for (int chunks = 0; chunks < 64; ++chunks) {
+            unsigned char c[8];
+            if (std::fread(c, 1, 8, f) != 8) break;
+            const unsigned long size = c[4] | (c[5] << 8) | (c[6] << 16) | (static_cast<unsigned long>(c[7]) << 24);
+            const long at = std::ftell(f);
+            if (at < 0 || size > static_cast<unsigned long>(fileLen - at)) break;   // runs past the end
+            if (std::memcmp(c, "fmt ", 4) == 0) fmt = size >= 16;
+            if (std::memcmp(c, "data", 4) == 0) { ok = fmt && size > 0; break; }
+            if (std::fseek(f, static_cast<long>(size + (size & 1)), SEEK_CUR) != 0) break;
+        }
+    }
+    std::fclose(f);
+    return ok;
+}
+
+// A media file is there — or recoverably there: an interrupted save can leave the original only at
+// "<path>.ptbak", which the load puts back (recover_interrupted_save). The resolution must find it
+// where it would have found the file, not look elsewhere — but only a usable WAV counts.
+inline bool media_present(const std::string& path) {
+    return path_exists(path) || is_wav_file(path + ".ptbak");
+}
+
 // Absolute wins; relative resolves against base_dir. A missing absolute path from another install is
 // re-rooted onto `app_root` (empty: never). The stored string is never rewritten.
 inline std::string resolve_media_path(const std::string& path, const std::string& base_dir,
@@ -113,7 +148,7 @@ inline std::string resolve_media_path(const std::string& path, const std::string
     std::string resolved = (!absolute && !base_dir.empty()) ? base_dir + "/" + path : path;
 
     // Absolute wins — unless it points nowhere here and has an app-tree tail.
-    if (absolute && !app_root.empty() && !path_exists(resolved)) {
+    if (absolute && !app_root.empty() && !media_present(resolved)) {
         const std::string tail = app_root_relative_tail(resolved);
         if (!tail.empty()) resolved = app_root + "/" + tail;
     }
@@ -155,7 +190,7 @@ struct MediaRoots {
 // project, under the app folder, then in the song's Songs/ folder.
 inline std::string resolve_media_path(const std::string& path, const MediaRoots& roots) {
     const std::string first = resolve_media_path(path, roots.baseDir, roots.appRoot);
-    if (path.empty() || path_exists(first)) return first;
+    if (path.empty() || media_present(first)) return first;
 
     const std::string rel = collected_media_path(path);
     std::vector<std::string> candidates;
@@ -167,7 +202,7 @@ inline std::string resolve_media_path(const std::string& path, const MediaRoots&
 
     for (const std::string& c : candidates) {
         const std::string found = resolve_case_insensitive(c);
-        if (path_exists(found)) return found;
+        if (media_present(found)) return found;
     }
     return first;   // the failure names the path as stored
 }

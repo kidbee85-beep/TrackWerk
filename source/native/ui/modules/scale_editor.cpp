@@ -111,6 +111,47 @@ void ScaleModule::draw(Canvas& c, int x, int y, const ScaleState& s) const {
         draw_cell(c, isOn ? "ON" : "--", valueX, rowY, isCursor, /*is_selected=*/false,
                   /*is_empty=*/!isOn, t.textValue, t);
     }
+
+    // ── One octave of keys, C to B: the scale's notes filled, the key's root marked, sounding notes
+    //    in the playhead colour, the cursor's degree outlined. The shape reads at a glance. ─────────
+    {
+        constexpr int kWhiteW = 34, kWhiteH = 96, kBlackW = 20, kBlackH = 58;
+        const int kbX = x + 228, kbY = columnHeaderY;
+        const int whitePc[7] = {0, 2, 4, 5, 7, 9, 11};
+        const int blackPc[5] = {1, 3, 6, 8, 10}, blackAfter[5] = {0, 1, 3, 4, 5};
+        const int cursorDegree = s.cursorRow > SCALE_KEY_ROW ? s.cursorRow - SCALE_KEY_ROW - 1 : -1;
+        const int cursorPc = cursorDegree >= 0 ? degree_pitch_class(s.key, cursorDegree) : -1;
+        // The key as the rows read it: a loaded project may carry any int (25, −3), so mod 12 first.
+        const int root = songcore::scale_mod12(s.key);
+        auto inScale = [&](int pc) {
+            return scale.enabled[static_cast<size_t>(songcore::scale_mod12(pc - root))] != 0;
+        };
+        auto sounding = [&](int pc) { return ((s.soundingMask >> pc) & 1u) != 0; };
+        auto mark = [&](int pc, int kx, int ky, int kw, int kh, Argb ink) {
+            if (pc == root) c.fill_rect(kx + kw / 2 - 3, ky + kh - 12, 6, 6, ink);   // the root
+            if (pc == cursorPc) c.stroke_rect(kx - 1, ky - 1, kw + 2, kh + 2, t.rowCursor);
+        };
+        for (int i = 0; i < 7; ++i) {
+            const int pc = whitePc[i], kx = kbX + i * kWhiteW;
+            const Argb fill = sounding(pc) ? t.textPlayhead
+                            : inScale(pc)  ? with_alpha(t.textValue, .85f)
+                                           : with_alpha(t.textEmpty, .22f);
+            c.fill_rect(kx, kbY, kWhiteW - 2, kWhiteH, fill);
+            mark(pc, kx, kbY, kWhiteW - 2, kWhiteH, t.background);
+        }
+        for (int i = 0; i < 5; ++i) {
+            const int pc = blackPc[i], kx = kbX + (blackAfter[i] + 1) * kWhiteW - kBlackW / 2 - 1;
+            c.fill_rect(kx - 2, kbY, kBlackW + 4, kBlackH + 2, t.background);   // the gap around it
+            const Argb fill = sounding(pc) ? t.textPlayhead
+                            : inScale(pc)  ? t.rowCursor
+                                           : with_alpha(t.textEmpty, .45f);
+            c.fill_rect(kx, kbY, kBlackW, kBlackH, fill);
+            mark(pc, kx, kbY, kBlackW, kBlackH, t.background);
+        }
+        c.draw_label(std::string("ROOT ") + pitch_class_name(root) + "  /  " +
+                         std::to_string(songcore::scale_degree_count(scale)) + " NOTES",
+                     kbX, kbY + kWhiteH + 8, t.textParam, 11);
+    }
 }
 
 CursorContext ScaleModule::cursor_context(const ScaleState& s) const {

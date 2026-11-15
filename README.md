@@ -1,36 +1,40 @@
-# TrackWerk
+# TrackWerk 1.1
 
-**An open-source tracker and sample studio for Android and Linux handhelds.**
+**Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-TrackWerk brings sequencing, synthesis, sample editing, live performance and sound discovery to a button-driven handheld studio. Kid Bunka and contributors develop TrackWerk as an independent fork of [PocketTracker by conanizer and contributors](https://github.com/conanizer/pockettracker). The upstream tracker, sampler, editor, mixer and button workflow are the foundation.
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch the walkthrough](https://kidbee85-beep.github.io/TrackWerk/#film) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated field guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.0.0) · [Watch the demonstration](https://kidbee85-beep.github.io/TrackWerk/#film) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+![TrackWerk 1.1 / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
 
-![TrackWerk’s native Chain editor with Dots guides](docs/site/assets/images/chain-dots-native.png)
+## A demo party in your pocket
 
-## Write, sample and perform
+Write sixteen steps, join phrases into chains, then arrange them over eight tracks. Find a recording, chop a motif, perform a transition and resample the result. TrackWerk connects the tracker to a sampler and a synth laboratory, with a workflow built for buttons.
 
-- Arrange across eight tracker tracks. Edit Chain and Phrase with independent Off, Beats, Grid and Dots settings.
-- Discover archive recordings and live radio by source and genre. On supported connected profiles, replay recent radio audio and save an excerpt as WAV.
-- Tap SELECT for help specific to the screen or tool. Radio playback continues while you read.
-- Preview long WAV files from storage, select a range and edit the resulting sample with slicing, fades, declicking and gain tools.
-- Play engine-specific synths, Gravity and Granular instruments. Build grooves from selected sounds in Drumlab, perform momentary Punch effects and use resampling in the arrangement.
-- Shape the mix with categorized effects and mastering presets, headroom controls and stem or mix export.
+- **40 complete Scenes / 10 families.** Terminal, BBS, DOS, raster and vector looks meet Daylight and Hardware. Choose among 54 palettes and independent typefaces. Cursor glide, soft scrolling and animated controls are optional; Motion can be disabled.
+- **Sampling with context.** Browse archive recordings on supported connected profiles, preview a source, set a range and open the exported result in the Sample Editor. Keep creator, source and licence information with your material.
+- **Studio synthesis.** 123 models with sixteen variation positions, including SID Chip, DCO Poly, FM SysEx banks, spectral and granular models. Load DX7 voice banks and save the selected FM voice with the song.
+- **Ideas you can edit.** Drumlab suggests rhythms from your sounds. Harmony supplies 48 progression templates, locks and phrase output; its preview uses loaded samples, SoundFonts or external MIDI.
+- **Performance with a way home.** Eight Punch banks, internal mix recording, track mute/solo, effects, mastering, mix and stem export. Hold a momentary move, release it, then record the good accident.
+- **A proper handbook.** Illustrated English workflows, all forty Scenes, detailed tracker commands and practical installation/update instructions. The embedded 7:15 film includes native audio, English captions and chapter jumps.
 
-## Devices and updates
+## Choose your device
 
-| Device | Profile | Online sources |
+| Device | Package / operating system | Notes |
 | --- | --- | --- |
-| Trimui Brick | KNULLI native port | Wi-Fi |
-| Miyoo Mini Plus | Onion online build | Wi-Fi |
-| Miyoo Mini | Onion offline build | Local audio |
-| Powkiddy RGB20S | AmberELEC ARM64 port | Requires a supported external adapter |
-| Android handhelds | Android 8+ APK, ARM64, ARMv7 and x86_64 | Device networking |
+| TrimUI Brick | KNULLI | Native ARM64 profile |
+| Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.1 |
+| Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
+| Powkiddy RGB20S | AmberELEC | Games-card package, preserving the existing data paths |
+| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 101003; same app ID and signer as 1.0 |
 
-Use the Brick program updater or the shared Miyoo Mini and Mini Plus updater for an existing installation. The RGB20S port includes its own AmberELEC update instructions. Keep your data folder in place. For Android, use a package that matches your installed app identity and signing key. A migration from the earlier app identity starts with an export of app-private projects and samples. Use the [illustrated field guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) for each installation route.
+Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises 25 verified predecessors, including the installed b3aecfa development build; a menu-name helper also updates legacy Apps/Ports metadata. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
 
-Audio input, display and controller behaviour depend on the device. Check the release notes for tested hardware and limitations. For audio you plan to share, check the source’s reuse terms.
+The factory library remains the same 2,432-preset collection; its unchanged 1.0 archive is included in the 1.1 release. Five public demo projects use internal synth engines. Sample-based soundtrack compositions are mixed audio; commercial raw sample-library files are excluded.
 
-## Source and credits
+Networking, MIDI and external audio inputs depend on the platform and hardware. YouTube is off by default and requires an explicit opt-in. Check the actual recording's reuse terms before releasing sampled music. There is no universal polyphony or CPU claim: the workload depends on the project and device.
 
-TrackWerk is distributed under GPL-3.0-or-later. See the [build instructions](BUILD-TRACKWERK.txt) and [application source](source/). The release includes the matching source ZIP, component licenses and exact Miyoo SDL source. Selected DSP work is based on open Mutable Instruments code by Emilie Gillet and contributors. See the [credits and licenses](https://kidbee85-beep.github.io/TrackWerk/credits.html).
+## Source, builds and credits
+
+TrackWerk is a GPL-3.0-or-later fork of [PocketTracker by conanizer and contributors](https://github.com/conanizer/pockettracker). The upstream tracker, sample engine and button workflow are its foundation. See [BUILD-TRACKWERK.txt](BUILD-TRACKWERK.txt), [source](source/) and the [credits](https://kidbee85-beep.github.io/TrackWerk/credits.html). The release provides complete corresponding application source, licences and the exact Miyoo SDL source archive.
+
+Selected DSP work uses open Mutable Instruments code by Emilie Gillet and contributors, alongside the other components listed in source/CREDITS.md and source/docs/licenses. Interface captures are genuine native renders; the film's navigation is scripted and device frames are illustrations. Soundtrack production credits identify the recordings and sample libraries used.

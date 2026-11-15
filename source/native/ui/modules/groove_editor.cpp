@@ -1,5 +1,7 @@
 #include "ui/modules/groove_editor.h"
 
+#include <algorithm>
+
 #include "songcore/groove_bank.h"
 #include "songcore/timing.h"
 #include "ui/helpers.h"
@@ -119,6 +121,34 @@ void GrooveModule::draw(Canvas& c, int x, int y, const GrooveState& s) const {
                 FONT_SCALE);
     draw_cursor_cell(c, std::to_string(songcore::groove_ticks_per_step(groove) * 4),
                      x + GROOVE_VALUE_X, ppqY, here(GROOVE_PANEL_PPQ, 0), t.textValue, t);
+
+    // ── The groove as time: one bar of 16 steps, each block as long as its tics, over a straight
+    //    ruler. Swing shows as blocks drifting off the ruler; the cursor's step is lit. ────────────
+    if (activeLen > 0) {
+        const int barX = x + GROOVE_PANEL_X, barW = WIDTH - GROOVE_PANEL_X - 20;
+        const int barY = panelY(GROOVE_PANEL_PPQ) + 3 * ROW_HEIGHT;
+        int total = 0;
+        for (int i = 0; i < 16; ++i) total += std::max(groove.steps[static_cast<size_t>(i % activeLen)], 0);
+        if (total > 0) {
+            c.draw_label("1 BAR  /  16 STEPS", barX, barY - 18, t.textParam, 11);
+            int acc = 0;
+            for (int i = 0; i < 16; ++i) {
+                const int step = i % activeLen;
+                const int ticks = std::max(groove.steps[static_cast<size_t>(step)], 0);
+                const int l = barX + (acc * barW) / total, r = barX + ((acc + ticks) * barW) / total;
+                acc += ticks;
+                if (r - l < 2) continue;
+                const bool lit = onGrid && step == s.cursorRow;
+                const Argb ink = lit ? t.rowCursor : with_alpha(t.textValue, step % 2 ? .35f : .6f);
+                c.fill_rect(l, barY, r - l - 1, 16, ink);
+            }
+            for (int i = 0; i <= 16; ++i) {   // the straight ruler: quarter notes taller
+                const int tx = barX + (i * (barW - 1)) / 16;
+                const int h = i % 4 == 0 ? 8 : 4;
+                c.fill_rect(tx, barY + 20, 1, h, with_alpha(t.textParam, i % 4 == 0 ? .8f : .45f));
+            }
+        }
+    }
 }
 
 CursorContext GrooveModule::cursor_context(const GrooveState& s) const {

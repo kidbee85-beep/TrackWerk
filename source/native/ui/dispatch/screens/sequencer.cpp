@@ -232,6 +232,24 @@ std::optional<InputDispatcher::PhraseCheckpoint> InputDispatcher::phrase_checkpo
     return PhraseCheckpoint{s_.project, s_.currentPhrase, *rows};
 }
 
+void InputDispatcher::apply_harmony_phrase() {
+    auto& harmony = s_.harmony;
+    harmony.write = false;
+    const auto checkpoint = phrase_checkpoint();
+    if (!checkpoint || host_.is_playing()) {
+        harmony.status = "Open Harmony from a stopped, empty Phrase.";
+        return;
+    }
+    auto& phrase = host_.edit_project().phrases[checkpoint->phraseId];
+    if (!harmony_fill_phrase(harmony, phrase)) {
+        harmony.status = "This phrase contains edits. Choose an empty phrase.";
+        return;
+    }
+    mark_modified();
+    record_phrase_edit(checkpoint);
+    harmony.status = "Phrase written. B returns to it; Select + Up undoes.";
+}
+
 void InputDispatcher::record_phrase_edit(const std::optional<PhraseCheckpoint>& checkpoint) {
     if (!checkpoint || checkpoint->project != s_.project) return;
     const auto& phrases = host_.project().phrases;

@@ -1,4 +1,5 @@
 #include "ui/drumlab.h"
+#include "ui/drumlab_map.h"
 #include "audio-engine.h"
 #include "songcore/host.h"
 #include "songcore/effects.h"
@@ -15,17 +16,21 @@
 
 namespace pt::ui {
 namespace {
-constexpr const char* genres[] = {"Hip Hop", "Boom Bap", "Lo-Fi", "Drum & Bass", "House", "Techno", "Dub", "Breakbeat", "Euclidean"};
+constexpr const char* genres[] = {"Hip Hop", "Boom Bap", "Lo-Fi", "Drum & Bass", "House", "Techno", "Dub", "Breakbeat", "Euclidean", "Map"};
 constexpr int genreCount = static_cast<int>(std::size(genres));
 constexpr const char* roles[] = {"Kick", "Snare", "Closed Hat", "Open Hat", "Perc 1", "Perc 2", "Tom", "FX"};
 constexpr const char* shortRoles[] = {"KICK", "SNR", "CH", "OH", "P1", "P2", "TOM", "FX"};
 constexpr const char* settings[] = {"Style", "Sources", "Length", "Density", "Variation", "Swing", "Humanize", "Fill", "Seed"};
+// Map style: rows 3, 4 and 7 become the map position and Chaos (density lives on each lane).
+constexpr const char* mapSettings[] = {"Style", "Sources", "Length", "Map X", "Map Y", "Swing", "Humanize", "Chaos", "Seed"};
 constexpr int euclideanSettings[] = {0, 1, 2, 5, 6, 8};
 constexpr int laneVelocity[] = {108, 112, 84, 90, 87, 82, 99, 90};
 
 enum LaneColumn { SLOT, LOCK, PERIOD, HITS, ROTATE };
 
 bool euclidean(const DrumLabState& s) { return s.genre == DRUMLAB_EUCLIDEAN; }
+bool map_style(const DrumLabState& s) { return s.genre == DRUMLAB_MAP; }
+const char* setting_label(const DrumLabState& s, int row) { return (map_style(s) ? mapSettings : settings)[std::clamp(row, 0, 8)]; }
 
 bool hidden_setting(const DrumLabState& s, int row) {
     return euclidean(s) && (row == 3 || row == 4 || row == 7);
@@ -67,8 +72,10 @@ struct Random {
 bool valid_config(const DrumLabState& s) {
     if (s.genre < 0 || s.genre >= genreCount || s.activeLanes < 5 || s.activeLanes > 8 ||
         (s.steps != 16 && s.steps != 32 && s.steps != 64)) return false;
-    for (int value : {s.density, s.variation, s.swing, s.humanize, s.fill})
+    for (int value : {s.density, s.variation, s.swing, s.humanize, s.fill, s.mapX, s.mapY, s.chaos})
         if (value < 0 || value > 100) return false;
+    if (map_style(s)) for (int i = 0; i < s.activeLanes; ++i)
+        if (s.lanes[i].mapDensity < 0 || s.lanes[i].mapDensity > 100) return false;
     if (euclidean(s)) for (int i = 0; i < s.activeLanes; ++i) {
         const auto& lane = s.lanes[i];
         if (lane.period < 1 || lane.period > s.steps || lane.hits < 0 || lane.hits > lane.period ||
@@ -147,11 +154,11 @@ std::string setting_value(const DrumLabState& s, int row) {
         case 0: return drumlab_genre_name(s.genre);
         case 1: return std::to_string(s.activeLanes) + " lanes";
         case 2: return std::to_string(s.steps) + " steps";
-        case 3: return std::to_string(s.density) + "%";
-        case 4: return std::to_string(s.variation) + "%";
+        case 3: return std::to_string(map_style(s) ? s.mapX : s.density) + "%";
+        case 4: return std::to_string(map_style(s) ? s.mapY : s.variation) + "%";
         case 5: return std::to_string(s.swing) + "%";
         case 6: return std::to_string(s.humanize) + "%";
-        case 7: return std::to_string(s.fill) + "%";
+        case 7: return std::to_string(map_style(s) ? s.chaos : s.fill) + "%";
         default: return hex(static_cast<int>(s.seed), 8);
     }
 }
@@ -370,10 +377,32 @@ bool drumlab_generate(DrumLabState& s) {
     if (s.previewRunning) { s.status = "Stop Preview before generating a new pattern."; return false; }
     auto generated = s.grid;
     const bool isEuclidean = euclidean(s);
+    const bool isMap = map_style(s);
     for (int lane = 0; lane < 8; ++lane) {
         if (s.generated && s.lanes[lane].locked) continue;
         generated[lane] = {};
         if (lane >= s.activeLanes) continue;
+        if (isMap) {
+            // Map: the blended level of each step against the lane's density threshold. Chaos moves
+            // every level by a seeded amount, differently in every bar, so longer patterns vary.
+            Random random(s.seed ^ (0x9e3779b9u * static_cast<uint32_t>(lane + 1)) ^ 0x27d4eb2fu);
+            const int density = s.lanes[lane].mapDensity, limit = drum_map::threshold(density);
+            const int spread = s.chaos * 96 / 100;
+            for (int step = 0; step < s.steps; ++step) {
+                const int position = step % 16;
+                const int level = drum_map::level(s.mapX, s.mapY, lane, position);
+                const int jitter = random.below(2 * spread + 1) - spread;
+                const int humanVelocity = random.below(2 * (s.humanize / 4) + 1) - s.humanize / 4;
+                const int maxDelay = s.humanize ? 1 + (s.humanize - 1) * 3 / 100 : 0;
+                const int humanDelay = random.below(maxDelay + 1);
+                if (density == 0 || level + jitter <= limit) continue;
+                // Core steps accented, ghost-level steps soft, the rest as the lane plays them.
+                const int shade = level >= 200 ? 10 : level >= 140 ? 0 : level >= 80 ? -18 : -28;
+                generated[lane][step].velocity = static_cast<uint8_t>(std::clamp(laneVelocity[lane] + shade + humanVelocity, 24, 127));
+                generated[lane][step].delayTicks = static_cast<uint8_t>(std::clamp((step % 2 ? s.swing * 6 / 100 : 0) + humanDelay, 0, songcore::TICS_PER_STEP - 1));
+            }
+            continue;
+        }
         Random random(s.seed ^ (0x9e3779b9u * static_cast<uint32_t>(lane + 1)) ^ (0x85ebca6bu * static_cast<uint32_t>(s.genre + 1)));
         for (int step = 0; step < s.steps; ++step) {
             const int position = step % 16;
@@ -579,7 +608,7 @@ void drumlab_tick(DrumLabState& s, songcore::SongcoreHost& host, AudioEngine& en
 }
 
 bool drumlab_button(const ButtonEvent& e, DrumLabState& s, songcore::SongcoreHost& host, AudioEngine& engine) {
-    const int lastLaneColumn = euclidean(s) ? ROTATE : LOCK;
+    const int lastLaneColumn = euclidean(s) ? ROTATE : map_style(s) ? PERIOD : LOCK;   // Map: PERIOD shows Density
     s.row = std::clamp(s.row, 0, DRUMLAB_ROWS - 1);
     s.col = std::clamp(s.col, 0, lastLaneColumn);
     s.footerAction = s.row >= 17 ? s.row - 17 : std::clamp(s.footerAction, 0, 2);
@@ -657,6 +686,7 @@ bool drumlab_button(const ButtonEvent& e, DrumLabState& s, songcore::SongcoreHos
     }
     else if (s.row >= 3 && s.row <= 7) {
         int* values[] = {&s.density, &s.variation, &s.swing, &s.humanize, &s.fill};
+        if (map_style(s)) { values[0] = &s.mapX; values[1] = &s.mapY; values[4] = &s.chaos; }
         *values[s.row - 3] = std::clamp(*values[s.row - 3] + delta, 0, 100);
     } else if (s.row == 8) s.seed += static_cast<uint32_t>(delta);
     else if (s.row >= 9 && s.row <= 16) {
@@ -666,7 +696,13 @@ bool drumlab_button(const ButtonEvent& e, DrumLabState& s, songcore::SongcoreHos
             return true;
         }
         if (s.col == LOCK) { lane.locked = !lane.locked; return true; }
-        if (lane.locked) { s.status = "Unlock the lane to edit its Euclidean rhythm."; return true; }
+        if (lane.locked) { s.status = map_style(s) ? "Unlock the lane to change its density." : "Unlock the lane to edit its Euclidean rhythm."; return true; }
+        if (map_style(s)) {
+            const int previous = lane.mapDensity;
+            lane.mapDensity = std::clamp(lane.mapDensity + delta, 0, 100);
+            if (lane.mapDensity == previous) return true;
+            s.dirty = true; s.status = "Settings changed. Generate updates unlocked lanes."; return true;
+        }
         const int change = (positive ? 1 : -1) * (coarse ? 4 : 1);
         const std::array previous{lane.period, lane.hits, lane.rotation};
         if (s.col == PERIOD) lane.period += change;
@@ -685,12 +721,22 @@ void drumlab_draw(Canvas& c, const DrumLabState& s, const Theme& t, const songco
     const Argb panel = t.rowEvery4th, accent = t.rowCursor, muted = t.textParam, ink = t.textValue;
     const bool assignments = s.row >= 9 && s.row <= 16;
     const bool editGrid = s.gridFocused && assignments && !s.showHelp;
-    const bool editRhythm = !editGrid && euclidean(s) && assignments && !s.showHelp;
+    const bool editRhythm = !editGrid && (euclidean(s) || map_style(s)) && assignments && !s.showHelp;
     c.panel_rect(18,104,604,44,panel,with_alpha(muted,.2f),6);
     c.draw_label("DRUM LAB",30,111,accent,12);
     if (editRhythm) {
         const int index = s.row - 9;
         const auto& lane = s.lanes[index];
+        if (map_style(s)) {
+            c.draw_label(std::string("Map / ") + roles[index],30,127,ink,12);
+            const int x = 278;
+            const bool selected = s.col == PERIOD;
+            if (selected) c.panel_rect(x,109,107,34,with_alpha(accent,.14f),accent,4);
+            c.draw_label("DENSITY",x+10,110,muted,12);
+            c.draw_label(std::to_string(lane.mapDensity) + "%",x+10,126,selected?accent:ink,14);
+            c.draw_label("Higher adds hits: core, then accents,",400,112,muted,12);
+            c.draw_label("ghost notes, then the whole grid.",400,127,muted,12);
+        } else {
         c.draw_label(std::string("Euclidean / ") + roles[index],30,127,ink,12);
         constexpr const char* fields[] = {"PERIOD", "HITS", "ROTATE"};
         const int values[] = {lane.period, lane.hits, lane.rotation};
@@ -701,17 +747,28 @@ void drumlab_draw(Canvas& c, const DrumLabState& s, const Theme& t, const songco
             c.draw_label(fields[i],x+10,110,muted,12);
             c.draw_label(std::to_string(values[i]),x+10,126,selected?accent:ink,14);
         }
+        }
     } else {
         c.draw_label(drumlab_genre_name(s.genre),30,127,ink,12);
         const std::string summary = std::to_string(std::clamp(s.activeLanes,5,8)) + " sources / " + std::to_string(s.steps) + " steps / " + std::to_string(drumlab_hit_count(s)) + " hits";
         c.draw_label(summary,260,120,muted,12);
         if (s.previewRunning) c.draw_label("LOOPING",540,120,t.textPlayhead,12);
+        else if (map_style(s)) {
+            // The map: 3 × 3 nodes, the position as a dot (straight → broken, sparse → busy upwards).
+            const int mx = 556, my = 108, size = 36;
+            c.panel_rect(mx,my,size,size,recess(t.background,panel,.7f),with_alpha(muted,.35f),3);
+            for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j)
+                c.fill_rect(mx+3+i*15,my+size-6-j*15,2,2,with_alpha(muted,.6f));
+            const int px = mx+3+s.mapX*30/100, py = my+size-6-s.mapY*30/100;
+            c.fill_rect(px-2,py-2,6,6,accent);
+        }
     }
     if (s.showHelp) {
         c.panel_rect(18,158,604,282,panel,with_alpha(muted,.2f),7);
         const char* lines[] = {"Assign 5-8 sample or synth slots already loaded in INSTRUMENT.",
             "A + arrows edits a setting. Up / Down chooses the next field.",
             euclidean(s)?"Left / Right: Slot, Lock, Period, Hits or Rotate on the selected lane.":
+            map_style(s)?"Map X / Y moves through the rhythm map. Left / Right: Slot, Lock, Density.":
                          "Left / Right selects SLOT / LOCK or the bottom action buttons.",
             "Locks preserve a lane's triggers, velocities and timing on Generate.",
             "Generate a pattern. A on a lane's SLOT opens Step Edit.",
@@ -730,7 +787,7 @@ void drumlab_draw(Canvas& c, const DrumLabState& s, const Theme& t, const songco
         const int row = assignments ? i+9 : euclidean(s) ? euclideanSettings[i] : i;
         const int y = 190+i*(assignments?25:euclidean(s)?29:22);
         const bool selected = s.row==row;
-        if(selected)c.panel_rect(25,y-2,194,23,darken(accent,.16f),accent,3);
+        if(selected){c.panel_rect(25,y-2,194,23,recess(t.background,accent,.16f),accent,3);c.mark_cursor(25,y-2,194,23);}
         if(assignments){
             const bool active=i<std::clamp(s.activeLanes,5,8);
             c.draw_label(shortRoles[i],31,y+2,active?ink:muted,12);
@@ -740,12 +797,12 @@ void drumlab_draw(Canvas& c, const DrumLabState& s, const Theme& t, const songco
             c.draw_label(Canvas::clip_label(name,60,12),111,y+2,muted,12);
             c.draw_label(s.lanes[i].locked?"LOCK":"free",180,y+2,selected&&s.col==LOCK?accent:muted,12);
         }else{
-            c.draw_label(settings[row],31,y+2,selected?ink:muted,12);
+            c.draw_label(setting_label(s,row),31,y+2,selected?ink:muted,12);
             const std::string text=Canvas::clip_label(setting_value(s,row),109,12);
             c.draw_label(text,212-Canvas::label_width(text,12),y+2,selected?accent:ink,12);
         }
     }
-    c.panel_rect(236,158,386,242,darken(panel,.78f),with_alpha(muted,.18f),6);
+    c.panel_rect(236,158,386,242,recess(t.background,panel,.78f),with_alpha(muted,.18f),6);
     const int pages=std::max(1,std::clamp(s.steps,16,64)/16), page=std::clamp(s.gridPage,0,pages-1);
     c.draw_label("STEP GRID",247,168,accent,12);
     c.draw_label("BAR "+std::to_string(page+1)+" / "+std::to_string(pages),520,168,muted,12);
@@ -759,16 +816,16 @@ void drumlab_draw(Canvas& c, const DrumLabState& s, const Theme& t, const songco
         const bool focusedLane=editGrid&&s.row==lane+9;
         const int y=gridY+lane*cellH+12;
         if(focusedLane)c.fill_rect(244,y-1,348,18,with_alpha(accent,.09f));
-        c.draw_label(shortRoles[lane],247,y+1,focusedLane?ink:active?muted:darken(muted,.4f),12);
+        c.draw_label(shortRoles[lane],247,y+1,focusedLane?ink:active?muted:recess(t.background,muted,.4f),12);
         for(int step=0;step<16;++step){
             const auto& hit=s.grid[lane][page*16+step];
             const bool on=active&&s.generated&&hit.velocity>0;
             const bool focused=focusedLane&&s.gridStep==page*16+step;
             const int x=gridX+step*cellW;
-            const Argb base=on?darken(accent,.38f+.62f*hit.velocity/127.f):with_alpha(muted,step%4==0?.15f:.07f);
+            const Argb base=on?recess(t.background,accent,.38f+.62f*hit.velocity/127.f):with_alpha(muted,step%4==0?.15f:.07f);
             c.fill_rect(x+2,y+1,14,12,base);
             if(on&&hit.delayTicks)c.fill_rect(x+3,y+13,std::min(12,static_cast<int>(hit.delayTicks)),1,t.textTitle);
-            if(focused)c.stroke_rect(x,y-2,18,19,accent,2);
+            if(focused){c.stroke_rect(x,y-2,18,19,accent,2);c.mark_cursor(x,y-2,18,19);}   // glides (ui/layout.cpp)
         }
     }
     if (editGrid) {

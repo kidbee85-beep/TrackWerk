@@ -1,6 +1,9 @@
 #include "ui/modules/modulation.h"
 
 #include "ui/helpers.h"
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
 
 namespace pt::ui {
 
@@ -86,6 +89,63 @@ std::string mod_row_value(const ModSlot& slot, int row_index, int slot_index) {
     }
 }
 
+// ─── The shape preview ───────────────────────────────────────────────────────────────────────────
+// What the slot does over time, from its own values: an envelope (attack, hold or decay/sustain,
+// release) or two cycles of the LFO's shape. Drawn only; the engine's curves are its own.
+static void draw_mod_shape(Canvas& c, int x, int y, int w, int h, const ModSlot& slot, Argb ink, const Theme& t) {
+    c.fill_rect(x, y, w, h, with_alpha(t.background, .6f));
+    c.stroke_rect(x, y, w, h, with_alpha(t.textParam, .3f));
+    const int ix = x + 3, iw = w - 6, iy = y + 3, ih = h - 6;
+    float pts[64];
+    const int n = 64;
+    if (slot.type == ModType::LFO) {
+        uint32_t seed = 0x5EEDu;
+        float walk = .5f;
+        for (int i = 0; i < n; ++i) {
+            const float ph = std::fmod(2.f * float(i) / float(n - 1), 1.f);   // two cycles
+            float v = 0.f;
+            switch (slot.oscShape) {
+                case 0: v = ph < .5f ? ph * 2.f : 2.f - ph * 2.f; break;                    // TRI
+                case 1: v = .5f + .5f * std::sin(6.2831853f * ph); break;                  // SIN
+                case 2: v = ph; break;                                                     // RMP+
+                case 3: v = 1.f - ph; break;                                               // RMP-
+                case 4: v = ph * ph * ph; break;                                           // EXP+
+                case 5: v = (1.f - ph) * (1.f - ph) * (1.f - ph); break;                   // EXP-
+                case 6: v = ph < .5f ? 1.f : 0.f; break;                                   // SQU+
+                case 7: v = ph < .5f ? 0.f : 1.f; break;                                   // SQU-
+                case 8: if (i % 8 == 0) { seed = seed * 1664525u + 1013904223u; } v = float(seed >> 8 & 0xFF) / 255.f; break;   // RND
+                default: seed = seed * 1664525u + 1013904223u;                              // DRK
+                         walk = std::clamp(walk + (float(seed >> 8 & 0xFF) / 255.f - .5f) * .25f, 0.f, 1.f); v = walk; break;
+            }
+            pts[i] = v;
+        }
+    } else {
+        // Times in proportion to their bytes (+1, so a zero still shows); ADSR holds its sustain
+        // for a fixed stretch before the release.
+        const bool adsr = slot.type == ModType::ADSR || slot.type == ModType::TRIG;   // TRIG plays as ADSR
+        const float a = slot.attack + 1.f, mid = (adsr ? slot.decay : slot.hold) + 1.f;
+        const float d = (adsr ? 64.f : slot.decay + 1.f), r = adsr ? slot.release + 1.f : 0.f;
+        const float sus = adsr ? slot.sustain / 255.f : 1.f;
+        const float total = a + mid + d + r;
+        for (int i = 0; i < n; ++i) {
+            const float tt = total * float(i) / float(n - 1);
+            float v;
+            if (tt < a) v = tt / a;
+            else if (tt < a + mid) v = adsr ? 1.f - (1.f - sus) * (tt - a) / mid : 1.f;
+            else if (tt < a + mid + d) v = adsr ? sus : 1.f - (tt - a - mid) / d;
+            else v = adsr ? sus * (1.f - (tt - a - mid - d) / std::max(r, 1.f)) : 0.f;
+            pts[i] = std::clamp(v, 0.f, 1.f);
+        }
+    }
+    int px = ix, py = iy + ih - int(pts[0] * float(ih));
+    for (int i = 1; i < n; ++i) {
+        const int qx = ix + (i * iw) / (n - 1), qy = iy + ih - int(pts[i] * float(ih));
+        for (int fx = px; fx < qx; ++fx) c.fill_rect(fx, std::min(py, qy), 1, iy + ih - std::min(py, qy), with_alpha(ink, .12f));
+        c.line(px, py, qx, qy, ink);
+        px = qx; py = qy;
+    }
+}
+
 // ─── Draw ────────────────────────────────────────────────────────────────────────────────────────
 
 void ModulationModule::draw(Canvas& c, int x, int y, const ModulationState& s) const {
@@ -136,13 +196,27 @@ void ModulationModule::draw(Canvas& c, int x, int y, const ModulationState& s) c
                 // The cursor is the value cell alone; the label says which row and which slot.
                 const bool onCell = isCursorRow && activePair && (s.cursorSide == side);
 
-                c.draw_text(label, x + nameX, textY, onCell ? cursor_mark_ink(t) : t.textParam,
-                            CHAR_SPACING, FONT_SCALE);
+                // A Scene's wide face would run label into value ("TYPEAHD"): the narrower label face.
+                if (t.sceneChrome > 0)
+                    c.draw_label(label, x + nameX, textY, onCell ? cursor_mark_ink(t) : t.textParam, 12);
+                else
+                    c.draw_text(label, x + nameX, textY, onCell ? cursor_mark_ink(t) : t.textParam,
+                                CHAR_SPACING, FONT_SCALE);
                 draw_cursor_cell(c, value, x + valX, textY, onCell, t.textValue, t);
             };
 
             draw_side(left,  leftRows,  0, NAME_X1, VAL_X1);
             draw_side(right, rightRows, 1, NAME_X2, VAL_X2);
+        }
+
+        // The shape each slot makes, a strip on its header line (the editor shows ~500 px, so the
+        // right slot has no room beside its rows): AHD, DRUM, TRIG, ADSR and LFO.
+        for (int side = 0; side < 2; ++side) {
+            const ModSlot& slot = side == 0 ? left : right;
+            if ((side == 0 ? leftRows : rightRows) < 6) continue;
+            const bool active = pair == s.cursorPair && s.cursorSide == side;
+            draw_mod_shape(c, x + (side == 0 ? NAME_X1 : NAME_X2) + 80, pairTopY - 2, 90, ROW_HEIGHT - 2,
+                           slot, active ? t.rowCursor : with_alpha(t.textValue, .7f), t);
         }
 
         // Past the header, the rows and a blank row.

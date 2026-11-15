@@ -9,9 +9,9 @@ struct StudioTabDescriptor {
 
 // IDs remain stable. Appearance (legacy ID6) belongs to app Settings, not the
 // ordered musical workspace. Render and input must use this same descriptor.
-inline constexpr std::array<StudioTabDescriptor, 7> kStudioMusicTabs{{
+inline constexpr std::array<StudioTabDescriptor, 8> kStudioMusicTabs{{
     {0, "Synth"}, {1, "FX"}, {2, "Master"}, {3, "Punch"},
-    {4, "Record"}, {5, "Drumlab"}, {7, "Sources"}
+    {4, "Record"}, {5, "Drumlab"}, {7, "Sources"}, {8, "Harmony"}
 }};
 
 inline bool studio_is_music_tab(int id) {

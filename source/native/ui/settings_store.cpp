@@ -35,7 +35,7 @@ std::string get_string(const json& j, const char* key, const std::string& fallba
 
 int clamp(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-constexpr int VISUALIZER_COUNT = 6;   // VisualizerType — SCOPE … SPECTRUM_PEAKS
+constexpr int VISUALIZER_COUNT = 9;   // VisualizerType — SCOPE … PLASMA
 
 }  // namespace
 
@@ -58,6 +58,8 @@ bool load_settings(FileSystem& fs, SettingsValues& values, Theme& theme) {
             if(id>=0&&id<kDemoFontStyleCount)values.fontStyle=static_cast<int>(id);
         }
     }
+    values.sceneMotion        = get_bool(j, "sceneMotion",        true);
+    values.sourceYoutube      = get_bool(j, "sourceYoutube",      false);
     values.insertBefore       = get_bool(j, "insertBefore",       values.insertBefore);
     values.cursorRemember     = get_bool(j, "cursorRemember",     values.cursorRemember);
     values.notePreviewEnabled = get_bool(j, "notePreview",        values.notePreviewEnabled);
@@ -147,6 +149,8 @@ std::string serialize_settings(const SettingsValues& values, const Theme& theme)
     json j;
     j["scalingBilinear"]    = values.scalingBilinear;
     if(valid_demo_font_style(values.fontStyle))j["fontStyle"]=valid_demo_font_style(values.fontStyle);
+    if(!values.sceneMotion)j["sceneMotion"]=false;
+    if(values.sourceYoutube)j["sourceYoutube"]=true;
     j["insertBefore"]       = values.insertBefore;
     j["cursorRemember"]     = values.cursorRemember;
     j["notePreview"]        = values.notePreviewEnabled;
@@ -208,6 +212,52 @@ SettingsWrite save_settings_if_changed(FileSystem& fs, const SettingsValues& val
     if (fs.read_file(fs.settings_path(), current) && current == wanted) return SettingsWrite::UNCHANGED;
 
     return save_settings(fs, values, theme) ? SettingsWrite::SAVED : SettingsWrite::FAILED;
+}
+
+SettingsWrite SettingsAutosave::poll(FileSystem& fs, const SettingsValues& values,
+                                     const Theme& theme, uint64_t nowMs, bool deferWrite) {
+    if (nowMs < nextCheckMs_) return SettingsWrite::UNCHANGED;
+    nextCheckMs_ = nowMs + kCheckEveryMs;
+
+    std::string wanted = serialize_settings(values, theme);
+    if (!primed_) {
+        // The file as loaded at start-up; a missing or unreadable one is written once it settles.
+        if (!fs.read_file(fs.settings_path(), onDisk_)) onDisk_.clear();
+        seen_ = wanted;
+        seenAtMs_ = nowMs;
+        primed_ = true;
+    } else if (wanted != seen_) {
+        seen_ = std::move(wanted);
+        seenAtMs_ = nowMs;
+    }
+    if (seen_ == onDisk_ || deferWrite || nowMs - seenAtMs_ < kQuietForMs)
+        return SettingsWrite::UNCHANGED;
+
+    if (!fs.write_file(fs.settings_path(), seen_)) {
+        seenAtMs_ = nowMs;   // back off one quiet period instead of retrying every second
+        return SettingsWrite::FAILED;
+    }
+    onDisk_ = seen_;
+    return SettingsWrite::SAVED;
+}
+
+SettingsWrite SettingsAutosave::flush(FileSystem& fs, const SettingsValues& values, const Theme& theme) {
+    const std::string wanted = serialize_settings(values, theme);
+    std::string current;
+    const bool readable = fs.read_file(fs.settings_path(), current);
+    primed_ = true;
+    if (readable && current == wanted) {
+        onDisk_ = std::move(current);
+        return SettingsWrite::UNCHANGED;
+    }
+    if (!fs.write_file(fs.settings_path(), wanted)) {
+        // Not confirmed: the cache keeps what the file held before (or nothing), so the next poll
+        // still sees a difference and tries again after its quiet period.
+        if (readable) onDisk_ = std::move(current); else onDisk_.clear();
+        return SettingsWrite::FAILED;
+    }
+    onDisk_ = wanted;
+    return SettingsWrite::SAVED;
 }
 
 }  // namespace pt::ui

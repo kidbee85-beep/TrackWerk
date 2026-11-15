@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild the private Plus Archive candidate from supplied source and exact SDL SDK."""
+"""Rebuild the Miyoo Mini Plus Archive release from supplied source and exact SDL SDK."""
 from pathlib import Path
 import argparse,hashlib,os,shlex,subprocess,tarfile,zipfile
 p=argparse.ArgumentParser();p.add_argument('--zig',type=Path,required=True);p.add_argument('--cmake',default='cmake');p.add_argument('--source',type=Path,required=True);p.add_argument('--app-zip',type=Path,required=True);p.add_argument('--sdl-source',type=Path,required=True);p.add_argument('--work',type=Path,required=True);a=p.parse_args()

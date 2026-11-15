@@ -479,10 +479,26 @@ Track youtubeResolve(const std::string& tool,Track t,const Cancel& cancel){
 }
 
 struct File {FILE* f=nullptr;explicit File(const std::string& path,const char* mode):f(std::fopen(path.c_str(),mode)){}~File(){if(f)std::fclose(f);}File(const File&)=delete;};
+// The preview cache holds PCM16, the format every render writes: half the card writes of float,
+// twice the length within PCM_LIMIT, and a render copies its frames unchanged. The conversion is the
+// one render used to apply at the end, so rendered WAVs stay bit-identical.
+static_assert(__BYTE_ORDER__==__ORDER_LITTLE_ENDIAN__,"the PCM16 preview cache is copied into WAVs unchanged");
+int16_t cachePcm16(float value){
+    value=std::isfinite(value)?std::clamp(value,-1.f,1.f):0.f;
+    return int16_t(std::clamp<long>(std::lrint(double(value)*32768.),-32768,32767));
+}
 void writeFloats(FILE* file,const float* data,int frames,int channels,int64_t& total,const Cancel& cancel){
     check(cancel);if(frames<=0||channels<1||channels>2)return;
-    const int64_t bytes=int64_t(frames)*channels*sizeof(float);if((total+frames)*channels*int64_t(sizeof(float))>PCM_LIMIT)throw std::runtime_error("Track is too long for the bounded 512 MiB preview cache; choose a shorter recording");
-    if(std::fwrite(data,1,size_t(bytes),file)!=size_t(bytes))throw std::runtime_error("Not enough free space for preview cache");total+=frames;
+    if((total+frames)*channels*int64_t(sizeof(int16_t))>PCM_LIMIT)throw std::runtime_error("Track is too long for the bounded 512 MiB preview cache; choose a shorter recording");
+    std::array<int16_t,8192> pcm16{};
+    for(int start=0;start<frames;){
+        const int count=std::min(frames-start,int(pcm16.size())/channels);
+        for(int i=0;i<count*channels;++i)pcm16[size_t(i)]=cachePcm16(data[size_t(start)*channels+i]);
+        const size_t bytes=size_t(count)*channels*sizeof(int16_t);
+        if(std::fwrite(pcm16.data(),1,bytes,file)!=bytes)throw std::runtime_error("Not enough free space for preview cache");
+        start+=count;
+    }
+    total+=frames;
 }
 uint32_t u32(const unsigned char* p){return uint32_t(p[0])|(uint32_t(p[1])<<8)|(uint32_t(p[2])<<16)|(uint32_t(p[3])<<24);}
 uint16_t u16(const unsigned char* p){return uint16_t(p[0])|(uint16_t(p[1])<<8);}
@@ -564,7 +580,7 @@ struct SourceSampler::Impl {
     std::array<float,RING*2> ring{};std::atomic<uint64_t> readIndex{0},writeIndex{0};std::atomic<int> readers{0},outputRate{48000};
     std::atomic<bool> playing{false},enabled{false},atEnd{false};std::atomic<int64_t> position{0};std::atomic<uint64_t> playEpoch{0};
     std::atomic<int> sourceRate{44100};std::atomic<int64_t> length{0};int producerRate=48000;double producerFrame=0;int64_t playBase=0;uint64_t audioEpoch=0,audioFrames=0;
-    std::array<float,4096*2> readBlock{};int64_t readBase=-1;int readCount=0;
+    std::array<int16_t,4096*2> readBlock{};int64_t readBase=-1;int readCount=0;
     std::unique_ptr<LiveStream> live;bool liveMode=false;int liveSeconds=30,previewGain=100;
     int64_t liveTakeFrames=0,liveTakeMaximum=0;uint64_t liveTakeEpoch=0;uint32_t liveTakeRequest=0;
     FILE* liveTake=nullptr;std::string liveTakePath,liveTakeTemporary;
@@ -586,6 +602,8 @@ struct SourceSampler::Impl {
     Clock::time_point lastPublish=Clock::now();
     explicit Impl(const std::string& r):root(r),cacheDir((fs::path(r)/"Cache"/"Digging").string()){
         fs::create_directories(cacheDir);fs::create_directories(fs::path(r)/"Samples"/"Digging");
+        // Up to 512 MiB of float cache from before the PCM16 cache: nothing reads it any more.
+        for(const char* stale:{"preview.f32","preview.f32.tmp"}){std::error_code ignored;fs::remove(fs::path(cacheDir)/stale,ignored);}
         if(const char* overrideCA=std::getenv("POCKETTRACKER_CACERT")){if(fs::is_regular_file(overrideCA))ca=overrideCA;}
         if(ca.empty())for(const auto& p:{fs::path(r)/"../tools/cacert.pem",fs::path(r)/"tools/cacert.pem",fs::path(r)/"../certs/cacert.pem"})if(fs::is_regular_file(p)){ca=p.lexically_normal().string();break;}
 #ifndef PT_MIYOO_PLUS_ARCHIVE
@@ -1027,8 +1045,8 @@ struct SourceSampler::Impl {
     }
     float sample(int64_t frame,int channel){
         frame=std::clamp<int64_t>(frame,0,pcm.frames-1);
-        if(frame<readBase||frame>=readBase+readCount){readBase=frame;if(fseeko(pcmFile,frame*pcm.channels*int64_t(sizeof(float)),SEEK_SET)!=0)throw std::runtime_error("Cannot seek audio preview cache");readCount=int(std::fread(readBlock.data(),sizeof(float)*pcm.channels,4096,pcmFile));if(readCount<=0)throw std::runtime_error("Could not read audio preview cache");}
-        return readBlock[size_t(frame-readBase)*pcm.channels+std::min(channel,pcm.channels-1)];
+        if(frame<readBase||frame>=readBase+readCount){readBase=frame;if(fseeko(pcmFile,frame*pcm.channels*int64_t(sizeof(int16_t)),SEEK_SET)!=0)throw std::runtime_error("Cannot seek audio preview cache");readCount=int(std::fread(readBlock.data(),sizeof(int16_t)*pcm.channels,4096,pcmFile));if(readCount<=0)throw std::runtime_error("Could not read audio preview cache");}
+        return readBlock[size_t(frame-readBase)*pcm.channels+std::min(channel,pcm.channels-1)]/32768.f;
     }
     void fill(){
         if(!prepared||!pcmFile)return;auto r=readIndex.load(std::memory_order_acquire);auto w=writeIndex.load(std::memory_order_relaxed);const auto maximum=RING-2;
@@ -1057,7 +1075,7 @@ struct SourceSampler::Impl {
         if(index<0||index>=int(tracks.size()))throw std::runtime_error("Choose a valid track");Track t=tracks[index];pause();recording=false;clearClip();state["busy"]=true;message("loading","Downloading and preparing audio preview; Stop cancels.");publish();
         if(t.live){startLive(index,std::move(t),autoPlay,cancel);return;}
         if(provider=="youtube")t=youtubeResolve(tool,t,cancel);if(!allowed(t.url))throw std::runtime_error("Unsupported audio source address");
-        const auto media=(fs::path(cacheDir)/"source.media").string();const auto cache=(fs::path(cacheDir)/"preview.f32.tmp").string();
+        const auto media=(fs::path(cacheDir)/"source.media").string();const auto cache=(fs::path(cacheDir)/"preview.s16.tmp").string();
         try{
             if(provider=="youtube"){
                 std::remove(media.c_str());
@@ -1081,7 +1099,7 @@ struct SourceSampler::Impl {
             }
             check(cancel);
         }catch(...){std::remove(media.c_str());std::remove(normalized.c_str());std::remove(cache.c_str());throw;}
-        std::remove(media.c_str());dropTrack();const auto finalCache=(fs::path(cacheDir)/"preview.f32").string();if(std::rename(cache.c_str(),finalCache.c_str())!=0)throw std::runtime_error("Cannot finish audio cache");
+        std::remove(media.c_str());dropTrack();const auto finalCache=(fs::path(cacheDir)/"preview.s16").string();if(std::rename(cache.c_str(),finalCache.c_str())!=0)throw std::runtime_error("Cannot finish audio cache");
         pcmPath=finalCache;pcm=next;pcmFile=std::fopen(pcmPath.c_str(),"rb");if(!pcmFile){pcm={};throw std::runtime_error("Cannot reopen audio cache");}prepared=true;active=std::move(t);trackIndex=index;sourceRate=pcm.rate;length=pcm.frames;outMs=std::min<int64_t>(30000,pcm.frames*1000/pcm.rate);state["busy"]=false;
         seek(0,autoPlay);message("ready",autoPlay?"Playing. A toggles pause; IN/OUT select your sample.":"Audio ready. Play to listen, then set IN/OUT.");
     }
@@ -1091,9 +1109,10 @@ struct SourceSampler::Impl {
         const int64_t first=std::clamp<int64_t>(inMs*pcm.rate/1000,0,pcm.frames),last=std::clamp<int64_t>(outMs*pcm.rate/1000,first,pcm.frames);if(last<=first)throw std::runtime_error("The selected region contains no frames");
         const auto stamp=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();const std::string path=(fs::path(root)/"Samples"/"Digging"/("Digging-"+std::to_string(stamp)+".wav")).string(),temporary=path+".tmp";
         try{
-            File source(pcmPath,"rb"),output(temporary,"wb");if(!source.f||!output.f)throw std::runtime_error("Cannot create rendered sample");if(fseeko(source.f,first*pcm.channels*int64_t(sizeof(float)),SEEK_SET)!=0)throw std::runtime_error("Cannot seek selected audio");header(output.f,pcm.rate,pcm.channels,last-first);
-            std::array<float,8192> values{};std::array<unsigned char,16384> bytes{};int64_t done=0;
-            while(done<last-first){check(cancel);const int n=int(std::min<int64_t>(4096,(last-first)-done));const int samples=n*pcm.channels;if(std::fread(values.data(),sizeof(float),samples,source.f)!=size_t(samples))throw std::runtime_error("Source cache ended before OUT");for(int i=0;i<samples;++i){const float value=std::isfinite(values[i])?std::clamp(values[i],-1.f,1.f):0.f;const int16_t sample=int16_t(std::clamp<long>(std::lrint(double(value)*32768.),-32768,32767));const uint16_t u=uint16_t(sample);bytes[i*2]=static_cast<unsigned char>(u);bytes[i*2+1]=static_cast<unsigned char>(u>>8);}if(std::fwrite(bytes.data(),1,size_t(samples)*2,output.f)!=size_t(samples)*2)throw std::runtime_error("SD card is full");done+=n;state["progress"]=double(done)/(last-first);}
+            File source(pcmPath,"rb"),output(temporary,"wb");if(!source.f||!output.f)throw std::runtime_error("Cannot create rendered sample");if(fseeko(source.f,first*pcm.channels*int64_t(sizeof(int16_t)),SEEK_SET)!=0)throw std::runtime_error("Cannot seek selected audio");header(output.f,pcm.rate,pcm.channels,last-first);
+            // The cache already is little-endian PCM16 (every target is little-endian): copied unchanged.
+            std::array<unsigned char,16384> bytes{};int64_t done=0;
+            while(done<last-first){check(cancel);const int n=int(std::min<int64_t>(4096,(last-first)-done));const size_t size=size_t(n)*pcm.channels*2;if(std::fread(bytes.data(),1,size,source.f)!=size)throw std::runtime_error("Source cache ended before OUT");if(std::fwrite(bytes.data(),1,size,output.f)!=size)throw std::runtime_error("SD card is full");done+=n;state["progress"]=double(done)/(last-first);}
             if(std::fflush(output.f)!=0)throw std::runtime_error("Cannot finish rendered sample");if(std::fclose(output.f)!=0){output.f=nullptr;throw std::runtime_error("Cannot close rendered sample");}output.f=nullptr;check(cancel);if(std::rename(temporary.c_str(),path.c_str())!=0)throw std::runtime_error("Cannot publish rendered sample");
             json attribution={{"title",active.title},{"creator",active.creator},{"source_url",active.page},{"license_url",active.license},{"in_ms",inMs},{"out_ms",outMs},{"sample_rate",pcm.rate},{"channels",pcm.channels},{"frames",last-first}};const auto raw=attribution.dump(2);File side(path+".source.json","wb");if(side.f)std::fwrite(raw.data(),1,raw.size(),side.f);
             state["clip_ready"]=true;state["clip_path"]=path;state["clip_frames"]=last-first;state["clip_rate"]=pcm.rate;state["clip_channels"]=pcm.channels;state["clip_request_id"]=request;state["progress"]=1.;state["rendering"]=false;state["busy"]=false;message("clip_ready","Clip ready. Import loads it into the selected instrument.");

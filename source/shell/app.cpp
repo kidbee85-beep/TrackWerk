@@ -13,6 +13,7 @@
 #include "ui/app_state.h"
 #include "ui/button_mapper.h"
 #include "ui/buttons.h"
+#include "ui/navigation.h"
 #include "ui/canvas.h"
 #include "ui/engine_feed.h"
 #include "ui/input_dispatcher.h"
@@ -24,6 +25,8 @@
 #include "ui/scale_io.h"              // seed_scale_bank
 #include "ui/groove_io.h"             // seed_groove_bank
 #include "ui/settings_store.h"
+#include "ui/demo_fx.h"
+#include "ui/scene_animation.h"
 
 #include "skin/device_skin.h"
 #include "skin/skin.h"
@@ -146,6 +149,9 @@ struct BackgroundContext {
     bool backgrounded = false;
     // …and a song was left playing there, under the playback service.
     bool playingInBackground = false;
+    // The one writer of settings.json: the loop's quiet-period save, this watcher and the exit save
+    // share it, so none of them works from a stale idea of what the file holds.
+    ui::SettingsAutosave settingsAutosave;
 };
 
 // SDL_APP_WILLENTERBACKGROUND (Android's Home press): save what would be lost and hand the audio
@@ -181,7 +187,7 @@ int SDLCALL on_app_event(void* userdata, SDL_Event* e) {
     c->dispatch->flush_autosave();
 
     // 3. Settings: on Android the save after the loop runs only on a real destroy.
-    switch (ui::save_settings_if_changed(*c->filesystem, c->state->settings, c->state->theme)) {
+    switch (c->settingsAutosave.flush(*c->filesystem, c->state->settings, c->state->theme)) {
         using SW = ui::SettingsWrite;
         case SW::UNCHANGED: break;
         case SW::SAVED:
@@ -632,7 +638,13 @@ class FrameLoop {
     bool sawInput      = false;
     bool audibleEdge   = true;
     bool timedWorkEdge = false;
+    bool motionEdge = false;
     bool drewOnce      = false;
+
+    // The navigation map's arrival banner (AppState::navBannerUntilMs): armed on a change of screen,
+    // drawn until it expires plus one frame that clears it.
+    ui::ScreenType bannerScreen = ui::ScreenType::PHRASE;
+    bool           bannerEdge   = false;
 
     // The status line's frame counts — a working idle skip and a broken one look the same on screen.
     long long drawn = 0, presented = 0, skipped = 0, polls = 0;
@@ -640,6 +652,22 @@ class FrameLoop {
     Uint64 nextFrameMs = 0;   // 0 so the first tick draws
     Uint64 lastPollMs  = 0;   // what pace_tick measures against
     Uint64 lastInputMs = 0;
+
+    // Motion over whole frames (Canvas::afterglow / blinds), with Appearance > Motion on: the last frame
+    // shown, and how many frames of trail or page wipe are left.
+    std::vector<uint32_t> shownFrame;
+    int glowFrames = 0, blindFrames = 0, motionPage = -1;
+    // The running page transition: its kind and the frame it started from (frame_motion).
+    int transitionKind = 0;
+    std::vector<uint32_t> transitionFrom;
+    ui::Canvas::Rect stageLast, transitionArea{0, 0, ui::DESIGN_W, ui::DESIGN_H};
+    // Smooth scrolling (frame_motion): the list's last mark, the frame before the scroll began, the
+    // distance in pixels and when the slide ends.
+    ui::Canvas::ScrollMark scrollLast;
+    std::vector<uint32_t> scrollFrom;
+    int scrollDistance = 0;
+    uint64_t scrollStart = 0, scrollUntil = 0;
+    void frame_motion();
 
     Uint64   audioReopenMs = 0;  // when the next reopen attempt may run; 0 = at once
     uint64_t midiSeen      = 0;  // messages the audio thread had handled at the last tick
@@ -683,6 +711,19 @@ void FrameLoop::tick() {
     run_scripted_hooks(now);
     pump_midi_and_sequencer(now);
     play_on_in_background();
+
+    // Not while playing (an SD write on the UI thread can stall a frame) and not in the background,
+    // where the lifecycle handler already saves.
+    if (bg.filesystem && !bg.backgrounded) {
+        switch (bg.settingsAutosave.poll(*bg.filesystem, state.settings, state.theme, now,
+                                      host.is_playing())) {
+            case ui::SettingsWrite::UNCHANGED: break;
+            case ui::SettingsWrite::SAVED:     std::printf("settings: autosaved\n"); break;
+            case ui::SettingsWrite::FAILED:
+                std::printf("settings: AUTOSAVE FAILED - %s\n", bg.filesystem->settings_path().c_str());
+                break;
+        }
+    }
 
     if (frameDue) draw_frame(now);
 
@@ -952,6 +993,18 @@ void FrameLoop::handle_input(Uint64 now) {
     while (input.poll(be)) {
         // ⚠️ Key repeat comes from input.tick(), with no SDL event behind it.
         sawInput = true;
+        if(state.showActive){   // the show view: START plays / stops, B or SELECT + START leaves
+            if(be.action==ui::ButtonAction::PRESSED&&be.button==ui::Button::START){
+                if(be.mods.select){state.showActive=false;state.splashSkipButton=static_cast<int>(ui::Button::SELECT);}
+                else dispatch.on_start();
+            }else if(be.action==ui::ButtonAction::RELEASED&&be.button==ui::Button::B)state.showActive=false;
+            continue;
+        }
+        if(state.attractActive){   // any key ends the demo and is not passed on
+            state.attractActive=false;
+            state.splashSkipButton=be.action==ui::ButtonAction::PRESSED?static_cast<int>(be.button):-1;
+            continue;
+        }
         if(state.splashProgress>=0){
             state.splashProgress=-1;state.splashStarted=0;
             state.splashSkipButton=be.action==ui::ButtonAction::PRESSED?static_cast<int>(be.button):-1;
@@ -969,6 +1022,7 @@ void FrameLoop::handle_input(Uint64 now) {
             ui::handle_button(be, dispatch, mapper, now);
         else if(state.projectVersion!=oldProjectVersion)
             dispatch.arm_studio_autosave();
+        if(state.harmony.write)dispatch.apply_harmony_phrase();
         if(state.pendingSampleEditor){
             state.pendingSampleEditor=false;
             dispatch.open_imported_sample_editor();
@@ -1182,7 +1236,14 @@ void FrameLoop::draw_frame(Uint64 now) {
         if(!state.studioOpen||state.studioTab!=5)ui::drumlab_stop(state.drumLab,host,engineRef);
         else ui::drumlab_tick(state.drumLab,host,engineRef);
     }
+    const bool harmonyChanged = ui::harmony_tick(state,host,engineRef,now);
     state.isPlaying = host.is_playing();
+    // The attract demo: stopped, Motion on, no key for a few minutes. Sound (MIDI, a live take) ends it.
+    if(state.attractActive&&(state.isPlaying||!state.settings.sceneMotion))state.attractActive=false;
+    else if(!state.attractActive&&!state.showActive&&state.settings.sceneMotion&&!state.isPlaying&&state.splashProgress<0&&
+            !state.qwerty.isOpen&&now-lastInputMs>=ui::demo_fx::kAttractIdleMs){
+        state.attractActive=true;state.attractStarted=now;
+    }
     latency::frame_tick(state.isPlaying);
     // A track with no position returns -1 everywhere and draws no marker.
     for (int t = 0; t < 8; ++t) {
@@ -1194,6 +1255,12 @@ void FrameLoop::draw_frame(Uint64 now) {
     // ⚠️ Read back from the host: stop() and a project load can both end a LIVE take.
     state.liveMode     = host.live_mode();
     state.blinkPhaseMs = static_cast<int>(now % 1000);
+    state.animationMs  = now;
+    if (state.currentScreen != bannerScreen) {
+        if (drewOnce) state.navBannerUntilMs = now + 900;
+        bannerScreen = state.currentScreen;
+    }
+    const bool banner = state.navBannerUntilMs > now;
     state.trackMask = host.track_mask();
 
     // Everything the UI reads back from the engine; after isPlaying, which the waveform's decay uses.
@@ -1216,6 +1283,10 @@ void FrameLoop::draw_frame(Uint64 now) {
     // on). present() then skips a frame identical to the screen. ⚠️ That net cannot catch a frame that
     // is never drawn — hence the last terms.
     const bool timedWork = dispatch.has_pending_timed_work();
+    // Motion in flight, and one frame after it: the last drawn frame of a glide or slide may still
+    // be a few pixels short, so the frame past its end is drawn too and lands it exactly.
+    const bool moving = glowFrames > 0 || blindFrames > 0 || scrollUntil > static_cast<uint64_t>(now) ||
+                        layout.has_motion(static_cast<uint64_t>(now)) || screen.canvas.tweening(static_cast<uint64_t>(now));
     const bool metersFalling = layout.has_falling_meters(state);
     const bool audible = audio_is_audible(state);
     const bool settling = resizeSettle > 0;
@@ -1232,9 +1303,11 @@ void FrameLoop::draw_frame(Uint64 now) {
     if(sourceImported&&state.pendingSampleEditor){state.pendingSampleEditor=false;dispatch.open_imported_sample_editor();}
     const bool sourceQueryRequested=state.studioOpen&&state.studioTab==7&&!state.qwerty.isOpen&&cfg.sources&&cfg.sources->take_query_request();
     if(sourceQueryRequested)dispatch.open_source_search();
-    if (audible || audibleEdge || sawInput || !drewOnce || settling || metersFalling || captureChanged || granularChanged || granularRecordingChanged || resampleChanged || sourceChanged || sourceImported || sourceQueryRequested || splashChanged || state.drumLab.previewRunning ||
-        timedWork || timedWorkEdge || masterMaxChanged) {
+    if (audible || audibleEdge || sawInput || !drewOnce || moving || motionEdge || settling || metersFalling || captureChanged || granularChanged || granularRecordingChanged || resampleChanged || sourceChanged || sourceImported || sourceQueryRequested || splashChanged || harmonyChanged || state.attractActive || state.showActive || state.drumLab.previewRunning ||
+        timedWork || timedWorkEdge || masterMaxChanged || banner || bannerEdge ||
+        (state.scenePicker >= 0 && state.settings.sceneMotion)) {   // the Scene browser's live preview (modal, short-lived)
         layout.draw(screen.canvas, state);
+        frame_motion();
         ++drawn;
 
         const bool didPresent = screen.present(state, input);
@@ -1258,9 +1331,115 @@ void FrameLoop::draw_frame(Uint64 now) {
 
     audibleEdge   = audible;
     timedWorkEdge = timedWork;
+    motionEdge = moving;
+    bannerEdge    = banner;
     sawInput      = false;
 
     print_status(now);
+}
+
+// After an input the next frames keep a fading share of the one before: a cursor jump leaves a short
+// trail, which reads as more frames than the handheld draws. A page change wipes in the design
+// family's way, following the direction of a move. The last step of each is the plain new frame
+// (progress 1, afterglow 0), so every transition ends on an exact frame even with nothing else to
+// draw. Never during the splash or the attract demo; with Motion off, never.
+void FrameLoop::frame_motion() {
+    // A dialog opening or closing (help, keyboard, confirm, render, FX helper …) counts as a page
+    // change too: it enters with the design's transition instead of popping up.
+    const bool modal = ui::modal_backdrop_active(state) || (state.studioOpen && state.studioHelp);
+    const int page = (state.studioOpen ? 1000 + state.studioTab : static_cast<int>(state.currentScreen)) * 2 + (modal ? 1 : 0);
+    const bool on = state.settings.sceneMotion && state.splashProgress < 0 && !state.attractActive;
+    const auto mark = screen.canvas.scroll_mark();
+    const auto lastMark = scrollLast;
+    scrollLast = mark;
+    if (!on) {
+        glowFrames = blindFrames = 0;
+        shownFrame.clear();
+        scrollUntil = 0;
+        motionPage = page;
+        stageLast = screen.canvas.stage_mark();
+        return;
+    }
+    // A list scrolled: its rows slide 120 ms, ease-out, from where they were shown to the new place.
+    // Another scroll on the way starts from the frame on screen, with what was still to go added.
+    const uint64_t nowMs = state.animationMs;
+    constexpr uint64_t kSlideMs = 120;
+    const auto remaining = [&] {
+        const float p = std::min(1.f, float(nowMs - scrollStart) / float(kSlideMs));
+        const float e = 1.f - (1.f - p) * (1.f - p) * (1.f - p);
+        return static_cast<int>(std::lround(scrollDistance * (1.f - e)));
+    };
+    if (!shownFrame.empty() && page == motionPage && mark.id >= 0 && mark.id == lastMark.id &&
+        mark.offset != lastMark.offset && mark.view.y == lastMark.view.y && mark.view.h == lastMark.view.h) {
+        const int distance = mark.offset - lastMark.offset + (scrollUntil > nowMs ? remaining() : 0);
+        if (std::abs(distance) < mark.view.h) {
+            scrollFrom = shownFrame;
+            scrollDistance = distance;
+            scrollStart = nowMs;
+            scrollUntil = nowMs + kSlideMs;
+        } else {
+            scrollUntil = 0;
+        }
+    }
+    if (page != motionPage || mark.id < 0 || mark.id != lastMark.id) scrollUntil = 0;
+    if (!shownFrame.empty()) {
+        using T = ui::Canvas::Transition;
+        if (page != motionPage) {
+            // A page change picks its transition once, from where it came and where it goes, and keeps
+            // the frame on screen at that moment as the old page for all five steps: a push moves one
+            // whole page out. A further change on the way starts again from what is visible now.
+            using F = ui::SceneFamily;
+            const int family = ui::scene_animation::family_of(state.theme);
+            const auto is = [family](F f) { return family == static_cast<int>(f); };
+            // A move on the screen map or to a neighbouring Studio tab has a direction; the wipes and
+            // the plain push follow it. Dialogs and jumps keep the family's own way.
+            int dx = 0, dy = 0;
+            const int was = motionPage / 2, is_ = page / 2;
+            if (motionPage >= 0 && !(motionPage & 1) && !(page & 1) && was != is_) {
+                if (was >= 1000 && is_ >= 1000) dx = is_ > was ? 1 : -1;
+                else if (was < 1000 && is_ < 1000) {
+                    const auto a = static_cast<ui::ScreenType>(was), b = static_cast<ui::ScreenType>(is_);
+                    const int ra = ui::detail::screen_row(a), rb = ui::detail::screen_row(b);
+                    const int ca = ui::screen_column(a), cb = ui::screen_column(b);
+                    if (ra >= 0 && rb >= 0 && ra != rb) dy = rb > ra ? 1 : -1;
+                    else if (ca >= 0 && cb >= 0 && ca != cb) dx = cb > ca ? 1 : -1;
+                }
+            }
+            const T kind = is(F::UNSCII) || is(F::ANSI)     ? T::DISSOLVE
+                         : is(F::ASCII) || is(F::TERMINAL)  ? (dy < 0 ? T::WIPE_UP : T::WIPE_DOWN)
+                         : is(F::DOS)                       ? (dx < 0 ? T::WIPE_LEFT : T::WIPE_RIGHT)
+                         : is(F::VECTOR)                    ? T::IRIS
+                         : dx > 0                           ? T::PUSH_RIGHT
+                         : dx < 0                           ? T::PUSH_LEFT
+                         : dy > 0                           ? T::PUSH_DOWN
+                         : dy < 0                           ? T::PUSH_UP
+                                                            : T::BLINDS;
+            transitionKind = static_cast<int>(kind);
+            transitionFrom = shownFrame;
+            // Between two pages with the same stage (editor to editor, Studio tab to tab) only the
+            // stage changes and the chrome around it stays; dialogs and other pages use the screen.
+            const auto st = screen.canvas.stage_mark();
+            const bool sameStage = st.w > 0 && st.h > 0 && !(page & 1) && !(motionPage & 1) &&
+                                   st.x == stageLast.x && st.y == stageLast.y && st.w == stageLast.w && st.h == stageLast.h;
+            transitionArea = sameStage ? st : ui::Canvas::Rect{0, 0, ui::DESIGN_W, ui::DESIGN_H};
+            blindFrames = 5;
+            glowFrames = 0;
+        }
+        else if (scrollUntil > nowMs) glowFrames = 0;   // the slide is the motion; no trail over it
+        else if (sawInput) glowFrames = 4;
+        if (scrollUntil > nowMs && blindFrames == 0)
+            screen.canvas.slide(scrollFrom.data(), mark.view, scrollDistance, remaining());
+        if (blindFrames > 0) {
+            screen.canvas.transition(transitionFrom.data(), static_cast<T>(transitionKind), float(6 - blindFrames) / 5.f,
+                                     ui::with_alpha(state.theme.rowCursor, .75f), transitionArea);
+            --blindFrames;
+        }
+        else if (glowFrames > 0) { screen.canvas.afterglow(shownFrame.data(), (glowFrames - 1) * 40); --glowFrames; }
+    }
+    motionPage = page;
+    stageLast = screen.canvas.stage_mark();
+    const uint32_t* px = screen.canvas.pixels();
+    shownFrame.assign(px, px + static_cast<size_t>(ui::DESIGN_W) * ui::DESIGN_H);
 }
 
 // Once a second on the console: frame counter (the device calls back), playhead (the sequencer
@@ -1545,7 +1724,7 @@ int run(const AppConfig& cfg) {
 
     // Saved once, here (a held A+UP repeats every 100 ms). Compared with the bytes on disk, not a dirty
     // flag, so an edit from any screen is saved.
-    switch (ui::save_settings_if_changed(filesystem, state.settings, state.theme)) {
+    switch (bg.settingsAutosave.flush(filesystem, state.settings, state.theme)) {
         using SW = ui::SettingsWrite;
         case SW::UNCHANGED: break;
         case SW::SAVED:     std::printf("settings: saved\n"); break;

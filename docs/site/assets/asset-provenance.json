@@ -1,179 +1,544 @@
 {
-  "project": "TrackWerk 1.0 GitHub Pages",
-  "artist": "Kid Bunka",
-  "images": [
+  "height": 480,
+  "model_count": 123,
+  "physical_camera": false,
+  "release_commit": "939e33b7b603d50b1f438f2620a26a38ccb84370",
+  "scene_count": 40,
+  "shots": [
     {
-      "file": "assets/images/app-icon.png",
-      "sha256": "19bb56fb208aabc3015dea23dd0ea5c8ef43621d302886fa57893c9b1895d1da",
-      "origin": "Original TrackWerk B mark/wordmark, code/vector authoring in the independent brand review.",
-      "physical_handheld_capture": false
+      "caption": "UNSCII / BLOCK PARTY",
+      "id": "scene-0",
+      "native_renderer": true,
+      "scene": "UNSCII / BLOCK PARTY"
     },
     {
-      "file": "assets/images/app-icon.svg",
-      "sha256": "3af15d9661f8db5a3774d1eeb12fdf5dc8c2c0109e53a17993bcf6076aa3d5e8",
-      "origin": "Original TrackWerk B mark/wordmark, code/vector authoring in the independent brand review.",
-      "physical_handheld_capture": false
+      "caption": "UNSCII / GLYPH LAB",
+      "id": "scene-1",
+      "native_renderer": true,
+      "scene": "UNSCII / GLYPH LAB"
     },
     {
-      "file": "assets/images/browser.png",
-      "sha256": "88f723cdd8d29902c7b6b3115548c78d2efa9e99aa870da0127ed42653c28eaf",
-      "origin": "Frozen TrackWerk0.9 native renderer, Native-UI-Final review capture; controlled demonstration state.",
-      "physical_handheld_capture": false
+      "caption": "UNSCII / TELETEXT",
+      "id": "scene-2",
+      "native_renderer": true,
+      "scene": "UNSCII / TELETEXT"
     },
     {
-      "file": "assets/images/drumlab.png",
-      "sha256": "87c9cb6e9437b97eb2b9d21ba0b40427bfb50b1cd7bb49c176b5f39b6fd112b2",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "UNSCII / VIEWDATA",
+      "id": "scene-3",
+      "native_renderer": true,
+      "scene": "UNSCII / VIEWDATA"
     },
     {
-      "file": "assets/images/effects.png",
-      "sha256": "75f6feb0f6c0112e8c95f131887ea1c839e1efb04d73ee10d8502b312cce78b2",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "ASCII / README.NFO",
+      "id": "scene-4",
+      "native_renderer": true,
+      "scene": "ASCII / README.NFO"
     },
     {
-      "file": "assets/images/long-wav.png",
-      "sha256": "7d9d57d4e7d6a617ca02acd5b816a6ca96be92db361eb15b285bf63989ab073d",
-      "origin": "Frozen TrackWerk0.9 native renderer, Native-UI-Final review capture; controlled demonstration state.",
-      "physical_handheld_capture": false
+      "caption": "ASCII / INK ON PAPER",
+      "id": "scene-5",
+      "native_renderer": true,
+      "scene": "ASCII / INK ON PAPER"
     },
     {
-      "file": "assets/images/mastering.png",
-      "sha256": "48bb392927884db209946cc8f6de82d2314ff94a23b76f65912bc41132662234",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "ASCII / DOT MATRIX",
+      "id": "scene-6",
+      "native_renderer": true,
+      "scene": "ASCII / DOT MATRIX"
     },
     {
-      "file": "assets/images/presets.png",
-      "sha256": "bf4bffb76bf26bf99d501a664101c1f0bb7fc9b0e1f59f3a6f2730c9b5e564fc",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "ASCII / LOGLINE",
+      "id": "scene-7",
+      "native_renderer": true,
+      "scene": "ASCII / LOGLINE"
     },
     {
-      "file": "assets/images/punch.png",
-      "sha256": "05e9140b177977fd89b4765c3456233e263b464f262d18f9cd6fc40676325f24",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "DOS / COMMAND",
+      "id": "scene-8",
+      "native_renderer": true,
+      "scene": "DOS / COMMAND"
     },
     {
-      "file": "assets/images/social-card.png",
-      "sha256": "9d6bc212939d8fd6a95025b866235fc2b0a4a6688a7a00f82d3551948f070ceb",
-      "origin": "Authored composition from build_social_card.py, own mark, licensed fonts and actual native synth screenshot.",
-      "physical_handheld_capture": false
+      "caption": "DOS / SETUP UTILITY",
+      "id": "scene-9",
+      "native_renderer": true,
+      "scene": "DOS / SETUP UTILITY"
     },
     {
-      "file": "assets/images/splash.png",
-      "sha256": "1313770a32f4421a7d9e67328f23c48c5badc3ab493fa1547148510647727ab6",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "DOS / AMBER VGA",
+      "id": "scene-10",
+      "native_renderer": true,
+      "scene": "DOS / AMBER VGA"
     },
     {
-      "file": "assets/images/style.png",
-      "sha256": "7507fd681882b53544e5b92591464ca6a82845b56941bb01eb01841e4f4b7042",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "DOS / TURBO MONO",
+      "id": "scene-11",
+      "native_renderer": true,
+      "scene": "DOS / TURBO MONO"
     },
     {
-      "file": "assets/images/synth.png",
-      "sha256": "8ca095c277c9bc3dc5d38f29b5a18ea7efe5f09a673dd69f7298ab722949a328",
-      "origin": "Frozen TrackWerk0.9 native renderer, launch capture/stills; real Archive response/import where relevant.",
-      "physical_handheld_capture": false
+      "caption": "TERM / GREEN PHOSPHOR",
+      "id": "scene-12",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
     },
     {
-      "file": "assets/images/wordmark.svg",
-      "sha256": "049ec1bd6077ce67185f9ee774c67f3bb9f43c0bd89299655dca105b9bc315b0",
-      "origin": "Original TrackWerk B mark/wordmark, code/vector authoring in the independent brand review.",
-      "physical_handheld_capture": false
+      "caption": "TERM / AMBER SHELL",
+      "id": "scene-13",
+      "native_renderer": true,
+      "scene": "TERM / AMBER SHELL"
     },
     {
-      "file": "assets/images/radio-live-help.png",
-      "sha256": "5d16dedea03026208dc218ed23256dd4cc1fcb1deef52c0db5b123c0d3d81444",
-      "origin": "Frozen Dev.13 native capture of the Source Sampler during controlled loopback MP3 rewind and contextual help.",
-      "physical_handheld_capture": false
+      "caption": "TERM / ICE CONSOLE",
+      "id": "scene-14",
+      "native_renderer": true,
+      "scene": "TERM / ICE CONSOLE"
     },
     {
-      "file": "assets/images/chain-dots-native.png",
-      "sha256": "3857c63dbe7261055fdbdc11e2c5537b22379e3585f709b1893a1944de7a75a2",
-      "origin": "Frozen Dev.13 native Chain editor Dots setting with a prepared pattern and a separate playback marker.",
-      "physical_handheld_capture": false
+      "caption": "TERM / VT PAPER",
+      "id": "scene-15",
+      "native_renderer": true,
+      "scene": "TERM / VT PAPER"
     },
     {
-      "file": "assets/images/theme-grid-native.png",
-      "sha256": "830fe02a8b8304db1cb2657798bf80fc7e37415aadec5017c752884b5031c0fc",
-      "origin": "Frozen Dev.13 native Theme editor showing independent Chain and Phrase grid options.",
-      "physical_handheld_capture": false
+      "caption": "ANSI / NIGHT BBS",
+      "id": "scene-16",
+      "native_renderer": true,
+      "scene": "ANSI / NIGHT BBS"
     },
     {
-      "file": "assets/images/v1-revision-2-sample-load.png",
-      "sha256": "38931be0ed6d3278cca62b21c33a393ed3b866bd4e392fca0c74fa0a123ce012",
-      "origin": "Native TrackWerk Dev.13 capture of the local sample browser.",
-      "physical_handheld_capture": false
+      "caption": "ANSI / DOOR GAME",
+      "id": "scene-17",
+      "native_renderer": true,
+      "scene": "ANSI / DOOR GAME"
     },
     {
-      "file": "assets/images/v1-revision-2-sample-editor.png",
-      "sha256": "a59b3069a8c885925af677d2a791221c2fbb8d64eab1d504d62e0566ec5f3258",
-      "origin": "Native Sample Editor capture. A five-second crop contains two bars at 96 BPM.",
-      "physical_handheld_capture": false
+      "caption": "ANSI / BLUE BOARD",
+      "id": "scene-18",
+      "native_renderer": true,
+      "scene": "ANSI / BLUE BOARD"
     },
     {
-      "file": "assets/images/v1-revision-2-sample-chop.png",
-      "sha256": "066501d56f4a4862bc944ce5257926f3c07f7b548c03fd6045e2eb9cdf8f3764",
-      "origin": "Native audition of the chopped Soul Keys phrase.",
-      "physical_handheld_capture": false
+      "caption": "ANSI / MODEM GLOW",
+      "id": "scene-19",
+      "native_renderer": true,
+      "scene": "ANSI / MODEM GLOW"
     },
     {
-      "file": "assets/images/v1-revision-2-song-pattern.png",
-      "sha256": "3d4a2bcc3a86a6ad546fb38cdc92accbc31ece15dd78e28085fbdb8ec5f49cc6",
-      "origin": "Dev.13 sequence playback at 96 BPM.",
-      "physical_handheld_capture": false
+      "caption": "RASTER / COPPER",
+      "id": "scene-20",
+      "native_renderer": true,
+      "scene": "RASTER / COPPER"
     },
     {
-      "file": "assets/images/film-10-promo-poster.jpg",
-      "sha256": "4eee1e8e018d6302552c2626f0fc26ec5a84d3b75de7d3f0d775e0959308e0be",
-      "origin": "Frame from the revised 1.0 promo",
-      "physical_handheld_capture": false
+      "caption": "RASTER / PINK PLASMA",
+      "id": "scene-21",
+      "native_renderer": true,
+      "scene": "RASTER / PINK PLASMA"
+    },
+    {
+      "caption": "RASTER / BLUE HOUR",
+      "id": "scene-22",
+      "native_renderer": true,
+      "scene": "RASTER / BLUE HOUR"
+    },
+    {
+      "caption": "RASTER / SUN DISC",
+      "id": "scene-23",
+      "native_renderer": true,
+      "scene": "RASTER / SUN DISC"
+    },
+    {
+      "caption": "INTRO / CRUNCH",
+      "id": "scene-24",
+      "native_renderer": true,
+      "scene": "INTRO / CRUNCH"
+    },
+    {
+      "caption": "INTRO / BAD SECTOR",
+      "id": "scene-25",
+      "native_renderer": true,
+      "scene": "INTRO / BAD SECTOR"
+    },
+    {
+      "caption": "INTRO / BYTE DRIFT",
+      "id": "scene-26",
+      "native_renderer": true,
+      "scene": "INTRO / BYTE DRIFT"
+    },
+    {
+      "caption": "INTRO / DISK MAG",
+      "id": "scene-27",
+      "native_renderer": true,
+      "scene": "INTRO / DISK MAG"
+    },
+    {
+      "caption": "VECTOR / WIREFRAME",
+      "id": "scene-28",
+      "native_renderer": true,
+      "scene": "VECTOR / WIREFRAME"
+    },
+    {
+      "caption": "VECTOR / ORBITAL",
+      "id": "scene-29",
+      "native_renderer": true,
+      "scene": "VECTOR / ORBITAL"
+    },
+    {
+      "caption": "VECTOR / ISOMETRIC",
+      "id": "scene-30",
+      "native_renderer": true,
+      "scene": "VECTOR / ISOMETRIC"
+    },
+    {
+      "caption": "VECTOR / ACID GRID",
+      "id": "scene-31",
+      "native_renderer": true,
+      "scene": "VECTOR / ACID GRID"
+    },
+    {
+      "caption": "DAYLIGHT / NEWSPRINT",
+      "id": "scene-32",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / NEWSPRINT"
+    },
+    {
+      "caption": "DAYLIGHT / SUNNY LCD",
+      "id": "scene-33",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / SUNNY LCD"
+    },
+    {
+      "caption": "DAYLIGHT / WHITE PRINT",
+      "id": "scene-34",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / WHITE PRINT"
+    },
+    {
+      "caption": "DAYLIGHT / HIGH CONTRAST",
+      "id": "scene-35",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / HIGH CONTRAST"
+    },
+    {
+      "caption": "HARDWARE / ALU OLED",
+      "id": "scene-36",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "HARDWARE / ORANGE KEYS",
+      "id": "scene-37",
+      "native_renderer": true,
+      "scene": "HARDWARE / ORANGE KEYS"
+    },
+    {
+      "caption": "HARDWARE / CREAM CASE",
+      "id": "scene-38",
+      "native_renderer": true,
+      "scene": "HARDWARE / CREAM CASE"
+    },
+    {
+      "caption": "HARDWARE / BUNKA SIGNAL",
+      "id": "scene-39",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "UNSCII / BLOCK PARTY",
+      "id": "picker-0",
+      "native_renderer": true,
+      "scene": "UNSCII / BLOCK PARTY"
+    },
+    {
+      "caption": "DOS / COMMAND",
+      "id": "picker-8",
+      "native_renderer": true,
+      "scene": "DOS / COMMAND"
+    },
+    {
+      "caption": "TERM / GREEN PHOSPHOR",
+      "id": "picker-12",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "ANSI / NIGHT BBS",
+      "id": "picker-16",
+      "native_renderer": true,
+      "scene": "ANSI / NIGHT BBS"
+    },
+    {
+      "caption": "VECTOR / WIREFRAME",
+      "id": "picker-28",
+      "native_renderer": true,
+      "scene": "VECTOR / WIREFRAME"
+    },
+    {
+      "caption": "DAYLIGHT / NEWSPRINT",
+      "id": "picker-32",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / NEWSPRINT"
+    },
+    {
+      "caption": "HARDWARE / ALU OLED",
+      "id": "picker-36",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "HARDWARE / BUNKA SIGNAL",
+      "id": "picker-39",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "song",
+      "id": "song",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "chain",
+      "id": "chain",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "phrase",
+      "id": "phrase",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "instrument",
+      "id": "instrument",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "table",
+      "id": "table",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "groove",
+      "id": "groove",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "scale",
+      "id": "scale",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "modulation",
+      "id": "modulation",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "mixer",
+      "id": "mixer",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "effects",
+      "id": "effects",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "project",
+      "id": "project",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "settings",
+      "id": "settings",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "midi",
+      "id": "midi",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Appearance and Motion",
+      "id": "appearance",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / NEWSPRINT"
+    },
+    {
+      "caption": "SELECT contextual help",
+      "id": "help",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Harmony chord slots and progression",
+      "id": "harmony",
+      "native_renderer": true,
+      "scene": "DAYLIGHT / HIGH CONTRAST"
+    },
+    {
+      "caption": "Internet Archive source workflow",
+      "id": "source-search",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "Internet Archive source workflow",
+      "id": "source-tracks",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "Internet Archive source workflow",
+      "id": "source-preview",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "Internet Archive source workflow",
+      "id": "source-markers",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "Internet Archive source workflow",
+      "id": "source-rendered",
+      "native_renderer": true,
+      "scene": "TERM / GREEN PHOSPHOR"
+    },
+    {
+      "caption": "Source collections",
+      "id": "source-collections",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Sample editor overview",
+      "id": "sample-editor",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Sixteen slices",
+      "id": "sample-slices",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Sample editor zoom",
+      "id": "sample-zoom",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Gain dialog",
+      "id": "sample-gain",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "CHOP audition and export",
+      "id": "sample-chop",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Drumlab rhythm generator",
+      "id": "drumlab",
+      "native_renderer": true,
+      "scene": "VECTOR / WIREFRAME"
+    },
+    {
+      "caption": "SID CHIP",
+      "id": "synth-sid",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "DCO POLY",
+      "id": "synth-dco",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "FM SYSEX",
+      "id": "synth-fm",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "S GRAVITY RAIN",
+      "id": "synth-spectral",
+      "native_renderer": true,
+      "scene": "HARDWARE / ALU OLED"
+    },
+    {
+      "caption": "Sample Granular source and controls",
+      "id": "sample-granular",
+      "native_renderer": true,
+      "scene": "VECTOR / ORBITAL"
+    },
+    {
+      "caption": "Momentary Punch effects",
+      "id": "punch",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Studio effects",
+      "id": "fx",
+      "native_renderer": true,
+      "scene": "HARDWARE / BUNKA SIGNAL"
+    },
+    {
+      "caption": "Mastering",
+      "id": "master",
+      "native_renderer": true,
+      "scene": "HARDWARE / ORANGE KEYS"
+    },
+    {
+      "caption": "Factory library",
+      "id": "browser",
+      "native_renderer": true,
+      "scene": "ASCII / README.NFO"
+    },
+    {
+      "caption": "TrackWerk 1.1 splash",
+      "id": "splash",
+      "native_renderer": true,
+      "scene": "ANSI / NIGHT BBS"
+    },
+    {
+      "id": "resample-record",
+      "caption": "Actual four-bar internal recording",
+      "native_renderer": true,
+      "source": "435-second native film capture",
+      "scene": "HARDWARE / ORANGE KEYS"
+    },
+    {
+      "id": "resample-take",
+      "caption": "The saved four-bar take in the editor",
+      "native_renderer": true,
+      "source": "435-second native film capture",
+      "scene": "HARDWARE / ORANGE KEYS"
     }
   ],
-  "music_credit": {
-    "tracks": [
-      "Side Door Press",
-      "Paper Lanterns",
-      "Evening Relay"
-    ],
-    "drum_library": "Kid Bunka",
-    "external_sample": {
-      "title": "Armour Avenue Struggle",
-      "artist": "Jimmy Blythe",
-      "year": 1924,
-      "url": "https://archive.org/details/JV-981-1924-QmekUWzYbV84JW6SYnGWi3UNrRzX7gP7bF7imBBFyPZYiQ.mp3",
-      "license": "CC0 listing",
-      "source_range_seconds": [
-        1.1,
-        15.1
-      ]
-    }
-  },
-  "fonts": {
-    "LiberationSans-Regular.ttf": "SIL OFL1.1",
-    "LiberationMono-Bold.ttf": "SIL OFL1.1",
-    "license_file": "assets/fonts/LICENSE-OFL-1.1.txt"
-  },
-  "references_checked": [
-    "https://knulli.org/play/install/",
-    "https://knulli.org/play/add-games/accessing-sd-card/",
-    "https://onionui.github.io/docs/installation",
-    "https://github.com/conanizer/pockettracker",
-    "https://amberelec.org/installation.html"
-  ],
-  "film": {
-    "duration_seconds": 180,
-    "interface": "Native Dev.13 and Android emulator captures in illustrated handhelds",
-    "narration_captions": "assets/video/trackwerk-10-promo-en.vtt",
-    "translated_subtitles": "assets/video/trackwerk-10-promo-de.vtt",
-    "original_master_sha256": "c994223978af810d464f13bedaa99356c641b909d77bdb83129a74321192e885",
-    "youtube_url": "https://www.youtube.com/watch?v=_qvT9nUBwIo"
-  },
-  "private_raw_sample_library_in_website": false,
-  "contains_rendered_demo_music": true
+  "source_states": "Recorded native Archive transport, replayed through current UI",
+  "theme_count": 54,
+  "variation_count": 16,
+  "version": "1.1.0",
+  "width": 640
 }

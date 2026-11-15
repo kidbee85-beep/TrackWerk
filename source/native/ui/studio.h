@@ -32,7 +32,8 @@ std::string studio_synth_control_value(const AppState&,int index);
 int studio_synth_control_level(const AppState&,int index);
 std::string studio_synth_note_name(const AppState&);
 void studio_synth_sync_target(AppState&);
-void studio_synth_edit(AppState&,songcore::SongcoreHost&,AudioEngine&,int row,int direction,bool coarse);
+// `fs`: where FM SYSEX looks for .syx banks; without it the banks found earlier are used.
+void studio_synth_edit(AppState&,songcore::SongcoreHost&,AudioEngine&,int row,int direction,bool coarse,FileSystem* fs=nullptr);
 bool studio_synth_apply(AppState&,songcore::SongcoreHost&,AudioEngine&);
 bool studio_synth_compare(AppState&,songcore::SongcoreHost&,AudioEngine&);
 void studio_synth_audition(AppState&,songcore::SongcoreHost&,bool on);

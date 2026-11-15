@@ -11,9 +11,12 @@
 #include "audio_capture.h"
 #include "live_resample_state.h"
 #include "drumlab.h"
+#include "ui/harmony.h"
 #include "source_sampler.h"
 #include "sample_granular_state.h"
 #include "studio_synth_picker.h"
+#include "ui/fm_library.h"
+#include "ui/perform.h"
 #include "studio_workspace.h"
 #include "ui/folder_config.h"
 #include "ui/fx_helper.h"
@@ -67,6 +70,7 @@ struct AppState {
     CaptureView capture;
     LiveResampleView resampleView;
     DrumLabState drumLab;
+    HarmonyState harmony;
     SourceSamplerState sourceSampler;
     SampleGranularUIState sampleGranular;
     LocalSampleRangeState localSampleRange;
@@ -76,6 +80,12 @@ struct AppState {
     float splashProgress=-1.f;
     uint64_t splashStarted=0;
     int splashSkipButton=-1;
+    // The attract screen (ui/demo_fx.h): a demo after a few idle minutes; any key ends it.
+    bool attractActive=false;
+    // SELECT + START on a tracker screen: the full-screen show view for a stage or a projector
+    // (ui/demo_fx.h). START plays and stops; B or SELECT + START leaves; nothing else edits.
+    bool showActive=false;
+    uint64_t attractStarted=0;
     std::string m8PendingJson,m8PendingPath,m8PendingReport;
     std::string studioMessage;
     bool studioOpen=false, studioHelp=false;
@@ -89,6 +99,9 @@ struct AppState {
     int studioHarmonics=89, studioTimbre=107, studioMorph=128;
     bool studioSynthCustom=false;
     bool studioConfirm=false, studioAUsed=false, studioBUsed=false;
+    // L (bit 0) / R (bit 1) went down with nothing else held and nothing pressed since: only then is
+    // its release a page's own shoulder action (Drumlab bar, Sources sort, Harmony lock).
+    uint8_t studioShoulderSolo=0;
     bool studioShortcutRelease=false, studioAuditionHeld=false, studioLiveBound=false;
     StudioWorkspaceState studioWorkspace;
     uint16_t studioInputSuppress = 0;  // Held buttons consumed by a Studio modal or screen transition.
@@ -96,6 +109,8 @@ struct AppState {
     int studioSynthPage=0, studioSynthInstrument=-1, studioSynthColumn=0;
     std::string studioBoundUri;
     songcore::Instrument studioDraft;
+    PerformState perform;  // PERFORM's cursor and the engine values it shows
+    FmLibrary fmLibrary;   // FM SYSEX banks: scanned when the Studio first needs them
     StudioSynthPickerState studioSynthPicker;
     StudioSynthCompare studioSynthCompare;
     // ⚠️ The one Project the host owns, edited in place (`host.edit_project()`) — never a copy.
@@ -191,6 +206,10 @@ struct AppState {
 
     // The queue markers' blink phase, 0..999 ms — handed in so a headless screenshot is repeatable.
     int blinkPhaseMs = 0;
+    // The clock of the Scene animations (ui/scene_animation.h), ms; set by the shell each frame.
+    uint64_t animationMs = 0;
+    // The navigation map's arrival banner shows until this time (same clock); 0 = none.
+    uint64_t navBannerUntilMs = 0;
 
     // The TABLE row a voice is on, per FX column (−1 = not running). Read off the voice: a table runs
     // on its own clock, each column separately (ui/engine_feed.h).
@@ -344,6 +363,7 @@ struct AppState {
     // The theme editor, over SETTINGS; START passes through, so the scope colours can be set against
     // a moving wave. Edits the live Theme.
     ThemeEditorState themeEditor{};
+    int scenePicker = -1;
 
     // ── SETTINGS: what the screen edits, and what settings.json holds ────────────────────────────
     // `insertBefore` is read when the keyboard opens, so flipping it mid-word changes nothing.
