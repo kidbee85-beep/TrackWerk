@@ -35,7 +35,7 @@ Requirements: Python3, CMake3.22 or newer, Make, Zig0.14.1, and a matching ARM64
 python3 tools/brick/build.py --zig /path/to/zig --sdl-sdk /path/to/sdk/usr --cmake cmake --out build/brick --tests
 ```
 
-The output is `build/brick/pockettracker_extreme.aarch64`. Target: `aarch64-linux-gnu.2.31`, Cortex-A53. The standalone launcher is `shell/brick/Pocket Tracker Extreme.sh`. Preserve executable permissions when packaging it. Its default surface display mode is a compatibility choice for the tested KNULLI setup; it does not replace any device driver.
+The output is `build/brick/trackwerk.aarch64`. Target: `aarch64-linux-gnu.2.31`, Cortex-A53. The standalone launcher is `shell/brick/TrackWerk.sh`. Preserve executable permissions when packaging it. Its default surface display mode is a compatibility choice for the tested KNULLI setup; it does not replace any device driver.
 
 Run the launcher process tests from the source root:
 

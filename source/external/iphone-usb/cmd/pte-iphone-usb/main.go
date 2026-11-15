@@ -15,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"pockettracker-extreme/iphone-usb/internal/audio"
-	"pockettracker-extreme/iphone-usb/internal/protocol"
-	"pockettracker-extreme/iphone-usb/internal/usb"
+	"trackwerk/iphone-usb/internal/audio"
+	"trackwerk/iphone-usb/internal/protocol"
+	"trackwerk/iphone-usb/internal/usb"
 )
 
 type status struct {

@@ -63,7 +63,7 @@ cmake --build "$SDL2_BUILD"
 cmake --install "$SDL2_BUILD"
 
 echo
-echo "############ 2/5  cross-build PocketTracker ############"
+echo "############ 2/5  cross-build TrackWerk ############"
 rm -rf "$BUILD"
 cmake -S "$SRC/shell" -B "$BUILD" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
@@ -82,7 +82,7 @@ echo "############ 3/5  stage the package ############"
 # level down reads to that checker as a port with no screenshot at all.
 #
 #   $STAGE/
-#   |- PocketTracker.sh
+#   |- TrackWerk.sh
 #   |- port.json
 #   |- gameinfo.xml
 #   |- README.md
@@ -103,11 +103,11 @@ echo "############ 3/5  stage the package ############"
 rm -rf "$OUT"
 mkdir -p "$STAGE/pockettracker/licenses"
 
-cp "$SRC/shell/portmaster/PocketTracker.sh" "$STAGE/"
+cp "$SRC/shell/portmaster/TrackWerk.sh" "$STAGE/"
 cp "$SRC/shell/portmaster/port.json"        "$STAGE/"
 cp "$SRC/shell/portmaster/gameinfo.xml"     "$STAGE/"
 cp "$SRC/shell/portmaster/README.md"        "$STAGE/"
-chmod +x "$STAGE/PocketTracker.sh"
+chmod +x "$STAGE/TrackWerk.sh"
 
 # The art. It is staged at the ROOT here because that is where the catalog checker looks; step 5 puts
 # it where `gameinfo.xml` points the CFW's game list (`<image>./pockettracker/screenshot.png`).
@@ -124,7 +124,7 @@ cp "$BUILD/pockettracker-sdl" "$BIN"
 chmod +x "$BIN"
 aarch64-linux-gnu-strip "$BIN"
 
-# PocketTracker is GPL-3.0, and it statically links its decoders — so their notices ship with the
+# TrackWerk is GPL-3.0, and it statically links its decoders — so their notices ship with the
 # binary that contains them, not just with the source tree that built it. A missing one is a licence
 # breach in the artifact, which is the only thing a user ever receives.
 #
@@ -186,14 +186,14 @@ fi
 # gptokeyb injects keyboard presses for the same physical buttons the shell already reads off the
 # pad, and its defaults disagree with the shell's keyboard map about what they mean (start=enter,
 # and Enter is the A button). It made START insert a chain and stopped playback from stopping.
-# The reasoning is in PocketTracker.sh; this is the guard that keeps it out of the artifact.
+# The reasoning is in TrackWerk.sh; this is the guard that keeps it out of the artifact.
 #
 # ⚠️ Comments are STRIPPED before the match, and the first cut of this check forgot to: it grepped
 # the raw file, matched the very comment block that explains why gptokeyb must never run here, and
 # failed a build whose launch script was correct. A guard that cannot tell documentation from code
 # fires on the fix as readily as on the bug.
-if sed 's/#.*//' "$STAGE/PocketTracker.sh" | grep -qi 'gptokeyb'; then
-    echo "FAIL: PocketTracker.sh runs gptokeyb. Read the comment at the top of that file."
+if sed 's/#.*//' "$STAGE/TrackWerk.sh" | grep -qi 'gptokeyb'; then
+    echo "FAIL: TrackWerk.sh runs gptokeyb. Read the comment at the top of that file."
     exit 1
 fi
 echo "gptokeyb           : not invoked by the launch script (correct)"
@@ -254,7 +254,7 @@ echo "############ 5/5  zip (upstream's transform, not one of ours) ############
 rm -rf "$ZIPROOT"
 mkdir -p "$ZIPROOT"
 cp -a "$STAGE/pockettracker"  "$ZIPROOT/"
-cp    "$STAGE/PocketTracker.sh" "$ZIPROOT/"
+cp    "$STAGE/TrackWerk.sh" "$ZIPROOT/"
 cp    "$STAGE/port.json" "$STAGE/gameinfo.xml" "$STAGE/screenshot.png" "$ZIPROOT/pockettracker/"
 cp    "$STAGE/README.md"        "$ZIPROOT/pockettracker/pockettracker.md"
 ( cd "$ZIPROOT" && zip -r "$OUT/pockettracker.zip" . -x '.*' )
@@ -272,10 +272,10 @@ unzip -l "$OUT/pockettracker.zip"
 # and unzip exits 11 on a missing member, either of which kills the script under `set -euo pipefail`
 # before the FAIL line that would have named the problem.
 echo
-SCRIPT_AT_ROOT=$(unzip -l "$OUT/pockettracker.zip" | grep -c ' PocketTracker\.sh$') || SCRIPT_AT_ROOT=0
+SCRIPT_AT_ROOT=$(unzip -l "$OUT/pockettracker.zip" | grep -c ' TrackWerk\.sh$') || SCRIPT_AT_ROOT=0
 echo "launch script at zip root : $SCRIPT_AT_ROOT   (want 1)"
 if [ "$SCRIPT_AT_ROOT" != "1" ]; then
-    echo "FAIL: PocketTracker.sh is not at the zip root - harbourmaster installs the items from there."
+    echo "FAIL: TrackWerk.sh is not at the zip root - harbourmaster installs the items from there."
     exit 1
 fi
 

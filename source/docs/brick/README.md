@@ -2,7 +2,7 @@
 
 TrackWerk 0.9.0 is a standalone native KNULLI port. See the [current illustrated guide](../site/guide.html), [quick start](../quick-start-guide.md), and [build instructions](../building.md).
 
-Copy your audio to `SHARE/roms/ports/pockettracker_extreme/data/Samples`. On the device this is `/userdata/roms/ports/pockettracker_extreme/data/Samples`. `SHARE` is the volume, not an extra nested directory.
+Copy your audio to `SHARE/roms/ports/trackwerk/data/Samples`. On the device this is `/userdata/roms/ports/trackwerk/data/Samples`. `SHARE` is the volume, not an extra nested directory.
 
 Existing musical workflows have been user-tested on a physical Brick with no issues reported so far. The full acceptance workbook and USB/interface tests are still in progress. A kernel/driver stall can prevent a launcher timeout from returning to the frontend; a timeout is not a hardware recovery guarantee.
 

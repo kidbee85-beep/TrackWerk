@@ -1,4 +1,4 @@
-# PocketTracker
+# TrackWerk
 
 A music tracker for handhelds — the same tracker as the Android app, built from the same C++.
 The sequencer, the sample engine, the DSP and every screen are shared source; only the window,

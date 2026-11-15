@@ -26,7 +26,7 @@ class UpdateChecks(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='pte-update-')
         self.root = Path(self.temp.name).resolve()
-        self.app = self.root / 'SHARE/roms/ports/pockettracker_extreme'
+        self.app = self.root / 'SHARE/roms/ports/trackwerk'
         self.app.mkdir(parents=True)
         self.old = fake_elf(b'old-tested-version')
         self.new = fake_elf(b'new-beta2-version')
@@ -47,7 +47,7 @@ class UpdateChecks(unittest.TestCase):
             path = self.app / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(value)
-        self.launcher = self.app.parent / 'Pocket Tracker Extreme.sh'
+        self.launcher = self.app.parent / 'TrackWerk.sh'
         self.launcher.write_bytes(b'working surface launcher')
         self.package = self.root / 'update'
         self.package.mkdir()

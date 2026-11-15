@@ -3,7 +3,7 @@
 from pathlib import Path
 import hashlib,json,os,shutil,signal,subprocess,tempfile,time,unittest
 HERE=Path(__file__).resolve().parent
-LAUNCHER=Path(__file__).resolve().parents[2]/'shell/r36s/Pocket Tracker Extreme.sh'
+LAUNCHER=Path(__file__).resolve().parents[2]/'shell/r36s/TrackWerk.sh'
 NATIVE='''#!/usr/bin/python3
 from pathlib import Path
 import os,sys,json,time,signal
@@ -24,9 +24,9 @@ sys.exit(int(os.environ.get('PTE_TEST_RC','0')))
 class Launcher(unittest.TestCase):
  def setUp(self):
   self.root=Path(tempfile.mkdtemp(prefix='card spaces $() ; ` literal ',dir=HERE))
-  self.ports=self.root/'ports';self.ports.mkdir();self.app=self.ports/'pockettracker_extreme';self.app.mkdir()
-  self.script=self.ports/'Pocket Tracker Extreme.sh';shutil.copyfile(LAUNCHER,self.script)
-  self.binary=self.app/'pockettracker_extreme.aarch64';self.binary.write_text(NATIVE);self.binary.chmod(0o644)
+  self.ports=self.root/'ports';self.ports.mkdir();self.app=self.ports/'trackwerk';self.app.mkdir()
+  self.script=self.ports/'TrackWerk.sh';shutil.copyfile(LAUNCHER,self.script)
+  self.binary=self.app/'trackwerk.aarch64';self.binary.write_text(NATIVE);self.binary.chmod(0o644)
   self.tools=self.app/'tools';self.tools.mkdir();(self.tools/'cacert.pem').write_text('fixture')
   for name in ['qjs','yt-dlp','pte-iphone-usb','pte-iphone-pair','pte-usbmuxd']:(self.tools/name).write_text('#!/bin/sh\nexit 0\n')
   self.db=self.app/'controllerdb/gamecontrollerdb.txt';self.db.parent.mkdir();self.db.write_text('pinned fixture db')

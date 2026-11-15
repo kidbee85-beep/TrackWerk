@@ -1,6 +1,6 @@
 # The SDL shell — `pockettracker-sdl`
 
-The shell PocketTracker runs on. It opens an audio device, hands songcore a `.ptp`, draws the tracker,
+The shell TrackWerk runs on. It opens an audio device, hands songcore a `.ptp`, draws the tracker,
 and plays it — on Windows, Linux, the handhelds and Android alike.
 
 **`app.{h,cpp}` is the shared shell**: the boot sequence, the frame loop, the teardown, identical on
@@ -105,7 +105,7 @@ and open PortMaster. That is the path a user takes, and it is the one that guara
 bit: `PortMaster.sh` hands each zip there to harbourmaster, whose `_install_port` ends in
 `chmod -R 777`. The zip does carry `0755` on the launch script and the binary (`unzip -Z` on the
 artifact), but a desktop unzip is free to throw that away, and the port then silently does nothing.
-`PocketTracker.sh` repairs the binary's bit at launch; nothing can repair its own.
+`TrackWerk.sh` repairs the binary's bit at launch; nothing can repair its own.
 
 ⚠️ **Verify a package by installing it this way, not by unzipping it into `ports/`.** harbourmaster is
 not a plain extraction: it stamps a `# PORTMASTER: <zip>, <script>` line into the launch script (so the
@@ -134,17 +134,17 @@ Two decisions worth knowing before changing anything here:
   keyboard, so gptokeyb's injected keystrokes arrive as a second, disagreeing copy of every press —
   its default `start = enter` against `sdl-input.cpp`'s `Enter -> Button::A` makes START insert a
   chain and stops playback from stopping. The full table is at the top of `portmaster/`
-  `PocketTracker.sh`, and `build-portmaster.sh` fails the build if it reappears.
+  `TrackWerk.sh`, and `build-portmaster.sh` fails the build if it reappears.
 
 ### The Windows package
 
 ```bat
 :: build first (see above), then:
 powershell -ExecutionPolicy Bypass -File shell\build-windows.ps1
-:: -> build\windows\PocketTracker-<version>-windows-x64.zip
+:: -> build\windows\TrackWerk-<version>-windows-x64.zip
 ```
 
-Unzip anywhere and double-click `PocketTracker.exe`. **Nothing to install** — one self-contained
+Unzip anywhere and double-click `TrackWerk.exe`. **Nothing to install** — one self-contained
 exe, a README and the licences. CI builds it on every push (`.github/workflows/build.yml`, the
 `shell` job's windows-x64 leg).
 

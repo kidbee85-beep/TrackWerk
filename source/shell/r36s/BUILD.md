@@ -19,8 +19,8 @@ symlinks and mutable data, replaces target-specific metadata, and checks ZIP CRC
 It intentionally excludes Brick-specific OS download shortcuts. Computer preset
 preparation remains optional; `tools/prepare_presets.py` is reused unchanged.
 
-The resulting ZIP contains a sibling `Pocket Tracker Extreme.sh` and
-`pockettracker_extreme/`, suitable for the firmware's ports directory. The source
+The resulting ZIP contains a sibling `TrackWerk.sh` and
+`trackwerk/`, suitable for the firmware's ports directory. The source
 files in this directory are part of the matching GPL source release. The pinned
 database source and zlib license are in `controllerdb/`.
 

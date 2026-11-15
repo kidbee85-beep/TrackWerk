@@ -1,4 +1,4 @@
-PocketTracker for Windows
+TrackWerk for Windows
 =========================
 
 A tracker for small screens. This is the same program that runs on Linux handhelds and
@@ -8,7 +8,7 @@ on Android, drawing the same 640x480 design and running the same audio engine.
 RUNNING IT
 ----------
 
-Double-click PocketTracker.exe. There is nothing to install and nothing to configure.
+Double-click TrackWerk.exe. There is nothing to install and nothing to configure.
 
 Windows 10 or later, 64-bit. If SmartScreen puts up a blue "Windows protected your PC"
 box, that is because this download is not code-signed, not because anything is wrong
@@ -25,17 +25,17 @@ YOUR FILES
 
 Everything lives in your Documents folder:
 
-    Documents\PocketTracker\Projects       songs (.ptp)
-    Documents\PocketTracker\Samples        WAV, MP3, FLAC, OGG, Opus, M4A
-    Documents\PocketTracker\Soundfonts     .sf2
-    Documents\PocketTracker\Instruments    saved instruments
-    Documents\PocketTracker\Renders        exported mixes and stems
-    Documents\PocketTracker\Themes         colour themes
+    Documents\TrackWerk\Projects       songs (.ptp)
+    Documents\TrackWerk\Samples        WAV, MP3, FLAC, OGG, Opus, M4A
+    Documents\TrackWerk\Soundfonts     .sf2
+    Documents\TrackWerk\Instruments    saved instruments
+    Documents\TrackWerk\Renders        exported mixes and stems
+    Documents\TrackWerk\Themes         colour themes
 
 The folders are created the first time you run it. Drop samples straight into Samples\
 and they will show up in the file browser.
 
-These are the same folder names the Android version uses, so a PocketTracker folder
+These are the same folder names the Android version uses, so a TrackWerk folder
 copied off a phone works here as-is, and vice versa.
 
 
@@ -91,10 +91,10 @@ Neither one writes your .ptp file for you. Use PROJECT > SAVE for that.
 LICENCES
 --------
 
-PocketTracker is free software under the GNU General Public License v3 or later. The
+TrackWerk is free software under the GNU General Public License v3 or later. The
 full text is in licenses\LICENSE, and licenses\THIRD-PARTY-NOTICES.md lists every
 third-party component compiled into the program, with its licence. licenses\SDL2-LICENSE.txt
-is the licence of the SDL2 build linked into PocketTracker.exe.
+is the licence of the SDL2 build linked into TrackWerk.exe.
 
 You are free to use it, share it, and sell what you make with it. The songs you write
 are yours.
@@ -110,7 +110,7 @@ For a report about sound - a note that will not stop, a sample that will not loa
 there is a verbose mode. Open a Command Prompt in this folder and run:
 
     set POCKETTRACKER_LOG=1
-    PocketTracker.exe
+    TrackWerk.exe
 
 The console then also prints what the audio engine is doing internally. It is off by
 default because it is noisy and none of it means anything is wrong.

@@ -3,7 +3,7 @@
 # Onion 4.3 Ports launch_standalone owns MainUI/audio-server restoration on return.
 PTE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
 cd "$PTE_DIR" || exit 1
-PTE_HOME=${POCKETTRACKER_HOME:-/mnt/SDCARD/PocketTrackerExtreme}
+PTE_HOME=${POCKETTRACKER_HOME:-/mnt/SDCARD/TrackWerk}
 PTE_LOG="$PTE_DIR/log.txt"
 [ ! -f "$PTE_LOG" ] || cp -f "$PTE_LOG" "$PTE_DIR/log.previous.txt" 2>/dev/null
 exec > "$PTE_LOG" 2>&1
@@ -11,6 +11,7 @@ printf '%s\n' 'TrackWerk / Miyoo Plus Archive experimental' "Started: $(date)"
 printf '%s\n' 'Private Plus-only test. Archive/Commons software-tested; Wi-Fi hardware untested. Physical recording and YouTube are disabled.'
 mkdir -p "$PTE_HOME" || exit 1
 export POCKETTRACKER_HOME="$PTE_HOME"
+export TRACKWERK_HOME="$POCKETTRACKER_HOME"
 if [ ! -e "$PTE_HOME/config.json" ]; then cp "$PTE_DIR/miyoo-config.json" "$PTE_HOME/config.json" || exit 1; fi
 if [ ! -e "$PTE_HOME/config.example.json" ]; then cp "$PTE_DIR/miyoo-config.json" "$PTE_HOME/config.example.json" 2>/dev/null; fi
 # Keep all firmware libraries on their own device. Only our exact mmiyoo SDL and GPL helper are
@@ -44,8 +45,8 @@ if [ ! -f "$PTE_AUDIO_STOP" ]; then
 fi
 sh "$PTE_AUDIO_STOP"
 sleep 0.3
-chmod +x "$PTE_DIR/pockettracker" 2>/dev/null
-"$PTE_DIR/pockettracker" &
+chmod +x "$PTE_DIR/trackwerk" 2>/dev/null
+"$PTE_DIR/trackwerk" &
 PTE_CHILD=$!
 PTE_TIMEOUT=${PTE_STARTUP_TIMEOUT_SECONDS:-20}
 case "$PTE_TIMEOUT" in ''|*[!0-9]*) PTE_TIMEOUT=20;; esac
@@ -76,6 +77,6 @@ wait "$PTE_WATCH" 2>/dev/null
 printf 'Exit code: %s\n' "$PTE_RC"
 PTE_PANEL=/mnt/SDCARD/.tmp_update/bin/infoPanel
 if [ "$PTE_RC" -ne 0 ] && [ -x "$PTE_PANEL" ]; then
- LD_LIBRARY_PATH=/mnt/SDCARD/miyoo/lib:/config/lib:/lib "$PTE_PANEL" --title 'TrackWerk' --message 'Experimental Miyoo build could not start. Details: Roms/PORTS/Games/PocketTrackerExtremePlusArchive/log.txt' > /dev/null 2>&1
+ LD_LIBRARY_PATH=/mnt/SDCARD/miyoo/lib:/config/lib:/lib "$PTE_PANEL" --title 'TrackWerk' --message 'Experimental Miyoo build could not start. Details: Roms/PORTS/Games/TrackWerkPlus/log.txt' > /dev/null 2>&1
 fi
 exit "$PTE_RC"

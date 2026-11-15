@@ -18,7 +18,7 @@ function(pt_public_source_prefixes target)
         endif()
     endforeach()
     target_compile_options("${target}" PRIVATE
-        "-ffile-prefix-map=${PT_PUBLIC_SOURCE_ROOT}=/src/pocket-tracker-extreme")
+        "-ffile-prefix-map=${PT_PUBLIC_SOURCE_ROOT}=/src/trackwerk")
 endfunction()
 
 function(pt_public_library_prefixes directory)

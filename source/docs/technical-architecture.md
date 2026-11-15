@@ -112,7 +112,7 @@ native/                            The portable program
 │   ├── midi_out.h / midi_in.h       The MIDI seams, serializer, parser, router
 │   ├── midi_clock.h                 24 PPQN clock, transport, song position
 │   ├── midi_sync_in.h               An incoming clock as a line; Start / Stop / position as events
-│   ├── note_command.h               A phrase's voice commands, sent with their note to another PocketTracker
+│   ├── note_command.h               A phrase's voice commands, sent with their note to another TrackWerk
 │   ├── device_clock.h               Which frame the audio device is taking — what MIDI is timed on
 │   ├── trace_writer.h               Conformance trace serializer
 │   └── note_tables.h                Baked pitch tables (bit-exact across toolchains)

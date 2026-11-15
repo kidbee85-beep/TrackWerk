@@ -1,4 +1,4 @@
-# Regenerate PocketTracker.ico from docs/images/logo-app.png.
+# Regenerate TrackWerk.ico from branding/trackwerk-icon.png.
 #
 #     powershell -ExecutionPolicy Bypass -File shell/windows/make-icon.ps1
 #
@@ -8,7 +8,7 @@
 # the notices instead of a folder of files.
 #
 # The source is logo-app.png — the full-bleed device-shot mark (the rainbow grille + "pocket
-# TRACKER") that is PocketTracker's icon across every platform. Cross-platform consistency is the
+# TRACKER") that is TrackWerk's icon across every platform. Cross-platform consistency is the
 # reason it is used here rather than logo-plain.png: the app should show ONE icon whether it is on a
 # phone's launcher, a handheld's game list, or a Windows taskbar. An earlier version of this script
 # preferred logo-plain (the chunky PT blocks) on the argument that a detailed device shot turns to
@@ -24,8 +24,8 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$src  = Join-Path $repo 'docs\images\logo-app.png'
-$out  = Join-Path $PSScriptRoot 'PocketTracker.ico'
+$src  = Join-Path $repo 'branding\trackwerk-icon.png'
+$out  = Join-Path $PSScriptRoot 'TrackWerk.ico'
 
 # 16..128 are written as DIBs and 256 as an embedded PNG. That split is the convention every icon
 # tool follows: PNG entries are Vista+ only, and while every Windows this app targets reads them at

@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           tag='v0.2.0-beta.2'
-          source_name='Pocket-Tracker-Extreme-0.2.0-beta.2-Source.zip'
+          source_name='TrackWerk-0.2.0-beta.2-Source.zip'
           release_id="$(gh api "repos/$GH_REPO/releases" --jq ".[] | select(.tag_name == \"$tag\" and .draft == true) | .id")"
           test -n "$release_id"
           asset_id="$(gh api "repos/$GH_REPO/releases/$release_id/assets" --jq ".[] | select(.name == \"$source_name\") | .id")"
@@ -42,7 +42,7 @@ jobs:
           python3 - "$archive" "$GITHUB_WORKSPACE" <<'PY'
           import pathlib, sys, zipfile
           archive, destination = sys.argv[1], pathlib.Path(sys.argv[2])
-          prefix = 'Pocket-Tracker-Extreme-0.2.0-beta.2/'
+          prefix = 'TrackWerk-0.2.0-beta.2/'
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
               entries = [i for i in z.infolist() if not i.is_dir()]
@@ -65,6 +65,6 @@ jobs:
           git add -A
           test "$(git ls-files -z | tr -cd '\0' | wc -c)" -eq 7764
           test -z "$(git diff --cached --diff-filter=D --name-only)"
-          git commit --quiet -m 'Add verified Pocket Tracker Extreme 0.2.0-beta.2 corresponding source'
+          git commit --quiet -m 'Add verified TrackWerk 0.2.0-beta.2 corresponding source'
           git push origin HEAD:main
 

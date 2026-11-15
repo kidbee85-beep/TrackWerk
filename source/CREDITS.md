@@ -89,9 +89,9 @@ Source/dependency provenance and full notices are in `vendor/newpipe-extractor`
 and `docs/licenses/NewPipe-*.txt`. The integration supplies no login or DRM handling.
 
 
-## Pocket Tracker Extreme
+## TrackWerk
 
-Pocket Tracker Extreme is an independent GPL-3.0-or-later fork of
+TrackWerk is an independent GPL-3.0-or-later fork of
 [PocketTracker](https://github.com/conanizer/pockettracker), by conanizer and its
 contributors. Original authorship and the notices above remain intact.
 

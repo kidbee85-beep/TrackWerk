@@ -57,7 +57,7 @@ public final class UpgradePreservationSmoke extends Instrumentation {
         Collections.sort(all); return new JSONArray(all);
     }
     private void launchAndClose() throws Exception {
-        File log = new File(getTargetContext().getFilesDir(), "pockettracker-log.txt");
+        File log = new File(getTargetContext().getFilesDir(), "trackwerk-log.txt");
         require(!log.exists() || log.delete(), "Could not reset the emulator fixture startup log");
         @SuppressWarnings("deprecation") int code = getTargetContext().getPackageManager()
             .getPackageInfo(getTargetContext().getPackageName(),0).versionCode;
@@ -104,7 +104,7 @@ public final class UpgradePreservationSmoke extends Instrumentation {
         Bundle result = new Bundle(); boolean success = false;
         try {
             require(Build.HARDWARE.equals("ranchu") || Build.HARDWARE.equals("goldfish") || Build.PRODUCT.contains("sdk"), "Emulator only");
-            Context app = getTargetContext(); require(app.getPackageName().equals("com.conanizer.pockettracker.studio.debug") || app.getPackageName().equals("com.conanizer.pockettracker.studio"), "Pocket Tracker Extreme test packages only");
+            Context app = getTargetContext(); require(app.getPackageName().equals("com.conanizer.pockettracker.studio.debug") || app.getPackageName().equals("com.conanizer.pockettracker.studio"), "TrackWerk test packages only");
             File root = app.getFilesDir(); File external = app.getExternalFilesDir(null); require(external != null, "Scoped external storage unavailable");
             File media = new File(external,"UpgradePreservationFixture"), snapshot = new File(root,"upgrade-preservation-snapshot.json");
             SharedPreferences prefs = app.getSharedPreferences("pockettracker_ui", Context.MODE_PRIVATE);

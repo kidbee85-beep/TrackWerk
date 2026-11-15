@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <gameList>
   <game>
-    <path>./PocketTracker.sh</path>
-    <name>PocketTracker</name>
-    <desc>PocketTracker is a music tracker for retro gaming handhelds.</desc>
+    <path>./TrackWerk.sh</path>
+    <name>TrackWerk</name>
+    <desc>TrackWerk is a music tracker for retro gaming handhelds.</desc>
     <image>./pockettracker/screenshot.png</image>
     <releasedate>20260716T000000</releasedate>
     <developer>conan</developer>

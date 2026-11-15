@@ -15,7 +15,7 @@ env=os.environ.copy();env.update(ZIG_GLOBAL_CACHE_DIR=str(out/'zig-global'),ZIG_
 for name,command in [('cc','cc'),('cxx','c++'),('ar','ar'),('ranlib','ranlib')]:
  target=' -target aarch64-linux-gnu.2.31 -mcpu=cortex_a53' if command in ['cc','c++'] else ''
  w=wrappers/name;w.write_text('#!/bin/sh\nexec '+shlex.quote(str(a.zig.resolve()))+' '+command+target+' "$@"\n');w.chmod(0o755)
-env.update(CC=str(wrappers/'cc'),CXX=str(wrappers/'cxx'),AR=str(wrappers/'ar'),RANLIB=str(wrappers/'ranlib'),LDFLAGS='-Wl,--strip-all',CFLAGS='-O2 -ffile-prefix-map='+str(Path.home())+'=/build -ffile-prefix-map='+str(s)+'=/src/pocket-tracker-extreme')
+env.update(CC=str(wrappers/'cc'),CXX=str(wrappers/'cxx'),AR=str(wrappers/'ar'),RANLIB=str(wrappers/'ranlib'),LDFLAGS='-Wl,--strip-all',CFLAGS='-O2 -ffile-prefix-map='+str(Path.home())+'=/build -ffile-prefix-map='+str(s)+'=/src/trackwerk')
 for name,flags in [('libusb-1.0.30',['--disable-udev']),('libplist-2.8.1',['--without-cython','--without-tests','--without-tools']),('usbmuxd-1.1.1',['--without-preflight','--without-systemd','--with-udevrulesdir=no'])]:
  src=a.libusb_source.resolve() if name.startswith('libusb-') and a.libusb_source else deps/name
  d=out/name;d.mkdir(exist_ok=True);e=env.copy()

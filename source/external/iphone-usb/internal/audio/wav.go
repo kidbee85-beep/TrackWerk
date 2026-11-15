@@ -9,7 +9,7 @@ import (
 	"os"
 	"syscall"
 
-	"pockettracker-extreme/iphone-usb/internal/protocol"
+	"trackwerk/iphone-usb/internal/protocol"
 )
 
 type Writer struct {

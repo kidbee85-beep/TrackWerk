@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Build the Linux desktop package: build/linux/PocketTracker-<version>-linux-x64.tar.gz
+# Build the Linux desktop package: build/linux/TrackWerk-<version>-linux-x64.tar.gz
 #
 # Run from the repo root, on a Linux box (or WSL) with a C++17 toolchain and libsdl2-dev:
 #
@@ -35,7 +35,7 @@ if [ -z "$VERSION" ]; then
 fi
 echo "version = $VERSION"
 
-STAGE=$OUT/stage/PocketTracker-$VERSION
+STAGE=$OUT/stage/TrackWerk-$VERSION
 rm -rf "$OUT"
 mkdir -p "$STAGE"
 
@@ -103,14 +103,14 @@ fi
 # `--version` check here would find nothing, report nothing and pass, which is a check that cannot
 # fail. What CAN be verified is the coupling that exists: shell/CMakeLists.txt parses the version out
 # of app/build.gradle.kts itself and announces it, so the two parsers are compared against each other.
-CMAKE_VERSION_LINE=$(grep -F 'PocketTracker' "$CONFIGURE_LOG" | grep -F 'from app/build.gradle.kts' | head -1)
+CMAKE_VERSION_LINE=$(grep -F 'TrackWerk' "$CONFIGURE_LOG" | grep -F 'from app/build.gradle.kts' | head -1)
 if [ -z "$CMAKE_VERSION_LINE" ]; then
     echo "FAIL: shell/CMakeLists.txt did not announce a version — its parser or its message changed,"
     echo "      and this check would otherwise pass by finding nothing."
     exit 1
 fi
 echo "cmake said: $CMAKE_VERSION_LINE"
-if ! echo "$CMAKE_VERSION_LINE" | grep -qF "PocketTracker $VERSION "; then
+if ! echo "$CMAKE_VERSION_LINE" | grep -qF "TrackWerk $VERSION "; then
     echo "FAIL: cmake read a different version than this script did (script: $VERSION)"
     exit 1
 fi
@@ -119,10 +119,10 @@ echo
 echo "############ 3/4  stage ############"
 # ONE top-level folder: a tarball that unpacks a dozen loose files into someone's home directory is a
 # tarball they will lose. The binary is renamed on the way in — the build target is a developer name.
-install -m 755 "$BIN" "$STAGE/PocketTracker"
+install -m 755 "$BIN" "$STAGE/TrackWerk"
 # The application-menu entry: the script writes a .desktop file pointing at wherever this folder is.
 install -m 755 "$SRC/shell/linux/install-desktop.sh" "$STAGE/install-desktop.sh"
-cp "$SRC/docs/images/logo-app.png"                 "$STAGE/pockettracker.png"
+cp "$SRC/docs/images/logo-app.png"                 "$STAGE/trackwerk.png"
 
 mkdir -p "$STAGE/licenses"
 cp "$SRC/LICENSE"                                  "$STAGE/licenses/LICENSE"
@@ -152,10 +152,10 @@ cp "$SRC/native/vendor/mutable/stmlib/LICENSE" "$STAGE/licenses/Mutable-stmlib-L
 cp "$SRC/docs/licenses/DaisySP-GPL-CONVERSION.txt" "$STAGE/licenses/DaisySP-GPL-CONVERSION.txt"
 
 cat > "$STAGE/README.txt" <<EOF
-PocketTracker $VERSION — Linux (x86-64)
+TrackWerk $VERSION — Linux (x86-64)
 
 Run:
-    ./PocketTracker
+    ./TrackWerk
 
 Add it to your application menu and launcher, with its icon (again after moving this folder):
     ./install-desktop.sh
@@ -165,7 +165,7 @@ Requires SDL2 at runtime (most distributions call the package libsdl2-2.0-0 or s
     Fedora            sudo dnf install SDL2
     Arch              sudo pacman -S sdl2
 
-Your files live in \$XDG_DATA_HOME/PocketTracker (usually ~/.local/share/PocketTracker):
+Your files live in \$XDG_DATA_HOME/TrackWerk (usually ~/.local/share/TrackWerk):
 
     Projects/     songs (.ptp)
     Samples/      WAV, MP3, FLAC, OGG, Opus, M4A
@@ -184,8 +184,8 @@ ls -la "$STAGE"
 
 echo
 echo "############ 4/4  tar, then read it BACK OUT ############"
-TARBALL=$OUT/PocketTracker-$VERSION-linux-x64.tar.gz
-( cd "$OUT/stage" && tar czf "$TARBALL" "PocketTracker-$VERSION" )
+TARBALL=$OUT/TrackWerk-$VERSION-linux-x64.tar.gz
+( cd "$OUT/stage" && tar czf "$TARBALL" "TrackWerk-$VERSION" )
 ls -lh "$TARBALL"
 tar tzf "$TARBALL"
 
@@ -194,7 +194,7 @@ tar tzf "$TARBALL"
 # back out of the finished file — sizes included, because a zero-byte member also extracts cleanly.
 echo
 echo "read back out of the tarball:"
-for NEEDED in "PocketTracker" "README.txt" "install-desktop.sh" "pockettracker.png" "licenses/LICENSE" "licenses/THIRD-PARTY-NOTICES.md" \
+for NEEDED in "TrackWerk" "README.txt" "install-desktop.sh" "trackwerk.png" "licenses/LICENSE" "licenses/THIRD-PARTY-NOTICES.md" \
               "licenses/CREDITS.md" "licenses/OFL-1.1-LiberationSans.txt" "licenses/OFL-1.1-QuinqueFive.txt" \
               "licenses/libogg-COPYING" "licenses/libopus-COPYING" \
               "licenses/libopus-LICENSE_PLEASE_READ.txt" "licenses/Mutable-Instruments-MIT.txt" "licenses/Mutable-Instruments-PROVENANCE.txt" "licenses/Mutable-stmlib-LICENSE" "licenses/DaisySP-GPL-CONVERSION.txt"; do
@@ -202,10 +202,10 @@ for NEEDED in "PocketTracker" "README.txt" "install-desktop.sh" "pockettracker.p
     # tar exit 2, and under `set -euo pipefail` that kills the script mid-loop — before the FAIL
     # line below, with tar's own reason already swallowed by 2>/dev/null. The operator would get a
     # bare exit 2 and no name. Absent and empty are the same verdict here, so they take the same path.
-    BYTES=$(tar xzOf "$TARBALL" "PocketTracker-$VERSION/$NEEDED" 2>/dev/null | wc -c) || BYTES=0
+    BYTES=$(tar xzOf "$TARBALL" "TrackWerk-$VERSION/$NEEDED" 2>/dev/null | wc -c) || BYTES=0
     echo "  $NEEDED: $BYTES bytes"
     if [ "$BYTES" -lt 100 ]; then
-        echo "FAIL: PocketTracker-$VERSION/$NEEDED is missing or empty inside the tarball."
+        echo "FAIL: TrackWerk-$VERSION/$NEEDED is missing or empty inside the tarball."
         exit 1
     fi
 done

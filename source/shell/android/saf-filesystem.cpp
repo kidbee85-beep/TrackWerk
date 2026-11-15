@@ -18,7 +18,7 @@
 namespace ptshell {
 namespace {
 
-constexpr const char* kLogTag   = "PocketTrackerSDL";
+constexpr const char* kLogTag   = "TrackWerkSDL";
 constexpr const char* kScheme   = "pt://";
 constexpr size_t      kSchemeLen = 5;
 constexpr const char* kRootsPath = "pt://roots";

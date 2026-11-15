@@ -86,10 +86,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='pte-package-', dir=args.out.parent) as temp:
         stage = Path(temp)
         if args.program_update:
-            copy(binary, stage/'pockettracker_extreme.aarch64', True)
+            copy(binary, stage/'trackwerk.aarch64', True)
             copy(source/'tools/release/update_brick.py',stage/'update_brick.py')
             copy(source/'tools/release/prepare_presets.py',stage/'prepare_presets.py')
-            manifest = {'platform':'trimui-brick','program':'pockettracker_extreme.aarch64',
+            manifest = {'platform':'trimui-brick','program':'trackwerk.aarch64',
                         'sha256':sha(binary),'bytes':binary.stat().st_size,'version':version}
             shutil.copytree(source/'factory',stage/'factory')
             manifest['factory_pack_id']=factory_pack_id
@@ -99,9 +99,9 @@ def main():
         else:
             if args.helpers is None:
                 parser.error('--helpers is required for the complete feature package')
-            app = stage/'pockettracker_extreme'
-            copy(binary,app/'pockettracker_extreme.aarch64',True)
-            copy(source/'shell/brick/Pocket Tracker Extreme.sh',stage/'Pocket Tracker Extreme.sh',True)
+            app = stage/'trackwerk'
+            copy(binary,app/'trackwerk.aarch64',True)
+            copy(source/'shell/brick/TrackWerk.sh',stage/'TrackWerk.sh',True)
             for name in ['port.json','gameinfo.xml','screenshot.png']:
                 copy(source/'shell/brick'/name,app/name)
             for p in (source/'app/src/main/assets/fonts').glob('*.ttf'):
@@ -129,7 +129,7 @@ def main():
             (app/'VERSION.txt').write_text('TrackWerk '+version+'\n')
             licenses(source,app/'licenses')
             (app/'licenses/packaged-helper-hashes.json').write_text(json.dumps(actual,indent=2)+'\n')
-        (stage/'SOURCE.txt').write_text('Matching source and build instructions:\nhttps://github.com/kidbee85-beep/TrackWerk/releases/download/v0.9.0-beta/TrackWerk-0.9-Source.zip\n')
+        (stage/'SOURCE.txt').write_text('Matching source and build instructions:\nhttps://github.com/kidbee85-beep/TrackWerk/releases/download/v1.1.0/TrackWerk-1.1.0-Source.zip\n')
         with zipfile.ZipFile(args.out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
             for p in sorted(stage.rglob('*')):
                 if not p.is_file():

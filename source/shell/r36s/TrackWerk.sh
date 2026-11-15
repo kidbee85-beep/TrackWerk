@@ -1,19 +1,19 @@
 #!/bin/bash
-# GPL-3.0-or-later. Standalone native TrimUI Brick / KNULLI launcher.
-# KNULLI supplies SDL controller mappings; this script never sources PortMaster.
+# GPL-3.0-or-later. Standalone experimental R36S / ARM64 Linux launcher.
+# Preserve frontend SDL mappings; never source PortMaster or system control scripts.
 
 # Parameter expansion, cd, pwd and printf below are shell builtins. The first
 # persistent marker must precede date, helper programs, preset work and native SDL.
 PTE_SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
 [ "$PTE_SCRIPT_DIR" != "${BASH_SOURCE[0]}" ] || PTE_SCRIPT_DIR=.
-PTE_APP_DIR="$PTE_SCRIPT_DIR/pockettracker_extreme"
+PTE_APP_DIR="$PTE_SCRIPT_DIR/trackwerk"
 if [ ! -d "$PTE_APP_DIR" ]; then
-    printf '%s\n' "TrackWerk: App-Ordner fehlt: $PTE_APP_DIR" >&2
+    printf '%s\n' "TrackWerk: App folder missing: $PTE_APP_DIR" >&2
     exit 2
 fi
 PTE_LOG="$PTE_APP_DIR/log.txt"
 exec >> "$PTE_LOG" 2>&1 || exit 2
-printf '\n=== TrackWerk 1.0.0-Brick: shell entered ===\n'
+printf '\n=== TrackWerk 0.9.0-R36S-Community-Test: shell entered ===\n'
 # Persist before any command substitution or native graphics initialization.
 # A forced power-off must not erase the only evidence of where startup stopped.
 sync || printf '%s\n' 'WARNING: initial startup log sync failed'
@@ -22,7 +22,7 @@ GAMEDIR="$PWD"
 PTE_LOG="$GAMEDIR/log.txt"
 pte_phase() { printf '[startup +%ss] %s\n' "$SECONDS" "$*"; }
 export POCKETTRACKER_SYNC_STARTUP=1
-export POCKETTRACKER_VIDEO="${POCKETTRACKER_VIDEO:-surface}"
+export POCKETTRACKER_VIDEO="${POCKETTRACKER_VIDEO:-renderer}"
 pte_phase "Video mode: $POCKETTRACKER_VIDEO; durable startup logging enabled"
 
 PTE_CHILD_PID=""
@@ -65,7 +65,7 @@ pte_cleanup() {
     local pte_temp
     for pte_temp in "${PTE_TEMPS[@]}"; do rm -f -- "$pte_temp"; done
     if [ -n "$PTE_READY_FILE" ]; then rm -f -- "$PTE_READY_FILE"; fi
-    printf '=== App beendet, Status %s ===\n' "$pte_rc"
+    printf '=== App closed, status %s ===\n' "$pte_rc"
     exit "$pte_rc"
 }
 pte_signal() {
@@ -78,32 +78,33 @@ trap pte_cleanup EXIT
 trap 'pte_signal 129' HUP
 trap 'pte_signal 130' INT
 trap 'pte_signal 143' TERM
-pte_fail() { printf 'FEHLER: %s\n' "$*"; exit 2; }
+pte_fail() { printf 'ERROR: %s\n' "$*"; exit 2; }
 
 # Rotate only after the first persistent entry has been written. Reopen stdout
 # after moving the old file, otherwise subsequent phases would follow its inode.
 PTE_LOG_SIZE="$(wc -c < "$PTE_LOG" 2>/dev/null)"
 if [[ "$PTE_LOG_SIZE" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] && [ "$PTE_LOG_SIZE" -gt 1048576 ]; then
-    mv -f -- "$PTE_LOG" "$GAMEDIR/log.previous.txt" || pte_fail "Startprotokoll kann nicht rotiert werden."
+    mv -f -- "$PTE_LOG" "$GAMEDIR/log.previous.txt" || pte_fail "Cannot rotate startup log."
     exec >> "$PTE_LOG" 2>&1 || exit 2
-    printf '\n=== TrackWerk 1.0.0-Brick: shell entered (log rotated) ===\n'
+    printf '\n=== TrackWerk 0.9.0-R36S-Community-Test: shell entered (log rotated) ===\n'
 fi
 pte_phase "Standalone start; no PortMaster scripts or network checks"
 
 # Keep the frontend's values, including an explicitly empty or custom value.
 # Fallback databases are read only; no keyboard mapper or control helper runs.
 if [ -z "${SDL_GAMECONTROLLERCONFIG_FILE+x}" ]; then
-    for PTE_DATABASE in /tmp/gamecontrollerdb.txt "${HOME:-/userdata/system}/.config/gamecontrollerdb.txt"; do
+    for PTE_DATABASE in /tmp/gamecontrollerdb.txt "${HOME:-/userdata/system}/.config/gamecontrollerdb.txt" "$GAMEDIR/controllerdb/gamecontrollerdb.txt"; do
         if [ -f "$PTE_DATABASE" ]; then
             export SDL_GAMECONTROLLERCONFIG_FILE="$PTE_DATABASE"
             break
         fi
     done
 fi
-pte_phase "Inherited SDL controller configuration retained"
+pte_phase "Frontend SDL settings retained; database fallback only when file variable was unset"
 
 export POCKETTRACKER_HOME="$GAMEDIR/data"
-mkdir -p -- "$POCKETTRACKER_HOME" || pte_fail "Datenordner kann nicht angelegt werden."
+export TRACKWERK_HOME="$POCKETTRACKER_HOME"
+mkdir -p -- "$POCKETTRACKER_HOME" || pte_fail "Cannot create data folder."
 pte_phase "Data directory ready"
 
 # The pack identifier is generated from factory paths+contents at packaging.
@@ -120,11 +121,11 @@ if [[ "$PTE_PACK_ID" =~ ^[a-fA-F0-9]{64}$ ]] && [ "$PTE_PACK_ID" = "$PTE_SEEDED_
 elif [ -d "$GAMEDIR/factory/Presets" ]; then
     pte_phase "Preparing missing factory presets"
     PTE_DEST="$POCKETTRACKER_HOME/Presets"
-    [ ! -L "$PTE_DEST" ] || pte_fail "Preset-Ordner ist eine Verknuepfung; automatische Einrichtung abgebrochen."
-    mkdir -p -- "$PTE_DEST" || pte_fail "Preset-Ordner kann nicht angelegt werden."
-    PTE_LIST="$(mktemp "$POCKETTRACKER_HOME/.pte-preset-list.XXXXXX")" || pte_fail "Preset-Dateiliste kann nicht angelegt werden."
+    [ ! -L "$PTE_DEST" ] || pte_fail "Preset folder is a symbolic link; automatic preparation stopped."
+    mkdir -p -- "$PTE_DEST" || pte_fail "Cannot create preset folder."
+    PTE_LIST="$(mktemp "$POCKETTRACKER_HOME/.pte-preset-list.XXXXXX")" || pte_fail "Cannot create preset file list."
     PTE_TEMPS+=("$PTE_LIST")
-    find "$GAMEDIR/factory/Presets" -type d -name '.*' -prune -o -type f ! -name '.*' -print0 > "$PTE_LIST" || pte_fail "Factory-Presets koennen nicht gelesen werden."
+    find "$GAMEDIR/factory/Presets" -type d -name '.*' -prune -o -type f ! -name '.*' -print0 > "$PTE_LIST" || pte_fail "Cannot read factory presets."
     PTE_SEED_COUNT=0
     while IFS= read -r -d '' PTE_SOURCE; do
         PTE_RELATIVE="${PTE_SOURCE#"$GAMEDIR/factory/Presets/"}"
@@ -136,16 +137,16 @@ elif [ -d "$GAMEDIR/factory/Presets" ]; then
         while [[ "$PTE_REST" == */* ]]; do
             PTE_COMPONENT="${PTE_REST%%/*}"; PTE_REST="${PTE_REST#*/}"
             PTE_PARENT="$PTE_PARENT/$PTE_COMPONENT"
-            [ ! -L "$PTE_PARENT" ] || pte_fail "Preset-Unterordner ist eine Verknuepfung."
-            mkdir -p -- "$PTE_PARENT" || pte_fail "Preset-Unterordner kann nicht angelegt werden."
+            [ ! -L "$PTE_PARENT" ] || pte_fail "Preset subfolder is a symbolic link."
+            mkdir -p -- "$PTE_PARENT" || pte_fail "Cannot create preset subfolder."
         done
-        PTE_TEMP="$(mktemp "$PTE_PARENT/.pte-preset-copy.XXXXXX")" || pte_fail "Neue Preset-Datei kann nicht vorbereitet werden."
+        PTE_TEMP="$(mktemp "$PTE_PARENT/.pte-preset-copy.XXXXXX")" || pte_fail "Cannot prepare new preset file."
         PTE_TEMPS+=("$PTE_TEMP")
         if ! cp -- "$PTE_SOURCE" "$PTE_TEMP" || ! cmp -s -- "$PTE_SOURCE" "$PTE_TEMP"; then
-            pte_fail "Presetpack kann nicht eingerichtet werden. Speicherplatz und SD-Karte pruefen."
+            pte_fail "Cannot prepare presets. Check free space and the SD card."
         fi
         # -n preserves any user file created while the verified copy was made.
-        mv -n -- "$PTE_TEMP" "$PTE_TARGET" || pte_fail "Neue Preset-Datei kann nicht gespeichert werden."
+        mv -n -- "$PTE_TEMP" "$PTE_TARGET" || pte_fail "Cannot save new preset file."
         if [ -e "$PTE_TEMP" ]; then rm -f -- "$PTE_TEMP"; fi
         PTE_TEMPS=("$PTE_LIST")
         PTE_SEED_COUNT=$((PTE_SEED_COUNT + 1))
@@ -154,10 +155,10 @@ elif [ -d "$GAMEDIR/factory/Presets" ]; then
     rm -f -- "$PTE_LIST"
     PTE_TEMPS=()
     if [[ "$PTE_PACK_ID" =~ ^[a-fA-F0-9]{64}$ ]]; then
-        PTE_MARKER_TEMP="$(mktemp "$POCKETTRACKER_HOME/.pte-preset-marker.XXXXXX")" || pte_fail "Preset-Markierung kann nicht angelegt werden."
+        PTE_MARKER_TEMP="$(mktemp "$POCKETTRACKER_HOME/.pte-preset-marker.XXXXXX")" || pte_fail "Cannot create preset marker."
         PTE_TEMPS+=("$PTE_MARKER_TEMP")
-        printf '%s\n' "$PTE_PACK_ID" > "$PTE_MARKER_TEMP" || pte_fail "Preset-Markierung kann nicht geschrieben werden."
-        mv -f -- "$PTE_MARKER_TEMP" "$POCKETTRACKER_HOME/.factory-presets-pack.id" || pte_fail "Preset-Markierung kann nicht gespeichert werden."
+        printf '%s\n' "$PTE_PACK_ID" > "$PTE_MARKER_TEMP" || pte_fail "Cannot write preset marker."
+        mv -f -- "$PTE_MARKER_TEMP" "$POCKETTRACKER_HOME/.factory-presets-pack.id" || pte_fail "Cannot save preset marker."
     fi
     pte_phase "Factory preset preparation complete; new files: $PTE_SEED_COUNT"
 else
@@ -168,25 +169,25 @@ export POCKETTRACKER_AUDIO_FRAMES="${POCKETTRACKER_AUDIO_FRAMES:-512}"
 export POCKETTRACKER_FULLSCREEN="${POCKETTRACKER_FULLSCREEN:-1}"
 export POCKETTRACKER_CACERT="${POCKETTRACKER_CACERT:-$GAMEDIR/tools/cacert.pem}"
 export PATH="$GAMEDIR/tools:$PATH"
-PTE_BINARY="$GAMEDIR/pockettracker_extreme.aarch64"
-[ -f "$PTE_BINARY" ] || pte_fail "App-Datei pockettracker_extreme.aarch64 fehlt. Das Paket erneut kopieren."
+PTE_BINARY="$GAMEDIR/trackwerk.aarch64"
+[ -f "$PTE_BINARY" ] || pte_fail "App file trackwerk.aarch64 missing. Copy the complete package again."
 chmod +x -- "$PTE_BINARY" 2>/dev/null || true
-[ -x "$PTE_BINARY" ] || pte_fail "App-Datei ist nicht ausfuehrbar. SD-Karten-Zugriff pruefen."
+[ -x "$PTE_BINARY" ] || pte_fail "App file is not executable. Check SD-card access."
 for PTE_TOOL in curl ffmpeg ffprobe yt-dlp qjs source-worker pte-source-worker pte-iphone-usb pte-iphone-pair pte-usbmuxd; do
     if [ -f "$GAMEDIR/tools/$PTE_TOOL" ]; then chmod +x -- "$GAMEDIR/tools/$PTE_TOOL" 2>/dev/null || true; fi
 done
-if [ ! -f "$POCKETTRACKER_CACERT" ]; then printf '%s\n' "Hinweis: CA-Zertifikatsdatei fehlt; Online-Quellen koennen nicht sicher verbunden werden."; fi
+if [ ! -f "$POCKETTRACKER_CACERT" ]; then printf '%s\n' "Note: CA certificate file missing; online sources cannot be connected securely."; fi
 
 PTE_STARTUP_TIMEOUT="${PTE_STARTUP_TIMEOUT_SECONDS:-25}"
-[[ "$PTE_STARTUP_TIMEOUT" =~ ^[0-9]+$ ]] || pte_fail "Ungueltiges Start-Zeitlimit."
-[ "${#PTE_STARTUP_TIMEOUT}" -le 3 ] && [ "$PTE_STARTUP_TIMEOUT" -ge 1 ] && [ "$PTE_STARTUP_TIMEOUT" -le 120 ] || pte_fail "Start-Zeitlimit muss 1 bis 120 Sekunden betragen."
+[[ "$PTE_STARTUP_TIMEOUT" =~ ^[0-9]+$ ]] || pte_fail "Invalid startup timeout."
+[ "${#PTE_STARTUP_TIMEOUT}" -le 3 ] && [ "$PTE_STARTUP_TIMEOUT" -ge 1 ] && [ "$PTE_STARTUP_TIMEOUT" -le 120 ] || pte_fail "Startup timeout must be 1 to 120 seconds."
 PTE_STARTUP_TIMEOUT=$((10#$PTE_STARTUP_TIMEOUT))
 PTE_READY_FILE="$GAMEDIR/.pte-startup-ready.$$.$RANDOM.$RANDOM"
-[ ! -e "$PTE_READY_FILE" ] && [ ! -L "$PTE_READY_FILE" ] || pte_fail "Start-Markierung ist bereits vorhanden."
+[ ! -e "$PTE_READY_FILE" ] && [ ! -L "$PTE_READY_FILE" ] || pte_fail "Startup marker already exists."
 export PTE_STARTUP_READY_FILE="$PTE_READY_FILE"
 pte_phase "Launching native app; first-frame deadline $PTE_STARTUP_TIMEOUT seconds"
 sync || true
-printf 'Start: %s\nDaten: %s\nAudio-Puffer: %s Frames\n' "$PTE_BINARY" "$POCKETTRACKER_HOME" "$POCKETTRACKER_AUDIO_FRAMES"
+printf 'Start: %s\nData: %s\nAudio buffer: %s frames\n' "$PTE_BINARY" "$POCKETTRACKER_HOME" "$POCKETTRACKER_AUDIO_FRAMES"
 "$PTE_BINARY" "$@" &
 PTE_CHILD_PID=$!
 # SECONDS has one-second resolution; round outward so a just-started native
@@ -204,7 +205,7 @@ while pte_child_running; do
         fi
     fi
     if [ "$SECONDS" -ge "$PTE_STARTUP_DEADLINE" ]; then
-        pte_phase "STARTUP TIMEOUT: no first presented frame; returning to frontend"
+        pte_phase "STARTUP TIMEOUT: no first presented frame; stopping native child"
         pte_stop_child
         exit 124
     fi

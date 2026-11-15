@@ -76,7 +76,7 @@ def main():
                  "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined,--strip-all"]
     subprocess.run(configure, env=env, check=True)
     subprocess.run([args.cmake, "--build", str(build), "-j", str(max(1, args.jobs))], env=env, check=True)
-    binary = out / "pockettracker_extreme.aarch64"
+    binary = out / "trackwerk.aarch64"
     shutil.copyfile(build / "pockettracker-sdl", binary)
     binary.chmod(0o755)
     (out / "build-info.json").write_text(json.dumps({

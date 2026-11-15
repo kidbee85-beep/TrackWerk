@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pockettracker"
+rootProject.name = "TrackWerk"
 include(":app")
 include(":youtube-extractor")
 project(":youtube-extractor").projectDir = file("vendor/newpipe-extractor")

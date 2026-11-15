@@ -1,5 +1,5 @@
 # Shell scripts in here are SHIPPED ARTIFACTS, and they are executed by a Linux kernel that has no
-# opinions about where they were edited. build-portmaster.sh copies PocketTracker.sh into the zip
+# opinions about where they were edited. build-portmaster.sh copies TrackWerk.sh into the zip
 # byte-for-byte, so whatever the checkout put in the working tree is what the handheld runs.
 #
 # This dev box has core.autocrlf=true. Without this file, committing a launch script written with LF
@@ -18,7 +18,7 @@ Dockerfile.portmaster text eol=lf
 
 # ⚠️ THE REST OF THE PACKAGE IS AN ARTIFACT TOO, AND THE RULE ABOVE DOES NOT CARE THAT THESE PARSE
 # EITHER WAY. `port.json`, `gameinfo.xml` and the shipped README are copied into the zip byte-for-byte
-# exactly as PocketTracker.sh is, and they were left `unspecified` — so the bytes a handheld receives
+# exactly as TrackWerk.sh is, and they were left `unspecified` — so the bytes a handheld receives
 # depended on which OS ran `git clone`. Nothing breaks today (XML normalises \r\n, and JSON calls it
 # whitespace), which is the only reason it went unnoticed; it is pinned because "an artifact whose
 # contents vary by the porter's OS" is the same bug as the shebang, caught before rather than after.

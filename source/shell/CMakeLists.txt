@@ -6,7 +6,7 @@ project("pockettracker-sdl" LANGUAGES C CXX)
 
 # ─── The SDL shell — Linux-port plan Phase 2 ───────────────────────────────────────────────────
 #
-# The first build of PocketTracker containing no Kotlin. It links the SAME engine the APK ships and
+# The first build of TrackWerk containing no Kotlin. It links the SAME engine the APK ships and
 # reaches it through the SAME class Android's JNI layer marshals (songcore::SongcoreHost), so there
 # is no second implementation of anything that decides how a song sounds. See main.cpp.
 #
@@ -118,20 +118,20 @@ endif()
 
 # ─── The Windows resource: the icon and the version stamp (A3) ─────────────────────────────────
 # Generated rather than committed, because it carries the icon's path and the version parsed above.
-# The icon file ITSELF is committed (shell/windows/PocketTracker.ico) and is regenerated from
+# The icon file ITSELF is committed (shell/windows/TrackWerk.ico) and is regenerated from
 # docs/images/logo-plain.png by shell/windows/make-icon.ps1 — which no build runs.
 #
 # One embedded icon is all the shell needs: SDL takes the first RT_GROUP_ICON as the window icon, so
-# this is also why there is no SDL_SetWindowIcon anywhere. See the header of pockettracker.rc.in.
+# this is also why there is no SDL_SetWindowIcon anywhere. See the header of trackwerk.rc.in.
 if(WIN32)
     # Not in project(LANGUAGES) at the top, because WIN32 is only defined once project() has run.
     # Ninja in particular will not compile a .rc without this; the VS generators are more forgiving,
     # which is exactly how a build breaks on the runner and not on the dev box.
     enable_language(RC)
-    set(PT_ICON     "${CMAKE_CURRENT_SOURCE_DIR}/windows/PocketTracker.ico")
+    set(PT_ICON     "${CMAKE_CURRENT_SOURCE_DIR}/windows/TrackWerk.ico")
     set(PT_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/windows/pockettracker.manifest")
-    configure_file(windows/pockettracker.rc.in "${CMAKE_CURRENT_BINARY_DIR}/pockettracker.rc" @ONLY)
-    set(PT_WIN_RESOURCES "${CMAKE_CURRENT_BINARY_DIR}/pockettracker.rc")
+    configure_file(windows/trackwerk.rc.in "${CMAKE_CURRENT_BINARY_DIR}/trackwerk.rc" @ONLY)
+    set(PT_WIN_RESOURCES "${CMAKE_CURRENT_BINARY_DIR}/trackwerk.rc")
 endif()
 
 # app.cpp is the SHARED shell — the boot sequence, the frame loop and the teardown, identical on every
@@ -230,7 +230,7 @@ if(WIN32)
 
     # ⚠️ NO CONSOLE WINDOW. A console-subsystem exe opens a black window beside the app for the whole
     # session, and on Windows that window IS the only place the program's output ever went. The
-    # subsystem moves to WINDOWS and the output moves to <app root>/pockettracker-log.txt — see
+    # subsystem moves to WINDOWS and the output moves to <app root>/trackwerk-log.txt — see
     # open_session_log() in main.cpp, which is unconditional here because there is nothing left to
     # print to.
     #

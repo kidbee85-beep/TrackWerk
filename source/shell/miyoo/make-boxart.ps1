@@ -1,4 +1,4 @@
-# Regenerate shell/miyoo/boxart.png — the image Onion shows beside PocketTracker in its ports list.
+# Regenerate shell/miyoo/boxart.png — the image Onion shows beside TrackWerk in its ports list.
 #
 # NO BUILD RUNS THIS, the same way shell/windows/make-icon.ps1 is not run by a build: the PNG is
 # committed, because build-miyoo.sh runs under WSL/Linux where there is no image tooling to rely on,
@@ -17,7 +17,7 @@
 Add-Type -AssemblyName System.Drawing
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$src  = Join-Path $here "..\..\docs\images\logo-app.png"
+$src  = Join-Path $here "..\..\branding\trackwerk-icon.png"
 $dst  = Join-Path $here "boxart.png"
 
 $W = 256
@@ -40,7 +40,7 @@ $bg = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255
 $g.FillRectangle($bg, 0, 0, $W, $H)
 
 # ⚠️ NO CAPTION UNDER IT. The artwork already carries the wordmark, and a name printed beneath
-# it reads as the app being called "PocketTracker PocketTracker" — Onion prints the shortcut
+# it reads as the app being called "TrackWerk TrackWerk" — Onion prints the shortcut
 # name under the box itself.
 $logo = $W
 $g.DrawImage($in, (New-Object System.Drawing.Rectangle 0, ([int](($H - $logo) / 2)), $logo, $logo))

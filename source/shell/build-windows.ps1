@@ -1,4 +1,4 @@
-# Build the Windows desktop package: build/windows/PocketTracker-<version>-windows-x64.zip
+# Build the Windows desktop package: build/windows/TrackWerk-<version>-windows-x64.zip
 #
 # Convergence plan A3. Run from the repo root, after building the shell:
 #
@@ -78,25 +78,25 @@ Write-Output "version: $version (from app/build.gradle.kts)"
 Write-Output ""
 Write-Output "############ 2/5  stage the package ############"
 #
-#   PocketTracker-<version>-windows-x64.zip
-#   `- PocketTracker/
-#      |- PocketTracker.exe
+#   TrackWerk-<version>-windows-x64.zip
+#   `- TrackWerk/
+#      |- TrackWerk.exe
 #      |- README.txt
 #      `- licenses/
 #
 # ONE top-level folder, deliberately: a zip that unpacks eight loose files into someone's Downloads
 # folder is a zip they will lose. And the exe is renamed on the way in — the build target is
-# `pockettracker-sdl` for every platform, `PocketTracker.exe` is what a Windows user should see.
+# `pockettracker-sdl` for every platform, `TrackWerk.exe` is what a Windows user should see.
 # build-portmaster.sh does the same thing (pockettracker-sdl -> pockettracker.aarch64); the build
 # output name and the shipped name are allowed to differ, and the packaging script is the seam.
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
-$app = Join-Path $stage 'PocketTracker'
+$app = Join-Path $stage 'TrackWerk'
 New-Item -ItemType Directory -Force -Path (Join-Path $app 'licenses') | Out-Null
 
-Copy-Item $exe (Join-Path $app 'PocketTracker.exe')
+Copy-Item $exe (Join-Path $app 'TrackWerk.exe')
 Copy-Item (Join-Path $PSScriptRoot 'windows\README.txt') (Join-Path $app 'README.txt')
 
-# PocketTracker is GPL-3.0 and statically links its decoders, so their notices ship with the binary
+# TrackWerk is GPL-3.0 and statically links its decoders, so their notices ship with the binary
 # that contains them rather than only with the source tree that built it. A missing one is a licence
 # breach in the artifact, which is the only thing a user ever receives.
 $lic = Join-Path $app 'licenses'
@@ -134,7 +134,7 @@ Get-ChildItem $lic | ForEach-Object { Write-Output ("  {0,10:N0}  {1}" -f $_.Len
 # ─── 3/5  verify the ARTIFACT, not the build log ────────────────────────────────────────────────
 Write-Output ""
 Write-Output "############ 3/5  verify the ARTIFACT (not the build log) ############"
-$staged = Join-Path $app 'PocketTracker.exe'
+$staged = Join-Path $app 'TrackWerk.exe'
 $bytes  = [System.IO.File]::ReadAllBytes($staged)
 # Latin-1 maps one byte to one char, so the file's bytes can be searched as text without a decoder
 # rewriting anything.
@@ -195,15 +195,15 @@ if ($v.FileVersion -ne $version) {
 #
 # (It also has no System.Drawing dependency, which matters: that assembly is not loadable from
 # PowerShell 7, and CI must be able to run this script under either interpreter.)
-$icoBytes = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'windows\PocketTracker.ico'))
+$icoBytes = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'windows\TrackWerk.ico'))
 $e128     = 6 + 16 * 5                                        # the 128x128 directory entry
 $off128   = [BitConverter]::ToUInt32($icoBytes, $e128 + 12)
 $slice    = [System.Text.Encoding]::GetEncoding(28591).GetString($icoBytes, $off128 + 20040, 64)
 if (-not $text.Contains($slice)) {
-    throw ("the exe does not contain the pixels of shell/windows/PocketTracker.ico - the icon " +
+    throw ("the exe does not contain the pixels of shell/windows/TrackWerk.ico - the icon " +
            "resource is missing or is not ours (check the .rc and that enable_language(RC) ran)")
 }
-Write-Output "icon resource      : present and matches PocketTracker.ico (SDL takes the first RT_GROUP_ICON as the window icon)"
+Write-Output "icon resource      : present and matches TrackWerk.ico (SDL takes the first RT_GROUP_ICON as the window icon)"
 
 # --- no realtime-thread debug instrumentation in a shipped binary -------------------------------
 if ($text -match 'KILDBG') {
@@ -242,14 +242,14 @@ if ($missing) {
 # ─── 4/5  zip ───────────────────────────────────────────────────────────────────────────────────
 Write-Output ""
 Write-Output "############ 4/5  zip ############"
-$zip = Join-Path $out "PocketTracker-$version-windows-x64.zip"
+$zip = Join-Path $out "TrackWerk-$version-windows-x64.zip"
 
 # ⚠️ THE ENTRY NAMES ARE BUILT BY HAND, with forward slashes, because BOTH of the obvious ways to
 # do this get it wrong on Windows PowerShell 5.1. Compress-Archive is the known offender — but
 # [ZipFile]::CreateFromDirectory writes backslashes too on .NET Framework 4.x (it uses
 # Path.DirectorySeparatorChar; the fix only landed in .NET Core 3.0), and this script used it and
 # said so in a comment until the read-back check at step 5 printed
-# `PocketTracker\licenses\libogg-COPYING` and refused it.
+# `TrackWerk\licenses\libogg-COPYING` and refused it.
 #
 # The zip spec (APPNOTE 4.4.17.1) requires forward slashes. Explorer forgives backslashes, which is
 # exactly why this would have shipped: on the machine that builds the package it looks perfect, and
@@ -278,27 +278,27 @@ try {
         Write-Output ("  {0,10:N0}  {1}" -f $e.Length, $e.FullName)
         if ($e.FullName -match '\\') { throw "entry '$($e.FullName)' has a backslash separator" }
     }
-    foreach ($needed in @('PocketTracker/PocketTracker.exe',
-                          'PocketTracker/README.txt',
-                          'PocketTracker/licenses/LICENSE',
-                          'PocketTracker/licenses/THIRD-PARTY-NOTICES.md',
-                          'PocketTracker/licenses/CREDITS.md',
-                          'PocketTracker/licenses/SDL2-LICENSE.txt',
-                          'PocketTracker/licenses/libogg-COPYING',
-                          'PocketTracker/licenses/libopus-COPYING',
-                          'PocketTracker/licenses/libopus-LICENSE_PLEASE_READ.txt',
-                          'PocketTracker/licenses/OFL-1.1-LiberationSans.txt',
-                          'PocketTracker/licenses/OFL-1.1-QuinqueFive.txt',
-                          'PocketTracker/licenses/Mutable-Instruments-MIT.txt',
-                          'PocketTracker/licenses/Mutable-Instruments-PROVENANCE.txt',
-                          'PocketTracker/licenses/Mutable-stmlib-LICENSE',
-                          'PocketTracker/licenses/DaisySP-GPL-CONVERSION.txt')) {
+    foreach ($needed in @('TrackWerk/TrackWerk.exe',
+                          'TrackWerk/README.txt',
+                          'TrackWerk/licenses/LICENSE',
+                          'TrackWerk/licenses/THIRD-PARTY-NOTICES.md',
+                          'TrackWerk/licenses/CREDITS.md',
+                          'TrackWerk/licenses/SDL2-LICENSE.txt',
+                          'TrackWerk/licenses/libogg-COPYING',
+                          'TrackWerk/licenses/libopus-COPYING',
+                          'TrackWerk/licenses/libopus-LICENSE_PLEASE_READ.txt',
+                          'TrackWerk/licenses/OFL-1.1-LiberationSans.txt',
+                          'TrackWerk/licenses/OFL-1.1-QuinqueFive.txt',
+                          'TrackWerk/licenses/Mutable-Instruments-MIT.txt',
+                          'TrackWerk/licenses/Mutable-Instruments-PROVENANCE.txt',
+                          'TrackWerk/licenses/Mutable-stmlib-LICENSE',
+                          'TrackWerk/licenses/DaisySP-GPL-CONVERSION.txt')) {
         $e = $archive.GetEntry($needed)
         if (-not $e)            { throw "$needed is MISSING from the zip" }
         if ($e.Length -lt 100)  { throw "$needed is only $($e.Length) bytes inside the zip" }
     }
     # The exe byte-for-byte, out of the archive: length alone would not catch a truncated deflate.
-    $entry  = $archive.GetEntry('PocketTracker/PocketTracker.exe')
+    $entry  = $archive.GetEntry('TrackWerk/TrackWerk.exe')
     $reader = New-Object System.IO.BinaryReader($entry.Open())
     $unzipped = $reader.ReadBytes([int]$entry.Length)
     $reader.Close()
@@ -314,5 +314,5 @@ try {
 }
 
 Write-Output ""
-Write-Output "ok: PocketTracker $version, windows-x64"
+Write-Output "ok: TrackWerk $version, windows-x64"
 Write-Output $zip

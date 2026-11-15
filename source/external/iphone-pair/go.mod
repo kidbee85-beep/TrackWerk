@@ -1,4 +1,4 @@
-module pockettrackerextreme/iphone-pair
+module trackwerk/iphone-pair
 
 go 1.27.3
 

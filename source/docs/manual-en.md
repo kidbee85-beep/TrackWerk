@@ -1723,7 +1723,7 @@ the next note on its track, after the instrument's LEN, at a `KIL` or an `OFF`, 
 | The V column, the instrument's VOL | The note's velocity |
 | `VOL`, beside the note or on a later step | Controller 7 (volume) — ahead of the note it is written with |
 | `PAN`, the instrument's PAN | Controller 10 (pan) |
-| `REV` · `DEL` · `CUT` · `RES` · `LPF` · `HPF` · `BPF` · `DRV` · `CRU` · `LPO` | To another PocketTracker only, in a message other gear ignores: it plays them on that note as on its own, and its next note starts from its instrument again |
+| `REV` · `DEL` · `CUT` · `RES` · `LPF` · `HPF` · `BPF` · `DRV` · `CRU` · `LPO` | To another TrackWerk only, in a message other gear ignores: it plays them on that note as on its own, and its next note starts from its instrument again |
 | `PSL` · `PBN` · `PVB` · `PVX` · `FIN` | Pitch bend, moving as the command moves the note, scaled to the instrument's BEND |
 | `MPG` · `MPB` · `CCA`–`CCD` | A program change, a pitch bend, and the instrument's four controller slots — see [section 23](#23-effects-reference) |
 
@@ -2653,7 +2653,7 @@ Two details worth knowing:
 
 - Format: `.wav` (8/16/24/32-bit PCM or float; mono or stereo)
 - Stereo WAV files are supported natively — SOURCE mode on the instrument or sample editor selects LEFT / RIGHT / STEREO / MONO non-destructively
-- Sample rates: any — PocketTracker compensates the pitch of a file recorded at a different rate automatically
+- Sample rates: any — TrackWerk compensates the pitch of a file recorded at a different rate automatically
 - Loaded via: INSTRUMENT screen → **TYPE** row → **LOAD** → **A** → file browser
 - SF2 and SF3 files are loaded the same way
 - **Compressed audio** (`.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`) loads directly as a sample — decoded into memory with **no WAV file written** and no slice markers. The instrument remembers the original file path, so it is re-decoded automatically each time the project is reopened. FLAC is lossless, so it is the best choice when you want a small file with no quality loss. (`.opus` and `.m4a` are common voice-recording formats — phone memos, messaging-app exports.)
@@ -2716,7 +2716,7 @@ Output: `<home>/Samples/Chops/{instrument_name}/`
 
 ### The log file
 
-- Location: `<home>/pockettracker-log.txt`
+- Location: `<home>/trackwerk-log.txt`
 - One session, rewritten each launch, capped at 512 KB
 
 Plain text, and readable on the device itself. It records the whole start-up — which folders were

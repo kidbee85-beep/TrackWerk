@@ -35,7 +35,7 @@ class ReleaseBridgeSmoke : Instrumentation() {
                 savedMarker = if (marker.exists()) Files.readAllBytes(marker.toPath()) else null
                 Files.write(marker.toPath(), byteArrayOf())
             }
-            val nativeLog = File(targetContext.filesDir, "pockettracker-log.txt")
+            val nativeLog = File(targetContext.filesDir, "trackwerk-log.txt")
             nativeLog.delete() // This runner is explicitly limited to the task's emulator.
             val activity = startActivitySync(Intent(targetContext, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity

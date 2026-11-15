@@ -101,24 +101,39 @@ std::string to_lower(std::string s) {
     return s;
 }
 
+// Move an unconfigured desktop home only when the new destination is absent. A denied rename
+// retains the old root, so an update cannot hide the owner's projects. Saved absolute media and
+// config paths re-root through media_path.h's current and legacy anchors.
+static std::string canonical_desktop_root(const fs::path& parent) {
+    const fs::path current = parent / "TrackWerk";
+    const fs::path previous = parent / "PocketTracker";
+    std::error_code ec;
+    if (fs::exists(current, ec) && !fs::is_directory(current, ec) && fs::is_directory(previous, ec))
+        return generic(previous);  // retain access when an unrelated file owns the new name
+    if (!fs::exists(current, ec) && fs::is_directory(previous, ec)) {
+        if (fs::is_symlink(previous, ec)) return generic(previous);
+        fs::rename(previous, current, ec);
+        if (ec) return generic(previous);
+    }
+    return generic(current);
+}
+
 std::string default_app_root() {
+    if (const char* home = env_or_null("TRACKWERK_HOME")) return home;
     if (const char* home = env_or_null("POCKETTRACKER_HOME")) return home;
-
 #if defined(_WIN32)
-    // Before any HOME lookup: MSYS2 and Git Bash export HOME on Windows too.
     if (const std::string docs = documents_directory(); !docs.empty())
-        return generic(fs::path(docs) / "PocketTracker");
+        return canonical_desktop_root(fs::path(docs));
     if (const char* profile = env_or_null("USERPROFILE"))
-        return generic(fs::path(profile) / "Documents" / "PocketTracker");
+        return canonical_desktop_root(fs::path(profile) / "Documents");
 #elif defined(__APPLE__)
-    if (const char* home = env_or_null("HOME")) return std::string(home) + "/Documents/PocketTracker";
+    if (const char* home = env_or_null("HOME")) return canonical_desktop_root(fs::path(home) / "Documents");
 #else
-    if (const char* xdg = env_or_null("XDG_DATA_HOME")) return std::string(xdg) + "/PocketTracker";
+    if (const char* xdg = env_or_null("XDG_DATA_HOME")) return canonical_desktop_root(fs::path(xdg));
     if (const char* home = env_or_null("HOME"))
-        return std::string(home) + "/.local/share/PocketTracker";
+        return canonical_desktop_root(fs::path(home) / ".local/share");
 #endif
-
-    return "PocketTracker";   // a poor root, but a writable one
+    return "TrackWerk";
 }
 
 // ─── StdFileSystem ───────────────────────────────────────────────────────────────────────────────

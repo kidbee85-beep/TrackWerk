@@ -20,7 +20,7 @@ namespace ptshell {
 
 namespace {
 
-constexpr const char* kLogTag = "PocketTracker";
+constexpr const char* kLogTag = "TrackWerk";
 
 }  // namespace
 

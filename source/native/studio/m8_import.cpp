@@ -120,7 +120,7 @@ M8Import import_m8(const std::string& bytes,const std::function<std::string(cons
  for(const auto& path:missingPaths)report<<"Missing sample "<<path<<"\n";
  for(auto item:skipped)report<<"Omitted command/mode 0x"<<std::hex<<item.first<<std::dec<<": "<<item.second<<" occurrence(s)\n";
  result.report=report.str();
- result.summary={"M8 IMPORT - SUPPORTED DATA ONLY",std::to_string(samplers)+" samplers ready / "+std::to_string(missing)+" missing samples",std::to_string(unsupported+unsupportedModes)+" unsupported instruments omitted",std::to_string(omittedNotes)+" unavailable notes silenced",std::to_string(skippedCount)+" effects / "+std::to_string(mods)+" modulators omitted","Full details saved in Import Reports.","Original source bytes retained in the copy.","SAVE creates a PocketTracker .ptp copy.","A: IMPORT COPY     B: KEEP CURRENT PROJECT"};
+ result.summary={"M8 IMPORT - SUPPORTED DATA ONLY",std::to_string(samplers)+" samplers ready / "+std::to_string(missing)+" missing samples",std::to_string(unsupported+unsupportedModes)+" unsupported instruments omitted",std::to_string(omittedNotes)+" unavailable notes silenced",std::to_string(skippedCount)+" effects / "+std::to_string(mods)+" modulators omitted","Full details saved in Import Reports.","Original source bytes retained in the copy.","SAVE creates a TrackWerk .ptp copy.","A: IMPORT COPY     B: KEEP CURRENT PROJECT"};
  p.m8ImportReport=result.report;static const char hex[]="0123456789abcdef";
  p.m8SourceHex.reserve(bytes.size()*2);for(unsigned char byte:bytes){p.m8SourceHex+=hex[byte>>4];p.m8SourceHex+=hex[byte&15];}
  result.ok=true;return result;

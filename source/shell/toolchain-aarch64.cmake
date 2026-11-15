@@ -1,4 +1,4 @@
-# Cross-compile the PocketTracker SDL shell for aarch64 — the PortMaster CFW target arch.
+# Cross-compile the TrackWerk SDL shell for aarch64 — the PortMaster CFW target arch.
 #
 # Host: an amd64 Linux with the aarch64 cross toolchain (Ubuntu: `crossbuild-essential-arm64`).
 #

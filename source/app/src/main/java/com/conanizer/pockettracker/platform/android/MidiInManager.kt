@@ -156,6 +156,6 @@ class MidiInManager(context: Context) {
     }
 
     private companion object {
-        const val TAG = "PocketTracker"
+        const val TAG = "TrackWerk"
     }
 }

@@ -1,18 +1,18 @@
 {
   "version": "1.1.0",
-  "version_code": 101003,
-  "reviewed_application_commit": "939e33b7b603d50b1f438f2620a26a38ccb84370",
+  "version_code": 101004,
+  "reviewed_application_commit": "3c2f41ff25c2ec208835df85a52663274b8288c2",
+  "source_export_commit": "affd28d34a1bac40ffaee27ce60a985dab31eb34",
   "compiled_files_changed_in_export": false,
-  "excluded_non_build_documents": [
-    "qa-claude/stufe1-protokoll.md",
-    "qa-claude/stufe5-zeichenzeit-host.csv",
-    "qa-claude/synth-cpu-host.txt"
+  "non_build_changes_after_compile": [
+    "shell/brick/TrackWerk.sh",
+    "tests/brick-launcher/check_launcher.py",
+    "tools/release/fix_miyoo_names.py"
   ],
-  "documentation_overlay": [
-    "docs/manual-en.md"
-  ],
-  "files": 8256,
-  "manifest_sha256": "1ce87b88d4a33bed691b4863c922a6db5d105d93b8579919ce00dc7a224b64c6",
+  "excluded_non_build_documents": 3,
+  "documentation_overlay": [],
+  "files": 8259,
+  "manifest_sha256": "865506aa516dd89a12ada7c317f3d1a36e116d01e75f93da2739f2794be8ac45",
   "source_entries": [
     {
       "path": ".github/FUNDING.yml",
@@ -61,8 +61,8 @@
     },
     {
       "path": "CREDITS.md",
-      "bytes": 8615,
-      "sha256": "add21aea861c49c5f50d82eacab6d5099d38293063b62fc967bde64d6f48597c"
+      "bytes": 8589,
+      "sha256": "ace287f9eb274b2a878ed1a1a60f3aea313b55e93a53012f8c1ff942f8cf274a"
     },
     {
       "path": "LICENSE",
@@ -87,7 +87,7 @@
     {
       "path": "app/build.gradle.kts",
       "bytes": 10646,
-      "sha256": "4356a8693f0f06ed8f496d07cb8874ef9eb2348612ed0552271193d127b696db"
+      "sha256": "2cfeaf3608d887b49253e8b96b925ef4f57ed652eea94b08a8227c8a02b0d93e"
     },
     {
       "path": "app/proguard-rules.pro",
@@ -116,8 +116,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/conanizer/pockettracker/ReleaseBridgeSmoke.kt",
-      "bytes": 7873,
-      "sha256": "9fedf99e4bd2d0b840b591a34514ead24e66b1910d7da0043d4b674943799e13"
+      "bytes": 7869,
+      "sha256": "494f4b24bc85c97ce719bffc02ad24f8578d0ec730acf0c5b283f406aec55e6b"
     },
     {
       "path": "app/src/androidTest/java/com/conanizer/pockettracker/RhinoSmoke.kt",
@@ -131,8 +131,8 @@
     },
     {
       "path": "app/src/androidTest/java/com/conanizer/pockettracker/UpgradePreservationSmoke.java",
-      "bytes": 11053,
-      "sha256": "e66edabdc113c2297dc0b7809965e91685b9a22bcdf4081ffe693adf4064a74a"
+      "bytes": 11036,
+      "sha256": "4b7de2d1f205227d9ce38515df53ee2068becf89d7f5a3852b9e91eba5ad8df1"
     },
     {
       "path": "app/src/main/AndroidManifest.xml",
@@ -281,8 +281,8 @@
     },
     {
       "path": "app/src/main/ic_launcher-playstore.png",
-      "bytes": 308067,
-      "sha256": "c7541cb8e96106f6133550d48665d7b7b97e910a55d37fef27d64800307b5218"
+      "bytes": 13622,
+      "sha256": "97d618fa3a588404eafe91354dd889198fc7661bd0241b8e6b1829c9a86c95b8"
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/AndroidLiveRadio.kt",
@@ -296,8 +296,8 @@
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/MainActivity.kt",
-      "bytes": 33720,
-      "sha256": "99fe9fe4192bda4cddad31f2ba51e57dff20c9373f9f5581e0ca5fb8f68d0ee7"
+      "bytes": 33705,
+      "sha256": "376df4f2247a8f3cced1862c000644021c81c7ab5f2c818f8b2d8e841c4ec2e6"
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/PlaybackService.kt",
@@ -306,8 +306,8 @@
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/SafStorage.kt",
-      "bytes": 15243,
-      "sha256": "be51a12ee4c38e4dc2166008c4e6afae18f09210afb74e44531b296c427a5487"
+      "bytes": 15228,
+      "sha256": "b634e7cd0091da41a4220fde0ac08d7825092e1a8b51be64b51209bd39b51239"
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/SampleRecorder.kt",
@@ -366,53 +366,53 @@
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/platform/android/MidiDevices.kt",
-      "bytes": 2089,
-      "sha256": "8e231aece9c2c5e7feede6e3191f1838c39cc1284df55f11359fb42c13a157cd"
+      "bytes": 2085,
+      "sha256": "51460df8cdafcf01e24f3e2c9e4ba522077948a66e2af6c8835752dd1ea822e3"
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/platform/android/MidiInManager.kt",
-      "bytes": 6198,
-      "sha256": "6667bbd4ecf5032cb130170391d354c858c5dfbfc5acdec38d4c271ec0ece4db"
+      "bytes": 6194,
+      "sha256": "8bafe2b287fdfec9d6cf01590bad367bc664a64578638afd98d8e2b9fc5a803b"
     },
     {
       "path": "app/src/main/java/com/conanizer/pockettracker/platform/android/MidiOutManager.kt",
-      "bytes": 5114,
-      "sha256": "57abc3038267e2394e0500a898bd5d33fdfaa19557006da664fd11bad1b5ccc1"
+      "bytes": 5110,
+      "sha256": "9132c3540dc79bc0fd3e65e7e83fed43a5d2aeaad00c79e4473687e23505dddc"
     },
     {
       "path": "app/src/main/res/drawable-hdpi/ic_splash_logo.png",
-      "bytes": 11644,
-      "sha256": "444ec40ebe47d43b94215654a3c968d8e49b51bf148612e51ac843759720b0db"
+      "bytes": 17363,
+      "sha256": "7a5dcf8646fea1bff02e5a7229c2d6c6fae337bf994c1259ed8898dfad93e0c3"
     },
     {
       "path": "app/src/main/res/drawable-mdpi/ic_splash_logo.png",
-      "bytes": 8410,
-      "sha256": "1b7d951f011dbaaf0b017a56dd1bb82e5a04d6fea17fea4e97b7a74325c0699c"
+      "bytes": 9558,
+      "sha256": "eec7f7953a184155fcd1b60c2d3dbfdd133a1e531f9db6119aa8d0e60c5c6835"
     },
     {
       "path": "app/src/main/res/drawable-xhdpi/ic_splash_logo.png",
-      "bytes": 12795,
-      "sha256": "99f7c0bd7415990a9c4f773a650437b02e9cf44f348d2977a51740f8d3d15710"
+      "bytes": 26544,
+      "sha256": "e63961d4a346b011b5c9c1dc63ff8ea866139aea1047d38a02104e9aaa4ccf1e"
     },
     {
       "path": "app/src/main/res/drawable-xxhdpi/ic_splash_logo.png",
-      "bytes": 22975,
-      "sha256": "ad5bd608d415e414ddca6df0edc33d59ea53713de658638e41c7acab2ebedc6f"
+      "bytes": 50360,
+      "sha256": "4fb102e3d39db703431cca1b2bcf40c0ad22b105d27d73bb621f81b582fb8cdc"
     },
     {
       "path": "app/src/main/res/drawable/ic_launcher_background.xml",
-      "bytes": 446,
-      "sha256": "89914f519c6a6e8a21ac219eeada61862cd031e535be261699f046c92045d737"
+      "bytes": 170,
+      "sha256": "539d1538c8b7837ecf79c24fed32ac96ce0c3fd5bbe9d79a22a1f53158ce91a1"
     },
     {
       "path": "app/src/main/res/drawable/ic_launcher_foreground.xml",
-      "bytes": 581,
-      "sha256": "a24e4a57f9d9d61431616ea67f6bd2c9f959d7f36777c2a43f8703b98e589c5f"
+      "bytes": 517,
+      "sha256": "d5326e3008a4b514f37fc8fcbf05de8e5306496a071b54b902a1477a7f7a9976"
     },
     {
       "path": "app/src/main/res/drawable/ic_launcher_monochrome.xml",
-      "bytes": 585,
-      "sha256": "8b199b623a97d4f7d3940dd4214f1a5b25d3d661ec5ce447cc8bdf63dacb0ec8"
+      "bytes": 517,
+      "sha256": "5185ef71025b81de2adc6ea6ad5a60f914afa5b41094d7badfcffc7f4d60814e"
     },
     {
       "path": "app/src/main/res/drawable/ic_notification_play.xml",
@@ -436,53 +436,53 @@
     },
     {
       "path": "app/src/main/res/mipmap-hdpi/ic_launcher.png",
-      "bytes": 3337,
-      "sha256": "e8ee668ce878efa2407f9a16273d14bc746a9d2f8df841915d5e6258d159fb0a"
+      "bytes": 2445,
+      "sha256": "72e5144ecd675a801b6c8b79c74ea35de49e15fe1f584fb7f89703df42446af6"
     },
     {
       "path": "app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
-      "bytes": 3337,
-      "sha256": "e8ee668ce878efa2407f9a16273d14bc746a9d2f8df841915d5e6258d159fb0a"
+      "bytes": 2837,
+      "sha256": "f2383a20d36b8aa7f82ea300cee9684b6f73aa009f52e9fe9d464cf9717a738f"
     },
     {
       "path": "app/src/main/res/mipmap-mdpi/ic_launcher.png",
-      "bytes": 2393,
-      "sha256": "4607bde1bf3efce37c644e09b9493337d3f4b1374a625ad6a65ecca2527a91dd"
+      "bytes": 1604,
+      "sha256": "469c3394e92f5f46ebb39c795f10d51d743f175602f0ef408c7af59242c55fe1"
     },
     {
       "path": "app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
-      "bytes": 2393,
-      "sha256": "4607bde1bf3efce37c644e09b9493337d3f4b1374a625ad6a65ecca2527a91dd"
+      "bytes": 1862,
+      "sha256": "5eee69d0c91581c284e4edb8177e41806c073ab76f0498a13bf2211688e80b4d"
     },
     {
       "path": "app/src/main/res/mipmap-xhdpi/ic_launcher.png",
-      "bytes": 4094,
-      "sha256": "d87012d1e73970f247c881dd4f9683728d207997522bd03af47ef730d533e10d"
+      "bytes": 3192,
+      "sha256": "6fbf7928ebe0fc1c77a4d18f2408fd882892ed78c5d70a6110bd65c268a4f367"
     },
     {
       "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
-      "bytes": 4094,
-      "sha256": "d87012d1e73970f247c881dd4f9683728d207997522bd03af47ef730d533e10d"
+      "bytes": 3672,
+      "sha256": "3d3edc217b473766dc2911d9e13cb23c896ed7a419d8b2b7d6709cf7fdccceaf"
     },
     {
       "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
-      "bytes": 5564,
-      "sha256": "8244dae73ab10d860ca2a0829782010fc1bb86e0cf8414b3a92c612b0d47b9e3"
+      "bytes": 4464,
+      "sha256": "23e46650d22fae49aeab04f8839a76e305a94ead77302bcb795652ee08f3cd9e"
     },
     {
       "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
-      "bytes": 5564,
-      "sha256": "8244dae73ab10d860ca2a0829782010fc1bb86e0cf8414b3a92c612b0d47b9e3"
+      "bytes": 5177,
+      "sha256": "bfcf3c7c467e3ef2131e6c340f2ce9d89fda341ae9f8512be84dea2523158d82"
     },
     {
       "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
-      "bytes": 6203,
-      "sha256": "47b5ac7fad218472d732c93a91486518a8929c935dcfc79279d6a9a5e6e1e63a"
+      "bytes": 5868,
+      "sha256": "9c9535f875d62089d2ce7c330b8a7de04598cc101c1430972dd8a1294125f58d"
     },
     {
       "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
-      "bytes": 6203,
-      "sha256": "47b5ac7fad218472d732c93a91486518a8929c935dcfc79279d6a9a5e6e1e63a"
+      "bytes": 6919,
+      "sha256": "f55fd09ad2cea252abf39da6f06ed7ab40aeb876c4fda3b4390ad72697189788"
     },
     {
       "path": "app/src/main/res/raw/ui_long_press_1.wav",
@@ -651,8 +651,8 @@
     },
     {
       "path": "app/src/main/res/values/ic_launcher_background.xml",
-      "bytes": 115,
-      "sha256": "b567306f590c2003b1d8d405f12a44b7a3da87be6aae231c9394519a58b7b22a"
+      "bytes": 113,
+      "sha256": "a9bdde96ec47dcec60edef378a3feca7dca5e0c414a91b0c8aa8a09940d0649c"
     },
     {
       "path": "app/src/main/res/values/strings.xml",
@@ -675,6 +675,16 @@
       "sha256": "cb1fc47ab4a984530ed60e0e6ee638929c3038290e7e7e0b4b03a3a30fbe7381"
     },
     {
+      "path": "branding/trackwerk-icon.png",
+      "bytes": 13622,
+      "sha256": "97d618fa3a588404eafe91354dd889198fc7661bd0241b8e6b1829c9a86c95b8"
+    },
+    {
+      "path": "branding/trackwerk-icon.svg",
+      "bytes": 426,
+      "sha256": "adcdf92ffd3163ea0b7346514af77fe569ce6dcef1d0ff1982fafd21412dfa25"
+    },
+    {
       "path": "build.gradle.kts",
       "bytes": 621,
       "sha256": "4ba028c0069bbbb756bb5103629d946765befe2d45ac94771a768012d7abde00"
@@ -691,8 +701,8 @@
     },
     {
       "path": "docs/brick/HOW-TO-FIRST-START.txt",
-      "bytes": 5324,
-      "sha256": "63a8ff7748b70813e1d268bf99d059ccba37ffdcb24645a10dcaf89bb53b599c"
+      "bytes": 5215,
+      "sha256": "3a76b1cc0ace007119bdd6f19e17740a240f2ffa428645d82f0885cd246c7437"
     },
     {
       "path": "docs/brick/KNULLI-Official-Download.url",
@@ -706,23 +716,23 @@
     },
     {
       "path": "docs/brick/README.md",
-      "bytes": 1385,
-      "sha256": "a7d56a9c5664fd4e79aec9dab3fc65f3a6c5200d1b818f006c3e8db0c802bc79"
+      "bytes": 1361,
+      "sha256": "ab36ac5090fc564c71626ca7ffff7edeeb16d9bad8954e6eb2312768a9d931f5"
     },
     {
       "path": "docs/brick/UPDATE-EXISTING-INSTALL.txt",
-      "bytes": 5086,
-      "sha256": "01d099d6a191d0e448f6d83dc33dff95a74c59b9b806f23dd3e29c0b245dbd4b"
+      "bytes": 5014,
+      "sha256": "019a96d06230703b191ee21d689bd8a068e53cccdb33992b6f71a95112c0078f"
     },
     {
       "path": "docs/brick/knulli-reference.json",
-      "bytes": 3268,
-      "sha256": "95038ab47a03377c1a216925f7aa1984a570820e60f9b61a147a97cbb694588d"
+      "bytes": 3256,
+      "sha256": "120c6c62bb15dd225ae98a280adabd095839fcccb574918ed49db0586148bf54"
     },
     {
       "path": "docs/building.md",
-      "bytes": 4624,
-      "sha256": "ec588affe2ee8d397641e908db021a9db3929d29fef778f5de9dda7967d87d2c"
+      "bytes": 4599,
+      "sha256": "3b4a1efb62bc59e4642e47f0e3b39a3a482357c2e90c1fa6a2612dc089f9df8c"
     },
     {
       "path": "docs/features.md",
@@ -731,28 +741,28 @@
     },
     {
       "path": "docs/images/logo-app.png",
-      "bytes": 85058,
-      "sha256": "94b1dfc4a46673c6a0271bc4f3665707b0caee74d133d55a5cce2080103008b9"
+      "bytes": 8002,
+      "sha256": "9bad2cf2e2a950ec60156c81c2d1a88d7e5d5b91ca2c824dd2a9044a47deff23"
     },
     {
       "path": "docs/images/logo-dark.png",
-      "bytes": 275259,
-      "sha256": "202928d00a35ae0e3094889cd93be84780d0e8d84d45529dd16c04a8a1ae8666"
+      "bytes": 19846,
+      "sha256": "da436dd1169ceb32f62dbbc559c2bc6ce848a79f4ba20cc949fe1465c50d1531"
     },
     {
       "path": "docs/images/logo-iso-transp.png",
-      "bytes": 77385,
-      "sha256": "d913b07253fbd5d88ce32b9f71d21433c2a5f1d1bf4ff27ad1e9d8eacbef5b1f"
+      "bytes": 62272,
+      "sha256": "21275d5ccf1c3f293b2e2310cb27d71998b55ab3efacdd818f96a1a5d192309a"
     },
     {
       "path": "docs/images/logo-iso.png",
-      "bytes": 77022,
-      "sha256": "b6bc51b7636e92dc89bd9c950c28a01651f65ca0995711db7612b72d814d4f84"
+      "bytes": 62272,
+      "sha256": "21275d5ccf1c3f293b2e2310cb27d71998b55ab3efacdd818f96a1a5d192309a"
     },
     {
       "path": "docs/images/logo-plain.png",
-      "bytes": 12987,
-      "sha256": "dc04939af84143bcf4da9a7a05fe8678d625246cd9310af37d7d95d03eea716b"
+      "bytes": 62272,
+      "sha256": "21275d5ccf1c3f293b2e2310cb27d71998b55ab3efacdd818f96a1a5d192309a"
     },
     {
       "path": "docs/images/screenshot.png",
@@ -771,8 +781,8 @@
     },
     {
       "path": "docs/licenses/DaisySP-GPL-CONVERSION.txt",
-      "bytes": 1365,
-      "sha256": "307af2282d49c6710f7a19c4f1fe2c2aaaf304123d1a8347c6119ea44f9fe1e9"
+      "bytes": 1352,
+      "sha256": "6e26d0de8e4620bc6993f2665b3bcf70a0c26d0e41792cea54f32f2b032e2918"
     },
     {
       "path": "docs/licenses/Mutable-Instruments-MIT.txt",
@@ -836,18 +846,18 @@
     },
     {
       "path": "docs/manual-en.md",
-      "bytes": 160867,
-      "sha256": "59236ce59ee7aa682546ac0c795706bc3959624c590557f0af43a4d76d59e623"
+      "bytes": 160855,
+      "sha256": "2c1615ebbdf308a3ba009b68ba04d0065c0bc54606458eda8a76add2a55cb748"
     },
     {
       "path": "docs/quick-start-guide.md",
-      "bytes": 5956,
-      "sha256": "80491faa4193bd3322af4124b30dd074c7bbb47929ad0ffc08ea4a745cf863a5"
+      "bytes": 5944,
+      "sha256": "51ca28a5ed95ab68caf22c4ef60a83fb0d0af6c68cdcdf08ff1505d8344d134f"
     },
     {
       "path": "docs/technical-architecture.md",
-      "bytes": 64379,
-      "sha256": "058840636fc784676f046ff3f929b2f44e90a1b21e1925159dfe1d2a2ea88c3b"
+      "bytes": 64375,
+      "sha256": "389a41638d52d98cb935cb93721bf5979d412a1f256f5c9813bc1d46b93a445c"
     },
     {
       "path": "external/CA-bundle-MPL-2.0.txt",
@@ -3017,7 +3027,7 @@
     {
       "path": "external/helper-provenance.json",
       "bytes": 2080,
-      "sha256": "d40f889e4ac8849c796f61a10fe72d0d5a6c9cc4d2ae0acbf307641b4f709539"
+      "sha256": "7adee6e636053e9289e21705eb1077527d53811eb989af4a64d370465c94b3d7"
     },
     {
       "path": "external/iphone-pair/README.txt",
@@ -3026,8 +3036,8 @@
     },
     {
       "path": "external/iphone-pair/go.mod",
-      "bytes": 772,
-      "sha256": "89331c4f9c1b1c0483f11046f83b8ab9570de4733bc139fdc086b3d6a26b68aa"
+      "bytes": 761,
+      "sha256": "c5f9bec878ac0e0e5876ede00c11376747fcbb191de22a7476da73a51eff9859"
     },
     {
       "path": "external/iphone-pair/go.sum",
@@ -7781,18 +7791,18 @@
     },
     {
       "path": "external/iphone-usb/cmd/pte-iphone-usb/main.go",
-      "bytes": 6702,
-      "sha256": "8ff23086c9d97c84ab19ef6118fdc3e2e9be1e08961d9b74274f25eba2a662f9"
+      "bytes": 6666,
+      "sha256": "5055996c0069d464934e41ea58761943f437c8daa56c05df9fccef67ebf88f10"
     },
     {
       "path": "external/iphone-usb/cmd/pte-iphone-usb/main_test.go",
-      "bytes": 3118,
-      "sha256": "d00acee6aa4dcb44ab043afda9162ecfae403b213a09fa75034a748c5c5ccb5a"
+      "bytes": 3106,
+      "sha256": "cf50a9d90a1f35ae5baad3b1f88592acaaeabedda315b94e5959aa6a67d1c644"
     },
     {
       "path": "external/iphone-usb/go.mod",
-      "bytes": 89,
-      "sha256": "008edbb24bcbec87c33fc73306eeeb3ee3e484ad1868394cfcaa5b1b9c1fc705"
+      "bytes": 77,
+      "sha256": "b2cbf91b4c800a22b9ed8c4b3a6854f6b5cf54c84f36c5ba3f2cc0db109170a3"
     },
     {
       "path": "external/iphone-usb/go.sum",
@@ -7801,13 +7811,13 @@
     },
     {
       "path": "external/iphone-usb/internal/audio/wav.go",
-      "bytes": 5733,
-      "sha256": "37ddb165457b4cf9d56c0d7d84e301143a9ab520f5ccf4568974555f09522c06"
+      "bytes": 5721,
+      "sha256": "110ae4c48f807281dc57001802b1b18a46d910877480326333771c6cac610ed4"
     },
     {
       "path": "external/iphone-usb/internal/audio/wav_test.go",
-      "bytes": 5989,
-      "sha256": "2a57e32523b127ccdfa37c0c8418d97669492e887f28650b3ba61438a2700776"
+      "bytes": 5977,
+      "sha256": "1802626b0aa5f88a1c2d88dcb419ff9f8ab0f3fdcc1f1edb0ed33afb33fba642"
     },
     {
       "path": "external/iphone-usb/internal/protocol/protocol.go",
@@ -20360,7 +20370,7 @@
       "sha256": "0d4f1745664cf12df5f590319d1a2115f34d71c356202571a97e6621a873defd"
     },
     {
-      "path": "fastlane/metadata/android/en-US/changelogs/101003.txt",
+      "path": "fastlane/metadata/android/en-US/changelogs/101004.txt",
       "bytes": 266,
       "sha256": "d0e49009b343999b9d836443b8425f542acf802c8f594d751b36297b1684916e"
     },
@@ -20486,8 +20496,8 @@
     },
     {
       "path": "native/CMakeLists.txt",
-      "bytes": 62941,
-      "sha256": "aec6f70858df7ed4eb4b4e79e08add226915f1f9963b4bc3e4d2a496dfc42142"
+      "bytes": 62937,
+      "sha256": "b37fe08d3138a896b5bc2effa7945b23c36679b9608dccbbf8c0427198ab3089"
     },
     {
       "path": "native/audio-backend.h",
@@ -20521,13 +20531,13 @@
     },
     {
       "path": "native/cmake/pt_reproducible.cmake",
-      "bytes": 1544,
-      "sha256": "1b576cbb55ab62818c2b2209042e9a1a50d9d95723506f3c12ee34a8781d8f2c"
+      "bytes": 1531,
+      "sha256": "7ab589c22060670887a467c8be2de6a33896badba394ebf6afe2cfa474ab5b6d"
     },
     {
       "path": "native/cmake/pt_version.cmake",
-      "bytes": 2209,
-      "sha256": "547f2c87f065911655f006293b64d1f7b74684da7ea98fc8c162a76005386476"
+      "bytes": 2205,
+      "sha256": "9ec990572585be605e2fcbc1af02d79d53dc89136981d04979558afc77b43fbe"
     },
     {
       "path": "native/common/byte_source.cpp",
@@ -21306,8 +21316,8 @@
     },
     {
       "path": "native/songcore/media_path.h",
-      "bytes": 10260,
-      "sha256": "8ddfc284d2818084a44a517a5b840405c835e2dcbf6ef6f019cfbae7fb217014"
+      "bytes": 10485,
+      "sha256": "d5247c83cfe79b8e5730773ce6cffdefd20fa0dffe858d5fc362f69f2cb97537"
     },
     {
       "path": "native/songcore/midi_clock.h",
@@ -21516,8 +21526,8 @@
     },
     {
       "path": "native/studio/m8_import.cpp",
-      "bytes": 8936,
-      "sha256": "c6261255f5cba8690355349bdff1d6a5232390ffb29064bab4ae1313dca11252"
+      "bytes": 8932,
+      "sha256": "26a53e071e9b88b4b063ebea1710908b0200cb741356071ed177078a76a684a9"
     },
     {
       "path": "native/studio/m8_import.h",
@@ -21876,8 +21886,8 @@
     },
     {
       "path": "native/ui/folder_config.cpp",
-      "bytes": 10255,
-      "sha256": "efa16e5fbf4c64fe98ef8572f315f05044d7b877c0d11dcee90ab9f3858f148b"
+      "bytes": 10243,
+      "sha256": "537037d5b57477b28c7fd47156bfe2b1842d1c223bebaa89d5980e121a42846f"
     },
     {
       "path": "native/ui/folder_config.h",
@@ -22501,13 +22511,13 @@
     },
     {
       "path": "native/ui/std_filesystem.cpp",
-      "bytes": 10437,
-      "sha256": "e23d20a84a7df46008cb75cf4819680f418d68669af89fa830d5ea7516975f80"
+      "bytes": 11315,
+      "sha256": "c194c87ac1bcb0d884cced615c34a528cb62343f83c230650b611b5703cb3994"
     },
     {
       "path": "native/ui/std_filesystem.h",
-      "bytes": 5703,
-      "sha256": "ce115327b27fbcdd3fae30e99f232484c9e9a057f67e36a69a59d44f9d24fab2"
+      "bytes": 5700,
+      "sha256": "83b02faa52e6736972f7eac66bd2d2ba01d76f0d71d4e6b1ede39bde77bb96d0"
     },
     {
       "path": "native/ui/step_grid.h",
@@ -38061,23 +38071,23 @@
     },
     {
       "path": "qa/prepare-dev2-brick.py",
-      "bytes": 7349,
-      "sha256": "cc9655d817d7ed76a40ee02e1315e195fd4ef7d4189c74f5d057a3dac619ca32"
+      "bytes": 7301,
+      "sha256": "7d319673ab54a1fbf800de6a8f7105fa49d84f52d39f7250bf29577eee710afb"
     },
     {
       "path": "settings.gradle.kts",
-      "bytes": 643,
-      "sha256": "16f4fb0d7e753787b0822623fdfc11deeca536bfd236b30fd8a43443b27ffda5"
+      "bytes": 639,
+      "sha256": "9290737318482f01e026e7e4d3a29b3753353ca8227df633d52a653ec945bab3"
     },
     {
       "path": "shell/.gitattributes",
-      "bytes": 3653,
-      "sha256": "5d6f3fa2031eb0a3782e663ea16aac653fe187e111cc8fe73d072b1ff8d37c93"
+      "bytes": 3645,
+      "sha256": "a1b56c1296701c781a449457922c563fb2c4c15e18fe3e2a26b47f3f083524fa"
     },
     {
       "path": "shell/CMakeLists.txt",
-      "bytes": 20076,
-      "sha256": "016aedb3e34a9ec0a45e631e5e86400541c93ff90bb470fa95582543d6a778e9"
+      "bytes": 20044,
+      "sha256": "b9fe45b06ce02c9d2480382e642a12c9d192297392acf98d62e8d8a8fdd7b951"
     },
     {
       "path": "shell/Dockerfile.linux",
@@ -38091,8 +38101,8 @@
     },
     {
       "path": "shell/README.md",
-      "bytes": 14445,
-      "sha256": "e874dee5cf7612b9e711808decba381d42b97f989f48d7ae9488af1069f003d4"
+      "bytes": 14425,
+      "sha256": "9ee8d0b7054fffddb832d0827a519b5c80e7bdd71dc15cffb79f60ad03a18cdd"
     },
     {
       "path": "shell/android/android-jni.h",
@@ -38101,8 +38111,8 @@
     },
     {
       "path": "shell/android/android-main.cpp",
-      "bytes": 26519,
-      "sha256": "d98d52fe35caed99fef8ab22fb9d7b29b86cf8301be19d4b404c90e83b06039d"
+      "bytes": 26503,
+      "sha256": "f0193a29ef03b078705c025e2d126bd2307a0cf894340986246b52b5aaee8c1f"
     },
     {
       "path": "shell/android/capture-android.h",
@@ -38116,8 +38126,8 @@
     },
     {
       "path": "shell/android/midi-in-android.cpp",
-      "bytes": 5381,
-      "sha256": "942b10e1a4fc34052b18eb02358cd08d645580b109f887121cb96caf293308f8"
+      "bytes": 5377,
+      "sha256": "45fc1580e409a8ede1c9772fde57e4ff2510213f20488ce5bfdcbeeb40799063"
     },
     {
       "path": "shell/android/midi-in-android.h",
@@ -38126,8 +38136,8 @@
     },
     {
       "path": "shell/android/midi-out-android.cpp",
-      "bytes": 5462,
-      "sha256": "65c83ec8f5251c03ad21b89f5908955e99e56b1a583bb7915f1ae94022b0ba09"
+      "bytes": 5458,
+      "sha256": "2eec8f6353411291f192ea6f9724b4376b194f3ab502ee5fa7d001e2908a02d9"
     },
     {
       "path": "shell/android/midi-out-android.h",
@@ -38136,8 +38146,8 @@
     },
     {
       "path": "shell/android/saf-filesystem.cpp",
-      "bytes": 35833,
-      "sha256": "ed883295f499736cfa3c58c418bfcb18636f47ca6cac1fdef6566890cbc1a567"
+      "bytes": 35829,
+      "sha256": "28c30205ada4a15856a1a9523fe9d6e759fd8855ac897caf23f080492c3c8f5e"
     },
     {
       "path": "shell/android/saf-filesystem.h",
@@ -38160,49 +38170,49 @@
       "sha256": "3dd4b8b6714ecaf781641e91ce089efaf6cafeb7030e9dccdd94b8ab7d2f2cfa"
     },
     {
-      "path": "shell/brick/Pocket Tracker Extreme.sh",
-      "bytes": 10699,
-      "sha256": "0b86b14c2ac6384e36a7d41998e90b4c121744be978d95518a306627ea512e68"
+      "path": "shell/brick/README.txt",
+      "bytes": 4916,
+      "sha256": "10a2cab80cd787f3e23da267021cb2e39b68e0d1806f59a10e88163892fa112d"
     },
     {
-      "path": "shell/brick/README.txt",
-      "bytes": 5025,
-      "sha256": "697501dd0e5ec0c9d7f50b75bf9944f9f1ede81d415387275d07c96144d18be1"
+      "path": "shell/brick/TrackWerk.sh",
+      "bytes": 10707,
+      "sha256": "1e912dffd29584f921a550e82965f3f2192f6b46dc79f34df4695ceb925a9c4b"
     },
     {
       "path": "shell/brick/gameinfo.xml",
-      "bytes": 878,
-      "sha256": "90498583dc0bb045c3e5fa17f71aac9b078da1418165e7a107f634cc1bcdc65a"
+      "bytes": 853,
+      "sha256": "b1045f4e561742b7d4513ea51724f2b2f53056f9e5005a966a820bd67064589d"
     },
     {
       "path": "shell/brick/port.json",
-      "bytes": 1109,
-      "sha256": "628204a0b5e9276ded263eb0b82bc3e7e536fdae12b56b06cb7d5d25a4c2b75d"
+      "bytes": 1084,
+      "sha256": "1c966b32b4101e592de66cd6bf4fa2219d2c84ff05dd26f7a095653307e54d82"
     },
     {
       "path": "shell/brick/screenshot.png",
-      "bytes": 1763337,
-      "sha256": "38759f3bfedbfc5679a71873467bd9fcb940ad134accd4049244138dc878d4c3"
+      "bytes": 11614,
+      "sha256": "e1375edcfa46f54070b746d63d7248ab82e2a732ffd99b457636cb468f689100"
     },
     {
       "path": "shell/build-linux.sh",
-      "bytes": 10849,
-      "sha256": "ecb5b0cc82049056f9f66666c506547d276ede10d7d23078ee79e381920e9c59"
+      "bytes": 10785,
+      "sha256": "b5426d13f507133f29e90ae636ff800cd4e853310bcdf8adcac19b8467fa2452"
     },
     {
       "path": "shell/build-miyoo.sh",
-      "bytes": 36512,
-      "sha256": "4d96a9161ecadc5d45ba37849e949515ea4e28b45b26c376d9af3ea1953bf1d1"
+      "bytes": 36444,
+      "sha256": "97b48268344137fb3b2818fdc8061efe82716d408d9be32571f4ebf99a01a458"
     },
     {
       "path": "shell/build-portmaster.sh",
-      "bytes": 16904,
-      "sha256": "1394da947e35483ede13985593c6e9c96fe690f18275a22a11202aa7febde347"
+      "bytes": 16860,
+      "sha256": "0d2939e8f9d403902a11cdf884a9bb3952a3bd43e550d14c2bed971c4c4e59c4"
     },
     {
       "path": "shell/build-windows.ps1",
-      "bytes": 20347,
-      "sha256": "a1bd078ec207dd928fcd9f1a74120243b2dfcf9dd3d50fcb6d6d0ca26f01b744"
+      "bytes": 20215,
+      "sha256": "8822e8a44a7fdd23402df60f7409b917a1d5525292abfcf96596d79e1cc97fb9"
     },
     {
       "path": "shell/latency_probe.h",
@@ -38241,8 +38251,8 @@
     },
     {
       "path": "shell/linux/install-desktop.sh",
-      "bytes": 1669,
-      "sha256": "42bcf2b637fad8baf4a584250a7b95c18d176a9dae614ccabaf04d235d753eb1"
+      "bytes": 1617,
+      "sha256": "1822e6145b43c4cf459bbfc41fd2cec74311f815b032f0b9c3bc20bb3c59fd03"
     },
     {
       "path": "shell/linux/iphone-recorder.cpp",
@@ -38311,8 +38321,8 @@
     },
     {
       "path": "shell/main.cpp",
-      "bytes": 13516,
-      "sha256": "258baea398673ed34d0f4e98713df91cb2b7e4bc4599e32664b0f11dbc3b803a"
+      "bytes": 13504,
+      "sha256": "926a28a28916a9deffdcf966c20c07f1cdebb45dc2dbbe54131708e6afe2298a"
     },
     {
       "path": "shell/midi/midi-in-base.cpp",
@@ -38355,44 +38365,44 @@
       "sha256": "05079cf57cf30acd7897e9d1e7ea01bca5a5dc799f4cf493d7cb3dcb8f40ada4"
     },
     {
-      "path": "shell/miyoo/PocketTracker.port",
-      "bytes": 2378,
-      "sha256": "6462412ba62493d9c867795a0e04fb2511bba094a5e19721c1a53fd4a1eb6f45"
+      "path": "shell/miyoo/README.md",
+      "bytes": 7452,
+      "sha256": "360b9fb843376c6b7931bbd4f12ee8931e1a1bbcfc81c6a96440037ed8f3d254"
     },
     {
-      "path": "shell/miyoo/README.md",
-      "bytes": 7540,
-      "sha256": "2e5f44f8e17ee49231e408791717d387edf305c8a2f6556c3e4c34985af3b3f8"
+      "path": "shell/miyoo/TrackWerk.port",
+      "bytes": 2362,
+      "sha256": "8d7bb3fedd0503c7565f061811262b7553fb72cbdbc21b74c504a7a6482a5395"
     },
     {
       "path": "shell/miyoo/boxart.png",
-      "bytes": 85920,
-      "sha256": "7c9ece07a31a3de3b8469fe72a866bcf9fa9b43cb6b08bae08316dd48e30f7c9"
+      "bytes": 8479,
+      "sha256": "312b31020addbd7700934e47c080197865d38a54abae717144665372c6919645"
     },
     {
       "path": "shell/miyoo/launch-offline.sh",
-      "bytes": 3389,
-      "sha256": "84e34f03a160a6959568ec361278981736097d1ff196b0b28faf89fbb44008ac"
+      "bytes": 3403,
+      "sha256": "67bf29714c71257be1d2577c2cb25bf13d279ab75be02effe615a117bd3c0ae0"
     },
     {
       "path": "shell/miyoo/launch-plus-archive.sh",
-      "bytes": 4147,
-      "sha256": "b272c91c863528dd09416e93ccb055debca0a69005b079c24808859bfb258d3c"
+      "bytes": 4154,
+      "sha256": "2a36932f4750373b91bd864f42e79ea34f4e19e55c2e9eba69b3e69335d1d1b2"
     },
     {
       "path": "shell/miyoo/launch.sh",
-      "bytes": 3389,
-      "sha256": "84e34f03a160a6959568ec361278981736097d1ff196b0b28faf89fbb44008ac"
+      "bytes": 3403,
+      "sha256": "67bf29714c71257be1d2577c2cb25bf13d279ab75be02effe615a117bd3c0ae0"
     },
     {
       "path": "shell/miyoo/make-boxart.ps1",
-      "bytes": 2728,
-      "sha256": "7bf87071ebfca80993793b9fa4434e365812e3398274ee5aab821fb898da3048"
+      "bytes": 2719,
+      "sha256": "658fa433a9b2d94e280cc5db5928e7bffc9fe099cb2ad66e013446459f9b490c"
     },
     {
       "path": "shell/miyoo/miyoo-config.json",
-      "bytes": 2540,
-      "sha256": "c2b448529adf6e74c219befdf3d4ca5dcafe6bed1ed4aaa19719640d076e2a2d"
+      "bytes": 2524,
+      "sha256": "8a93c781320a63741407fae3e782da5a97460088a4d855ff8c8f587f4846b22b"
     },
     {
       "path": "shell/miyoo/neon_compat.c",
@@ -38400,39 +38410,39 @@
       "sha256": "541c9dfe78f4574b021c37557662c9c8f1aa622529a671a3de4f5895f33e0c0e"
     },
     {
-      "path": "shell/portmaster/PocketTracker.sh",
-      "bytes": 5576,
-      "sha256": "49921b9d1022377ec12fa30bfcbf9b3bcaa0913fa25ffe1376c03e8fa60d0a39"
+      "path": "shell/portmaster/README.md",
+      "bytes": 2057,
+      "sha256": "c7eb8aabcbfac6fae27e8f8410f111d0cd831ea62d77267bd646d284241b4d0c"
     },
     {
-      "path": "shell/portmaster/README.md",
-      "bytes": 2061,
-      "sha256": "dc7890b7e38a2357c64fa366c972cc14c1571b22dd1765d5bd7619b3479ad812"
+      "path": "shell/portmaster/TrackWerk.sh",
+      "bytes": 5612,
+      "sha256": "c110407e749a792be9250f7d0dc80778124feafa6bcc351624baff7daa4bf010"
     },
     {
       "path": "shell/portmaster/gameinfo.xml",
-      "bytes": 422,
-      "sha256": "4d261372be027646b0ac074b65386136bc5fadd1cf16013e8cc2c576ab2c2085"
+      "bytes": 410,
+      "sha256": "aa8ae4ef3dcca40c0eeb35d2daff083b35b432a4aed4a55cdaaa5c1c00e4d0e4"
     },
     {
       "path": "shell/portmaster/port.json",
-      "bytes": 770,
-      "sha256": "3fde3ec6045c06f82d4b95fde46d839ab61aea9bc7aace52042dd2826a30e4fa"
+      "bytes": 758,
+      "sha256": "01b6dfa29313819b8346395e68b1d3861f078e76bab49bc467a488988167db3c"
     },
     {
       "path": "shell/r36s/BUILD.md",
-      "bytes": 1454,
-      "sha256": "a792ae5c064dd3c5ef6b6e0d281a50f1d3b153fa514e25724fd0825910f2fcdd"
-    },
-    {
-      "path": "shell/r36s/Pocket Tracker Extreme.sh",
-      "bytes": 10561,
-      "sha256": "a97e95efae43e8911c90571361137db33f4495448d83c2188f342e65082978b9"
+      "bytes": 1429,
+      "sha256": "c1fbf746e4a570760b9d8644e17544000e40dd623ec5e7b74bbb9dc88e8a13d6"
     },
     {
       "path": "shell/r36s/README.txt",
-      "bytes": 6768,
-      "sha256": "e410a2eea43b5720a0a60c3072512799773f4dacbdff50131a7e30975a3ac5d1"
+      "bytes": 6691,
+      "sha256": "2861601dc6dbbc5ceb5aad9713e609e5987b82cf956feb2ac4aa9c7d7c06ce0a"
+    },
+    {
+      "path": "shell/r36s/TrackWerk.sh",
+      "bytes": 10569,
+      "sha256": "5250ebf4361820053e4adb421963791d17ab9884012388865dd0e295d3832c23"
     },
     {
       "path": "shell/r36s/controllerdb/LICENSE.txt",
@@ -38451,13 +38461,13 @@
     },
     {
       "path": "shell/r36s/package.py",
-      "bytes": 12456,
-      "sha256": "43daa4ec9b5b8b6d33882aacb2d9240c2fd2a96c98c675b1ecc2150cc827a6ea"
+      "bytes": 12345,
+      "sha256": "82de0c502cb2d286c40f43b1c4681c3d34c6cd735556772c88ab1985dcc93914"
     },
     {
       "path": "shell/sdl/make-window-icon.ps1",
-      "bytes": 5616,
-      "sha256": "dfce1ad765bd510a6c460d0a4b91c28ca7bee8a6338fe333c46109bf81a4e9d2"
+      "bytes": 5620,
+      "sha256": "b6ccc7d753042959f1dd60088b6e0c2d727548085e411316ba892c67fd732477"
     },
     {
       "path": "shell/sdl/sdl-audio-engine.cpp",
@@ -38501,8 +38511,8 @@
     },
     {
       "path": "shell/sdl/window_icon.h",
-      "bytes": 25638,
-      "sha256": "7d9e289bdae3024da2245cf040a2fc8cbd440c8f0ffa8ab124d25634cdc5022b"
+      "bytes": 23489,
+      "sha256": "19314317b0cff130d0a8f84340bb8d1e9054f44736ff0561155bc28164dd3e4b"
     },
     {
       "path": "shell/skin/assets.cpp",
@@ -38596,8 +38606,8 @@
     },
     {
       "path": "shell/toolchain-aarch64.cmake",
-      "bytes": 1965,
-      "sha256": "5bb125a3138ade7fa13e61293d321ab46f42223443d1f460e4cc397947aa3b96"
+      "bytes": 1961,
+      "sha256": "c14c7a42c5e4c1d77a9810f7587e91db33a205c04de46e0eb170b74d78ea52d3"
     },
     {
       "path": "shell/toolchain-armhf.cmake",
@@ -38610,14 +38620,14 @@
       "sha256": "7d79967ec72301c789b8eaec9f4933699e4632c5536bcbb13965f8b524a1dcb9"
     },
     {
-      "path": "shell/windows/PocketTracker.ico",
-      "bytes": 187208,
-      "sha256": "5f4dca304ba8fd0099e511fc0361fb388bad261815bedc96fc713e3819541f6b"
+      "path": "shell/windows/README.txt",
+      "bytes": 4512,
+      "sha256": "c9ebdece44f1b6c0057a0a46ea7a69139d4af316f8c9e363fffe1f1fd4ca4421"
     },
     {
-      "path": "shell/windows/README.txt",
-      "bytes": 4560,
-      "sha256": "c6ef4c20584d02675c2e25f78e2eadda43d03914ec74493d5c5f89d304bf89cc"
+      "path": "shell/windows/TrackWerk.ico",
+      "bytes": 19053,
+      "sha256": "d8918d1d7849ea237aab558029fe6efc46f06e410531fa87002b2ed2b6a8e5d9"
     },
     {
       "path": "shell/windows/asio-audio-engine.cpp",
@@ -38641,8 +38651,8 @@
     },
     {
       "path": "shell/windows/make-icon.ps1",
-      "bytes": 11257,
-      "sha256": "a77b2a4fe997ad6f364bbcfa797983f372b776d4542e0353943fd27ffa93fa4f"
+      "bytes": 11251,
+      "sha256": "ecf5f52ad023a4d590961a3afd2d680dac18aa4a2aeb9313fe722ca6fdab28c1"
     },
     {
       "path": "shell/windows/midi-in-winmm.cpp",
@@ -38670,9 +38680,9 @@
       "sha256": "1b7132704bf71e37ee2fbb88493e93c3bb506b39e11722c6ca96b9c9b3bd1e8c"
     },
     {
-      "path": "shell/windows/pockettracker.rc.in",
-      "bytes": 2964,
-      "sha256": "f5e11bd5c60af99f88b6138a7305c922dc5ca255ee50a94b4aea6800e767f279"
+      "path": "shell/windows/trackwerk.rc.in",
+      "bytes": 2948,
+      "sha256": "aa4df909c1d9df1d754b3b04b6b20611a3e4612d9045b19fffbe16271f51537a"
     },
     {
       "path": "tests/android-oboe/check_backend.py",
@@ -38686,8 +38696,8 @@
     },
     {
       "path": "tests/brick-launcher/check_launcher.py",
-      "bytes": 14461,
-      "sha256": "f6d371a866eec08ff72e27b497fc2a29d3ce3a5a64fddd418c4e9914d3420e31"
+      "bytes": 14411,
+      "sha256": "11c139a36c43e1a143bcd7baec3e3752cd25bdc3fd240c965cd553f89a9566f3"
     },
     {
       "path": "tests/brick-launcher/check_preset_preparer.py",
@@ -38696,8 +38706,8 @@
     },
     {
       "path": "tests/brick-launcher/check_program_updater.py",
-      "bytes": 7710,
-      "sha256": "4e475bd1399d604e087074581c72f2c797cc45972d1393a5d6d69219c55361c0"
+      "bytes": 7685,
+      "sha256": "fbd2df1aae025e06a98244d23f7a27114bb2d8a5e6073e89ce27530cf94fe95a"
     },
     {
       "path": "tests/brick-launcher/result.json",
@@ -38706,8 +38716,8 @@
     },
     {
       "path": "tests/r36s-launcher/check_launcher.py",
-      "bytes": 15565,
-      "sha256": "19cba3481ff159f5ca45ecdc19b655e404d5c5321362b3b492c857af31e6b204"
+      "bytes": 15515,
+      "sha256": "562d77b1d0f8057cfcee3e24ba6912260a94f090f300925f596376de78e228ec"
     },
     {
       "path": "tests/r36s-launcher/result.json",
@@ -39231,13 +39241,13 @@
     },
     {
       "path": "tools/brick/build.py",
-      "bytes": 4553,
-      "sha256": "c7ad1929c96d3245a41de4925d0321f09e04772ea3bb211c04830b7fcd346f64"
+      "bytes": 4541,
+      "sha256": "fb9b70e4a9fbdf2e7640261857b5b766000fea0e888ee825b69b9ae5aa995712"
     },
     {
       "path": "tools/brick/build_iphone.py",
-      "bytes": 3132,
-      "sha256": "f5a4bb218005d8ea2eb8ebd260c48dead2800d62845b4eaedd6c6de2ce5c3614"
+      "bytes": 3119,
+      "sha256": "deba76635c9bee81d74347264f9ee0c367bdc10582eeecd5c514d68d39194d4f"
     },
     {
       "path": "tools/fonts/pack_demo_atlases.py",
@@ -39265,19 +39275,24 @@
       "sha256": "79f5f8299aaceae59d2d4ba8898eb4d8069707028e0b6f6659846fff08b206f1"
     },
     {
+      "path": "tools/release/canonical_layout.py",
+      "bytes": 7948,
+      "sha256": "ee683f80896a356e3c8bff3493741d0fd183615e9ab8fc5c471313fd81173e25"
+    },
+    {
       "path": "tools/release/check_apk.py",
       "bytes": 2729,
       "sha256": "03c15d0ba04ca597cc03c09d94da340647ecde6c9873a2be83dfc8b8216687e3"
     },
     {
       "path": "tools/release/fix_miyoo_names.py",
-      "bytes": 10330,
-      "sha256": "dffb4cd089a3d0309d8cad32ae87d3116ce0e0dd46f2d2c9a90255ced51a34e3"
+      "bytes": 10260,
+      "sha256": "f0420fa6154ab17a49f39d2e9094c2c307b040ef743dfd0a2f3e1106b8d54327"
     },
     {
       "path": "tools/release/package_brick.py",
-      "bytes": 7962,
-      "sha256": "665e3ecd223987511fb60018f1504689bbd45bc2645bb218ba653bcab60671db"
+      "bytes": 7885,
+      "sha256": "18aee805cde09f6fa1f0a845066c1f5ac678c3e6755fad889122bafbc1c4d407"
     },
     {
       "path": "tools/release/package_factory.py",
@@ -39291,8 +39306,8 @@
     },
     {
       "path": "tools/release/update_brick.py",
-      "bytes": 12532,
-      "sha256": "e0c79b6e2f7a032256b6e0365ffe6fd3bd41201c6d27d933ab78a14ea9dc11bf"
+      "bytes": 12496,
+      "sha256": "2506d504c4df8cc228fa44b5dd2c63dcbb8e46ac28a9010d433b69c6bbb9430e"
     },
     {
       "path": "tools/showcase/README.txt",

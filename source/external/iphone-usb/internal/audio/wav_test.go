@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"pockettracker-extreme/iphone-usb/internal/protocol"
+	"trackwerk/iphone-usb/internal/protocol"
 )
 
 var pcm16 = protocol.Format{Rate: 48000, Channels: 2, Bits: 16, BytesPerFrame: 4}

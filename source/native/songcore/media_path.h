@@ -27,11 +27,16 @@ inline bool path_exists(const std::string& path) {
 // The app-root-relative tail ("Samples/Pads/kick.wav") of a path from ANOTHER install, or empty.
 // Run only on a path that failed to open; a `pt://` URI is included (re-granting changes its id).
 inline std::string app_root_relative_tail(const std::string& path) {
-    // 1) Everything after the LAST "/PocketTracker/" (the phone's root). rfind, so a user sub-folder
-    //    with that name loses to the real root above it.
-    static const std::string kPtAnchor = "/PocketTracker/";
-    const size_t pt = path.rfind(kPtAnchor);
-    if (pt != std::string::npos) return path.substr(pt + kPtAnchor.size());
+    // Prefer the current root spelling; older saved paths are still readable after migration.
+    static const std::string anchors[] = {"/TrackWerk/", "/PocketTracker/"};
+    size_t anchorAt = std::string::npos, anchorLength = 0;
+    for (const auto& anchor : anchors) {
+        const size_t at = path.rfind(anchor);
+        if (at != std::string::npos && (anchorAt == std::string::npos || at > anchorAt)) {
+            anchorAt = at; anchorLength = anchor.size();
+        }
+    }
+    if (anchorAt != std::string::npos) return path.substr(anchorAt + anchorLength);
 
     // 2) A root not named PocketTracker: anchor on the media sub-tree, keeping it in the tail.
     static const std::string kSubtrees[] = { "/Samples/", "/Soundfonts/", "/Renders/" };

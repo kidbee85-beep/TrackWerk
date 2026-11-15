@@ -1,6 +1,6 @@
 TRACKWERK 0.2.0-beta.3
 R36S COMMUNITY TEST — EXPERIMENTAL
-Kid Bunka / PocketTracker contributors
+Kid Bunka / TrackWerk contributors
 
 This is a native Linux application, not an Android APK or an operating-system
 image. It uses the same ARM64 application binary as the public Brick beta with
@@ -17,10 +17,10 @@ SDL, libc, firmware or controller configuration. A 64-bit CPU alone is not
 enough if the installed userspace is 32-bit. R36S clones differ.
 
 INSTALL ON AN ALREADY WORKING R36S SYSTEM
-1. Back up existing projects and the pockettracker_extreme/data folder first.
+1. Back up existing projects and the trackwerk/data folder first.
 2. Extract the whole ZIP, preserving the two sibling items:
-     Pocket Tracker Extreme.sh
-     pockettracker_extreme/
+     TrackWerk.sh
+     trackwerk/
    Put them inside your firmware's ports folder:
      KNULLI R36S: SHARE/roms/ports/
      ArkOS-style: EASYROMS/ports/ (normally /roms/ports or /roms2/ports)
@@ -33,7 +33,7 @@ INSTALL ON AN ALREADY WORKING R36S SYSTEM
    Subsequent launches skip preparation when the pack identifier matches.
 
 OPTIONAL: PREPARE PRESETS ON YOUR COMPUTER
-If Python 3 is installed, open a terminal in pockettracker_extreme/ and run:
+If Python 3 is installed, open a terminal in trackwerk/ and run:
   python3 tools/prepare_presets.py
 This verifies the factory pack and copies only missing presets to data/Presets.
 Existing edited presets remain intact. Wait for completion, then safely eject.
@@ -50,7 +50,7 @@ NEVER flash the TrimUI Brick image to an R36S. This application ZIP contains
 no OS image and is not a claim that KNULLI or ArkOS have certified this port.
 
 YOUR SAMPLES, SONGS AND PRESETS
-The app's writable media folder is pockettracker_extreme/data/:
+The app's writable media folder is trackwerk/data/:
   Samples/       Put your own audio here; keep any useful category subfolders.
   Presets/       Writable instrument and effect presets, prepared on first run.
   Projects/      Suggested location for your saved .ptp songs.
@@ -85,7 +85,7 @@ The launcher does not force a system video or audio driver. For a deliberate
 diagnostic test you can set POCKETTRACKER_VIDEO=surface in the launch environment;
 this is an alternative path, not an R36S fix established by hardware testing.
 
-Inspect pockettracker_extreme/log.txt (previous large log: log.previous.txt).
+Inspect trackwerk/log.txt (previous large log: log.previous.txt).
 The first marker is flushed before native graphics start. If no first presented
 frame appears within 25 seconds after native launch, the launcher sends TERM to
 its own child, waits up to eight seconds, then sends KILL. It never targets an

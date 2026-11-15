@@ -22,7 +22,7 @@ namespace ptshell {
 
 namespace {
 
-constexpr const char* kLogTag = "PocketTracker";
+constexpr const char* kLogTag = "TrackWerk";
 
 // One pump's capacity — far above a 60 Hz frame of MIDI (~52 bytes), so the first pump after a
 // pause empties MidiInManager's whole ring.

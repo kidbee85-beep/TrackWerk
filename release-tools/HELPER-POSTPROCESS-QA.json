@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "operation": "LLVM strip-debug only",
+  "all_runtime_load_segments_equal_except_elf_section_table_locator": true,
+  "original_sha256": "c9b1ee482aff08ef4d932ed5a73113c573d87522c447579363cf5c5ce1d77d52",
+  "distributed_sha256": "fee9eb159de59c34ea50c90cc09707fa9fac375ddc5d9045025a7598c09bb8d4",
+  "debug_source_paths_removed": true
+}

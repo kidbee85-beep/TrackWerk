@@ -85,7 +85,7 @@ std::string config_template_text(FileSystem& fs, const ButtonBindings& keyboardD
     // Every key filled with what the app does now. "_README" keys are for the human.
     json j;
     j["_README"] =
-        "PocketTracker configuration. config.json is YOURS: the app reads it at startup and never "
+        "TrackWerk configuration. config.json is YOURS: the app reads it at startup and never "
         "rewrites it. config.example.json beside it lists every setting at its default and is "
         "rewritten by the app, so a newer version's settings show up there — copy the lines you want "
         "into config.json. Every key is optional — delete a line to use the built-in default.";
@@ -94,10 +94,10 @@ std::string config_template_text(FileSystem& fs, const ButtonBindings& keyboardD
     const std::string mediaRoot = fs.parent_path(fs.samples_directory());
 
     j["_README_folders"] =
-        "Where a LOAD browse STARTS for each category. A plain name is inside your PocketTracker folder "
+        "Where a LOAD browse STARTS for each category. A plain name is inside your TrackWerk folder "
         "(\"Samples\", \"Samples/Packs\"); an absolute path (\"/mnt/sdcard/Music\", \"C:\\\\Music\") is "
         "used as given. A folder this device cannot read is ignored, and one written under another "
-        "device's PocketTracker folder is re-read against yours. This does not change where anything is "
+        "device's TrackWerk folder is re-read against yours. This does not change where anything is "
         "SAVED.";
     j["folders"] = {
         {"samples",     strip_root(fs.samples_directory(),     mediaRoot)},

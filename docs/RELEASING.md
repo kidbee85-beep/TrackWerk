@@ -7,7 +7,7 @@ Keep the signed Android APK unchanged. Keep the matching application and mmiyoo 
 1. Verify the prepared canonical commit against the approved source and website manifest.
 2. After owner approval, push that reviewed commit to main without force and tag it v1.1.0.
 3. Create the v1.1.0 GitHub Release using the reviewed English release notes; attach exactly the approved assets.
-4. Confirm every asset SHA-256 and download, then dispatch the manual pages.yml workflow.
+4. Confirm every asset SHA-256 and download, then dispatch the manual publish-trackwerk-website.yml workflow.
 5. Check live website, guide, embedded film, audio, device downloads and update instructions.
 6. Upload the approved long video and vertical teaser; use the reviewed descriptions, chapters,
    captions, thumbnail and soundtrack credits. No private samples, keys or account data are public assets.

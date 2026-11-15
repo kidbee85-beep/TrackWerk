@@ -55,9 +55,9 @@ STAGE=$OUT/stage
 # whether the launch command names /mnt/SDCARD/Roms/. The same files under App/ are recorded nowhere,
 # which is what this package used to be.
 PORTROOT=$STAGE/Roms/PORTS
-GAMEDIR=$PORTROOT/Games/PocketTracker
-SHORTCUT=$PORTROOT/Shortcuts/PocketTracker.port
-BOXART=$PORTROOT/Imgs/PocketTracker.png
+GAMEDIR=$PORTROOT/Games/TrackWerk
+SHORTCUT=$PORTROOT/Shortcuts/TrackWerk.port
+BOXART=$PORTROOT/Imgs/TrackWerk.png
 BIN=$GAMEDIR/pockettracker
 
 cd "$SRC"
@@ -136,7 +136,7 @@ NEON_SO=$SDK/lib/libneonarmmiyoo.so
     -o "$NEON_SO" "$SRC/shell/miyoo/neon_compat.c"
 
 echo
-echo "############ 2/5  cross-build PocketTracker ############"
+echo "############ 2/5  cross-build TrackWerk ############"
 # ⚠️ `-static-libstdc++ -static-libgcc` costs 370 KB and removes an entire class of unknown: this
 # toolchain is gcc 8.3 and the device's own libstdc++ is whatever its buildroot shipped, which is
 # not a question anything here can answer. Nothing crosses a C++ ABI boundary at runtime — the
@@ -160,9 +160,9 @@ echo
 echo "############ 3/5  stage the Onion PORT package ############"
 # The zip extracts at the SD CARD ROOT, which is why the staging tree starts with `Roms/`:
 #
-#   Roms/PORTS/Shortcuts/PocketTracker.port     the list entry Onion runs
-#   Roms/PORTS/Imgs/PocketTracker.png           what the list draws beside it
-#   Roms/PORTS/Games/PocketTracker/
+#   Roms/PORTS/Shortcuts/TrackWerk.port     the list entry Onion runs
+#   Roms/PORTS/Imgs/TrackWerk.png           what the list draws beside it
+#   Roms/PORTS/Games/TrackWerk/
 #   |- launch.sh            the three mmiyoo exports, POCKETTRACKER_HOME, the config seed
 #   |- miyoo-config.json    the app's OWN config.json, seeded to $POCKETTRACKER_HOME on first run
 #   |- pockettracker        the armhf ELF
@@ -171,7 +171,7 @@ echo "############ 3/5  stage the Onion PORT package ############"
 #   `- demo/                OPTIONAL: a starter song, copied to the user's folder on first launch
 #
 # ⚠️ THE SHORTCUT AND THE IMAGE ARE PAIRED BY BASE NAME, and that name is also what the play-time
-# database stores. `Imgs/PocketTracker.png` is the artwork committed as `boxart.png`, renamed here:
+# database stores. `Imgs/TrackWerk.png` is the artwork committed as `boxart.png`, renamed here:
 # check 11 asserts the pair rather than trusting these two lines to stay in step.
 #
 # ⚠️ THE PORTS SHELF, NOT THE APP SHELF, and the reason is not tidiness — see the note at PORTROOT.
@@ -184,7 +184,7 @@ echo "############ 3/5  stage the Onion PORT package ############"
 rm -rf "$OUT"
 mkdir -p "$GAMEDIR/libs" "$GAMEDIR/licenses" "$(dirname "$SHORTCUT")" "$(dirname "$BOXART")"
 
-cp "$SRC/shell/miyoo/PocketTracker.port"  "$SHORTCUT"
+cp "$SRC/shell/miyoo/TrackWerk.port"  "$SHORTCUT"
 cp "$SRC/shell/miyoo/boxart.png"          "$BOXART"
 cp "$SRC/shell/miyoo/launch.sh"           "$GAMEDIR/"
 cp "$SRC/shell/miyoo/miyoo-config.json"   "$GAMEDIR/"
@@ -216,7 +216,7 @@ chmod +x "$BIN"
 cp "$SDL2_LIBDIR/libSDL2-2.0.so.0"   "$GAMEDIR/libs/"
 cp "$NEON_SO"                        "$GAMEDIR/libs/"
 
-# PocketTracker is GPL-3.0 and statically links its decoders, so their notices ship with the binary
+# TrackWerk is GPL-3.0 and statically links its decoders, so their notices ship with the binary
 # that contains them. `docs/licenses/THIRD-PARTY-NOTICES.md` is the single source of truth and the
 # check in step 4 derives the required list from native/vendor/ rather than from a hand-kept one.
 cp "$SRC/LICENSE"                                    "$GAMEDIR/licenses/LICENSE"
@@ -355,7 +355,7 @@ EOF
     -L"$SDK/lib" -lSDL2 -Wl,--allow-shlib-undefined
 
 # Every quoted string to the RIGHT of a colon inside the "gamepad" object — i.e. the Miyoo button
-# names, never PocketTracker's button names.
+# names, never TrackWerk's button names.
 mapfile -t CFGNAMES < <(sed -n '/"gamepad"/,/^  }/p' "$GAMEDIR/miyoo-config.json" \
     | sed 's/^[^:]*://' | grep -oE '"[^"]+"' | tr -d '"')
 echo
@@ -473,11 +473,11 @@ fi
 # with itself while the project names something else entirely.
 if [ -d "$GAMEDIR/demo" ]; then
 echo
-# Anchor 1 is "/PocketTracker/"; anchor 2 is the last media sub-tree, kept whole so it re-roots as
+# Anchor 1 is "/TrackWerk/"; anchor 2 is the last media sub-tree, kept whole so it re-roots as
 # "Samples/…". Only one of the three ever appears in a real path, so loop order is not a tie-break.
 demo_tail() {
     local p=$1 sub t best=
-    case "$p" in */PocketTracker/*) printf '%s\n' "${p##*/PocketTracker/}"; return ;; esac
+    case "$p" in */TrackWerk/*) printf '%s\n' "${p##*/TrackWerk/}"; return ;; esac
     for sub in /Samples/ /Soundfonts/ /Renders/; do
         case "$p" in *"$sub"*) t=${p##*"$sub"}; best="${sub:1}$t" ;; esac
     done
@@ -604,9 +604,9 @@ unzip -l "$OUT/pockettracker-miyoo.zip"
 # have failed to include, and the zip is what ships.
 echo
 echo "read back out of the zip:"
-G=Roms/PORTS/Games/PocketTracker
-MEMBERS=( Roms/PORTS/Shortcuts/PocketTracker.port
-          Roms/PORTS/Imgs/PocketTracker.png
+G=Roms/PORTS/Games/TrackWerk
+MEMBERS=( Roms/PORTS/Shortcuts/TrackWerk.port
+          Roms/PORTS/Imgs/TrackWerk.png
           $G/pockettracker
           $G/launch.sh
           $G/miyoo-config.json

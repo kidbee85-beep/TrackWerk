@@ -26,12 +26,12 @@
   },
   "iphone_helpers": {
     "pte-iphone-usb": {
-      "sha256": "93c497b61fa9bb59c8068f05c97ec4335d0557eaea64beb7df487169bcc78446",
+      "sha256": "f18947ee9af901c65edd23bd692dcb3f0ee2b4683f8965b7a193cee4e110e084",
       "bytes": 3296768,
       "source": "external/iphone-usb or external/iphone-pair or external/apple-usb-deps; see tools/brick/build_iphone.py"
     },
     "pte-iphone-pair": {
-      "sha256": "e0888db7c37f73ee670219a08e1c11ff482c7845185292e21d731fb6dfde5301",
+      "sha256": "51a946987e6ef4d60a8c3f4b358969dc2dc04fc516b49a3cd34141a5e598bedb",
       "bytes": 6815904,
       "source": "external/iphone-usb or external/iphone-pair or external/apple-usb-deps; see tools/brick/build_iphone.py"
     },

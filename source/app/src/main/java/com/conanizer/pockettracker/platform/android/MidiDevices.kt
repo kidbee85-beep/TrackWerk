@@ -46,5 +46,5 @@ internal fun openMidiDevice(m: MidiManager, info: MidiDeviceInfo): MidiDevice? {
     return d
 }
 
-private const val TAG = "PocketTracker"
+private const val TAG = "TrackWerk"
 private const val OPEN_TIMEOUT_MS = 3000L

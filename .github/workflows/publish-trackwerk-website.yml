@@ -1,26 +1,13 @@
 name: Publish verified TrackWerk website
-
 on:
   workflow_dispatch:
-    inputs:
-      youtube_main:
-        description: Public YouTube main-film URL (leave empty until public)
-        required: false
-        type: string
-      youtube_short:
-        description: Public YouTube Short URL (leave empty until public)
-        required: false
-        type: string
-
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: trackwerk-website
   cancel-in-progress: false
-
 jobs:
   website:
     runs-on: ubuntu-latest
@@ -29,120 +16,28 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7.0.1
-      - name: Download the verified public website source
-        run: curl --fail --location --output "$RUNNER_TEMP/trackwerk-site.zip" 'https://github.com/kidbee85-beep/TrackWerk/releases/download/v0.9.0-beta/TrackWerk-0.9-Website-Source.zip?revision=b110d54d1eaf'
-      - name: Verify and prepare only the website
+      - name: Verify current public release
         env:
-          SITE_ARCHIVE: ${{ runner.temp }}/trackwerk-site.zip
           GH_TOKEN: ${{ github.token }}
-          YOUTUBE_MAIN: ${{ inputs.youtube_main }}
-          YOUTUBE_SHORT: ${{ inputs.youtube_short }}
         run: |
-          python3 - <<'PYTHON'
+          gh release view v1.1.0 --repo kidbee85-beep/TrackWerk --json isDraft,isPrerelease,assets > "$RUNNER_TEMP/release.json"
+          python3 - "$RUNNER_TEMP/release.json" <<'PYTHON'
+          import json,sys
           from pathlib import Path
-          import hashlib,html,json,os,re,shutil,tempfile,urllib.request,zipfile
-          archive=Path(os.environ['SITE_ARCHIVE'])
-          digest='b110d54d1eaf097b97dab9024a92db334c93370129112e115e62ffd92ec9c082'
-          assert archive.stat().st_size==11324994
-          assert hashlib.sha256(archive.read_bytes()).hexdigest()==digest
-          request=urllib.request.Request('https://api.github.com/repos/kidbee85-beep/TrackWerk/releases/tags/v0.9.0-beta',headers={'User-Agent':'TrackWerk-website-verifier'})
-          with urllib.request.urlopen(request,timeout=60) as response: released=json.load(response)
-          assert released['draft'] is False and released['prerelease'] is True
-          actual={a['name']:a for a in released['assets']}
-          assert actual['TrackWerk-0.9-Website-Source.zip']['size']==11324994
-          if actual['TrackWerk-0.9-Website-Source.zip'].get('digest'):
-              assert actual['TrackWerk-0.9-Website-Source.zip']['digest']=='sha256:'+digest
-          with tempfile.TemporaryDirectory() as temp:
-              temp=Path(temp)
-              with zipfile.ZipFile(archive) as z:
-                  assert z.testzip() is None
-                  for name in z.namelist():
-                      assert (temp/name).resolve().is_relative_to(temp.resolve())
-                  z.extractall(temp)
-              source=temp/'TrackWerk-0.9-Website'
-              for path in source.rglob('*'):
-                  if path.is_file() and path.suffix in ['.html','.json','.css','.js']:
-                      text=path.read_text()
-                      assert '1569493424162213951' not in text
-                      assert 'upstream-exchange' not in text
-              target=Path('docs/site')
-              if target.exists(): shutil.rmtree(target)
-              target.mkdir(parents=True)
-              for path in source.iterdir():
-                  if path.name in ['assets','data','licenses','community'] or path.suffix=='.html' or path.name in ['.nojekyll','robots.txt','sitemap.xml']:
-                      if path.is_dir(): shutil.copytree(path,target/path.name)
-                      else: shutil.copy2(path,target/path.name)
-          def canonical(text):
-              return text.replace('kidbee85-beep.github.io/'+'Pocket-Tracker-Extreme','kidbee85-beep.github.io/TrackWerk').replace('kidbee85-beep/'+'Pocket-Tracker-Extreme','kidbee85-beep/TrackWerk')
-          for path in target.rglob('*'):
-              if path.is_file() and path.suffix in ['.html','.json','.css','.js','.txt','.xml','.md']:
-                  path.write_text(canonical(path.read_text()))
-          manifest_path=target/'data/releases.json'
-          manifest=json.loads(manifest_path.read_text())
-          assert 'android-private' not in manifest['assets']
-          for asset in manifest['assets'].values():
-              remote=actual[asset['file']]
-              assert asset['ready'] and asset['bytes']==remote['size']
-              if remote.get('digest'): assert remote['digest']=='sha256:'+asset['sha256']
-          manifest['releaseReady']=True
-          manifest['plannedDate']='2026-11-10'
-          text=(target/'index.html').read_text().replace('<strong>Release candidate / 11 November 2026.</strong> Packages are verified and prepared. Download buttons activate when the release is published; this staging site does not silently send you to an older build.','<strong>TrackWerk 0.9 beta is available.</strong> Choose the package for your platform and follow the field guide. Matching source and checksums accompany the release.')
-          links=[]
-          for key,label in [('YOUTUBE_MAIN','Watch the full session on YouTube'),('YOUTUBE_SHORT','Watch the YouTube Short')]:
-              url=os.environ.get(key,'').strip()
-              if not url: continue
-              assert re.fullmatch(r'https://(?:youtu\.be/[A-Za-z0-9_-]{11}|(?:www\.)?youtube\.com/(?:watch\?v=|shorts/)[A-Za-z0-9_-]{11})',url)
-              links.append('<a href="'+html.escape(url,quote=True)+'">'+label+' ↗</a>')
-              manifest['film'][key.lower()]=url
-          if links:
-              marker='<p class="capture-caption">A complete jazz phrase'
-              if 'Watch the full session on YouTube' not in text: text=text.replace(marker,'<p class="film-credit">'+' · '.join(links)+'</p>'+marker,1)
-              credits=target/'credits.html'
-              credit_text=credits.read_text()
-              if 'Session videos:' not in credit_text: credit_text=credit_text.replace('<h2 id="music">','<p class="film-credit">Session videos: '+' · '.join(links)+'</p><h2 id="music">',1)
-              credits.write_text(credit_text)
-          (target/'index.html').write_text(text)
-          manifest_path.write_text(json.dumps(manifest,indent=2)+'\n')
-          publication=Path('PUBLICATION-MANIFEST.json')
-          if publication.exists():
-              p=json.loads(publication.read_text())
-              for item in p['assets']:
-                  if item.get('role')=='website': item.update(bytes=11324994,sha256=digest)
-              publication.write_text(json.dumps(p,indent=2)+'\n')
-          shutil.copy2('source/LICENSE','LICENSE')
-          for path in [Path('README.md'),*Path('.github').rglob('*')]:
-              if '.github/workflows/' in path.as_posix(): continue
-              if path.is_file() and path.suffix in ['.md','.yml','.yaml','.json','.py']:
-                  text=path.read_text(); updated=canonical(text).replace('The repository and legacy data namespace retain their earlier names to preserve existing links and user files.','The repository is now TrackWerk. Legacy on-device data paths remain unchanged to preserve projects, samples and settings.')
-                  if text!=updated: path.write_text(updated)
-          funding=Path('.github/FUNDING.yml')
-          if funding.exists(): funding.write_text(funding.read_text().replace('Pocket%20Tracker%20Extreme','TrackWerk').replace('Pocket+Tracker+Extreme','TrackWerk'))
-          api='https://api.github.com/repos/kidbee85-beep/TrackWerk'
-          headers={'User-Agent':'TrackWerk-canonical-link-migration','Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}
-          for tag in ['v0.9.0-beta','v0.2.0-beta.1','v0.2.0-beta.2']:
-              request=urllib.request.Request(api+'/releases/tags/'+tag,headers=headers)
-              with urllib.request.urlopen(request,timeout=60) as response: release=json.load(response)
-              old=release.get('body') or ''; updated=canonical(old)
-              desired_name=release['name'] if tag=='v0.9.0-beta' else 'TrackWerk — historical '+tag.split('v0.2.0-')[1]+' (superseded)'
-              if updated!=old or release['name']!=desired_name:
-                  request=urllib.request.Request(api+'/releases/'+str(release['id']),data=json.dumps({'body':updated,'name':desired_name}).encode(),headers={**headers,'Content-Type':'application/json'},method='PATCH')
-                  with urllib.request.urlopen(request,timeout=60) as response: assert canonical(json.load(response)['body'])==updated
-          print('Clean website verified; eight software assets unchanged; no application tag touched')
+          release=json.loads(Path(sys.argv[1]).read_text())
+          assert not release['isDraft'] and not release['isPrerelease']
+          public=json.loads(Path('PUBLICATION-MANIFEST.json').read_text())
+          actual={x['name']:x for x in release['assets']}
+          for name,item in public['assets'].items():
+              assert actual[name]['size']==item['bytes'],name
+              if actual[name].get('digest'):assert actual[name]['digest']=='sha256:'+item['sha256'],name
+          assert Path('docs/site/assets/guide/TrackWerk-1.1-English-Handbook.pdf').is_file()
+          assert Path('docs/site/assets/video/trackwerk-1.1-walkthrough.mp4').is_file()
           PYTHON
-      - name: Commit the website update
-        run: |
-          git config user.name "Kid Bunka"
-          git config user.email "338288444+kidbee85-beep@users.noreply.github.com"
-          git add docs/site PUBLICATION-MANIFEST.json LICENSE README.md .github
-          if ! git diff --cached --quiet; then
-            git commit -m "Publish clean TrackWerk provenance and verified website"
-            git push origin HEAD:main
-          fi
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6.0.0
+      - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: docs/site
-      - name: Deploy the verified website
+      - name: Deploy current website
         id: deployment
         uses: actions/deploy-pages@v5.0.1

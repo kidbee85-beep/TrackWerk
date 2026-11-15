@@ -1,6 +1,6 @@
 // Windows resources for the SDL shell — convergence plan A3.
 //
-// configure_file() turns this into pockettracker.rc in the build tree, substituting the icon's
+// configure_file() turns this into trackwerk.rc in the build tree, substituting the icon's
 // absolute path and the version parsed out of app/build.gradle.kts. It is a .in rather than a
 // plain .rc precisely so neither of those is written down twice.
 //
@@ -44,12 +44,12 @@ BEGIN
         // disagreeing is the classic reason a version tab renders blank.
         BLOCK "040904b0"
         BEGIN
-            VALUE "ProductName",      "PocketTracker"
-            VALUE "FileDescription",  "PocketTracker - a tracker for small screens"
+            VALUE "ProductName",      "TrackWerk"
+            VALUE "FileDescription",  "TrackWerk - a tracker for small screens"
             VALUE "FileVersion",      "@PT_VERSION@"
             VALUE "ProductVersion",   "@PT_VERSION@"
             VALUE "InternalName",     "pockettracker-sdl"
-            VALUE "OriginalFilename", "PocketTracker.exe"
+            VALUE "OriginalFilename", "TrackWerk.exe"
             VALUE "LegalCopyright",   "GPL-3.0-or-later. See licenses\\LICENSE."
         END
     END

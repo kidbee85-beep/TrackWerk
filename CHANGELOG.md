@@ -17,7 +17,7 @@ TrackWerk 1.1 brings a complete visual collection and a deeper sound-design work
 
 Choose the exact operating-system/profile package. For a fresh card use First Install; for an existing installation use Program Update. Back up your data and follow START-HERE.
 
-The Android APK uses the existing com.kidbunka.trackwerk ID and release signer. VersionCode 101003 updates both the 1.0 APK (100000) and the 1.1 development APK (101002). Install over the app; do not uninstall to update.
+The Android APK uses the existing com.kidbunka.trackwerk ID and release signer. VersionCode 101004 updates both the 1.0 APK (100000) and the 1.1 development APK (101002). Install over the app; do not uninstall to update.
 
 The Miyoo updater recognises 25 verified predecessors, including the b3aecfa development programs. The included menu-name helper corrects legacy Apps/Ports metadata to TrackWerk 1.1; the optional Plus offline installation is labelled TrackWerk 1.1 Offline.
 

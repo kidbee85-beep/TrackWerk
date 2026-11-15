@@ -16,8 +16,8 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 VERSION = "0.2.0-beta.3"
 NAME = f"TrackWerk-{VERSION}-R36S-Community-Test"
-LAUNCHER = "Pocket Tracker Extreme.sh"
-APP = "pockettracker_extreme"
+LAUNCHER = "TrackWerk.sh"
+APP = "trackwerk"
 ELF_SHA = "5e1fef394d9988b871fb1a73cdf6ae8122be07ddd41e1c540358d5984263acc2"
 DB_SHA = "4ef169fcee14ef9563e36ebf731dc6950494e553bf8b56b5fc8aa70181f0d25c"
 LICENSE_SHA = "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127"
@@ -56,7 +56,7 @@ def inspect_stage(stage: Path) -> dict[str, str]:
     for path in stage.rglob("*"):
         require(not any(part in forbidden for part in path.relative_to(stage).parts),
                 "Mutable, private or development data in input stage")
-    binary = app / "pockettracker_extreme.aarch64"
+    binary = app / "trackwerk.aarch64"
     require(binary.is_file() and sha(binary) == ELF_SHA, "Native ELF differs from the public CPU-validated build")
     with binary.open("rb") as stream:
         header = stream.read(20)
@@ -104,14 +104,14 @@ def build(stage: Path, output: Path, cpu_validation: Path | None) -> Path:
         (app / "QUICK-START.md").write_text("# R36S community test\n\n" + guide)
         (app / "VERSION.txt").write_text(f"TrackWerk {VERSION}\nExperimental R36S community test; no physical R36S validation.\n")
         (app / "tools/prepare_presets-HOWTO.txt").write_text(
-            "OPTIONAL COMPUTER PREPARATION\n\nWith Python 3 installed, open a terminal in pockettracker_extreme/ and run:\n"
+            "OPTIONAL COMPUTER PREPARATION\n\nWith Python 3 installed, open a terminal in trackwerk/ and run:\n"
             "  python3 tools/prepare_presets.py\n\nThe script verifies the full factory pack and copies only missing presets.\n"
             "Edited presets remain intact. It may create data/Presets and a pack marker.\n"
             "Do not run the handheld launcher at the same time. Wait until it finishes\n"
             "and safely eject the SD card. If you skip this, the handheld prepares the\n"
             "same presets on first launch. See ../README.txt for the complete setup.\n")
         metadata = {
-            "format": "pocket-tracker-extreme-community-package-v1", "version": VERSION,
+            "format": "trackwerk-community-package-v1", "version": VERSION,
             "title": "TrackWerk — R36S Community Test", "creator": "Kid Bunka",
             "target": "R36S / compatible aarch64 Linux userspace", "experimental": True,
             "physical_hardware_tested": False, "official_portmaster_catalog_entry": False,
@@ -133,10 +133,10 @@ def build(stage: Path, output: Path, cpu_validation: Path | None) -> Path:
                 "genres": ["other"], "rtr": False, "exp": True, "runtime": [], "store": [], "availability": "full",
                 "reqs": [], "arch": ["aarch64"], "min_glibc": "2.31"}})
         (app / "gameinfo.xml").write_text('''<?xml version="1.0" encoding="UTF-8"?>
-<gameList><game><path>./Pocket Tracker Extreme.sh</path>
+<gameList><game><path>./TrackWerk.sh</path>
 <name>TrackWerk (R36S Community Test)</name>
 <desc>Experimental native ARM64 Linux music studio by Kid Bunka. R36S physical display, controls, performance and recording remain untested. Read README.txt.</desc>
-<image>./pockettracker_extreme/screenshot.png</image><releasedate>20261109T000000</releasedate>
+<image>./trackwerk/screenshot.png</image><releasedate>20261109T000000</releasedate>
 <developer>PocketTracker contributors / TrackWerk</developer><publisher>Kid Bunka community beta</publisher><genre>Other</genre><players>1</players>
 </game></gameList>
 ''')
@@ -153,7 +153,7 @@ def build(stage: Path, output: Path, cpu_validation: Path | None) -> Path:
             "Launcher tests use host Bash and owned dummy processes. The optional Cortex-A35\n"
             "record tests the exact native ELF in an emulated ARM64 Linux environment.\n"
             "Neither is physical R36S display/controller/audio/performance/USB validation.\n")
-        require(sha(app / "pockettracker_extreme.aarch64") == ELF_SHA, "Native executable was altered")
+        require(sha(app / "trackwerk.aarch64") == ELF_SHA, "Native executable was altered")
         require(inspect_stage(stage) == input_hashes, "Input stage changed during packaging; retry from a stable stage")
         payload_files = files_under(root)
         manifest = {
@@ -175,7 +175,7 @@ def build(stage: Path, output: Path, cpu_validation: Path | None) -> Path:
                         shutil.copyfileobj(stream, target, 1024 * 1024)
             with zipfile.ZipFile(temporary_archive) as z:
                 require(z.testzip() is None, "ZIP CRC check failed")
-                require(hashlib.sha256(z.read(APP + "/pockettracker_extreme.aarch64")).hexdigest() == ELF_SHA, "Archived native ELF mismatch")
+                require(hashlib.sha256(z.read(APP + "/trackwerk.aarch64")).hexdigest() == ELF_SHA, "Archived native ELF mismatch")
                 require(not any("/data/" in n or n.startswith("../") or n.startswith("/") for n in z.namelist()), "Unexpected mutable or unsafe ZIP path")
             os.replace(temporary_archive, archive)
         finally:

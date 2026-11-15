@@ -44,7 +44,7 @@
     "Complete the first KNULLI boot before copying app files; first boot expands and prepares SHARE.",
     "An existing working installation does not need to be reflashed to install this app.",
     "For direct macOS/Windows card-reader access, SHARE must use a supported writable filesystem such as exFAT. ext4 requires additional access support. Reformatting erases data and is an optional new-card setup step.",
-    "The app installs to SHARE/roms/ports with its launcher beside the pockettracker_extreme folder. It does not require PortMaster to install or update first.",
+    "The app installs to SHARE/roms/ports with its launcher beside the trackwerk folder. It does not require PortMaster to install or update first.",
     "Do not use a Brick firmware image on an R36S, Brick Pro, or Android handheld."
   ]
 }

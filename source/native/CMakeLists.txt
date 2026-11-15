@@ -299,7 +299,7 @@ endif()
 # include (tsf.h, stb_image.h, dr_mp3/dr_flac) are wrapped in a push/pop at the include.
 # PT_WERROR turns them into errors; CI sets it. ⚠️ Off by default on purpose: F-Droid builds the APK
 # itself, and a newer compiler's new warning must not fail a user's or a packager's build.
-option(PT_WERROR "Treat warnings in PocketTracker's own sources as errors" OFF)
+option(PT_WERROR "Treat warnings in TrackWerk's own sources as errors" OFF)
 set(PT_VENDORED_ENGINE_SOURCES
         effects/soundpipe/pareq.c
         effects/primitives/daisysp/svf.cpp

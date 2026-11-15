@@ -24,8 +24,8 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 | TrimUI Brick | KNULLI | Native ARM64 profile |
 | Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.1 |
 | Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
-| Powkiddy RGB20S | AmberELEC | Games-card package, preserving the existing data paths |
-| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 101003; same app ID and signer as 1.0 |
+| Powkiddy RGB20S | AmberELEC | Games-card package, preserving projects and settings |
+| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 101004; same app ID and signer as 1.0 |
 
 Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises 25 verified predecessors, including the installed b3aecfa development build; a menu-name helper also updates legacy Apps/Ports metadata. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
 

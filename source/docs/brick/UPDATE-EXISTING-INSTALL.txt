@@ -8,7 +8,7 @@ Samples, projects, recordings, presets, custom themes, settings and controller
 mappings remain in place. Do not format, flash a new OS, delete app data, rename
 the existing folders or replace the complete application directory.
 
-The internal folder remains roms/ports/pockettracker_extreme. This legacy name
+The internal folder remains roms/ports/trackwerk. This legacy name
 keeps existing projects, controller mappings and updates working. The visible
 application name, icons and interface are TrackWerk.
 
@@ -17,12 +17,12 @@ UPDATE
    Finish any current copy operation before updating.
 2. Extract the complete program-update ZIP. Keep the updater, manifest, program
    and factory directory together. The computer needs Python 3.
-3. Select the EXISTING pockettracker_extreme application folder, which contains
+3. Select the EXISTING trackwerk application folder, which contains
    its native executable and data folder. New installations and symlinks are refused.
 4. macOS example, with the actual path to the extracted updater:
-   python3 "/path/to/update_brick.py" --target "/Volumes/SHARE/roms/ports/pockettracker_extreme"
+   python3 "/path/to/update_brick.py" --target "/Volumes/SHARE/roms/ports/trackwerk"
    Windows example, adjusting the drive letter:
-   py "C:\path\to\update_brick.py" --target "E:\roms\ports\pockettracker_extreme"
+   py "C:\path\to\update_brick.py" --target "E:\roms\ports\trackwerk"
    On Linux, use python3 and the actual mounted application folder.
 5. The updater checks hashes, backs up the old executable under
    .pte-program-backups/<old-SHA256>.aarch64 and replaces only the program.
@@ -59,11 +59,11 @@ This private music-content pack is separate from the software/source-code releas
 
 ROLLBACK
 With the card in the computer:
-python3 update_brick.py --target "/Volumes/SHARE/roms/ports/pockettracker_extreme" --rollback <old-SHA256>
+python3 update_brick.py --target "/Volumes/SHARE/roms/ports/trackwerk" --rollback <old-SHA256>
 Use the full hash printed by the updater. It verifies the backup and retains the
 current executable as another backup. Added presets and all music data remain.
 Without Python, keep a verified old executable and replace only
-pockettracker_extreme.aarch64 manually. Prefer the supplied checked updater.
+trackwerk.aarch64 manually. Prefer the supplied checked updater.
 
 ANDROID
 Use TrackWerk-0.9-Android.apk for the public package or the matching-key

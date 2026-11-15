@@ -15,7 +15,7 @@ import stat
 import sys
 import tempfile
 
-PROGRAM = 'pockettracker_extreme.aarch64'
+PROGRAM = 'trackwerk.aarch64'
 BACKUPS = '.pte-program-backups'
 SHA = re.compile(r'[0-9a-f]{64}')
 
@@ -101,8 +101,8 @@ def update_lock(app):
 
 def select_install(target):
     app = checked_path(target)
-    if app.name != 'pockettracker_extreme' or not app.is_dir():
-        raise RuntimeError('Select the existing roms/ports/pockettracker_extreme folder.')
+    if app.name != 'trackwerk' or not app.is_dir():
+        raise RuntimeError('Select the existing roms/ports/trackwerk folder.')
     program = checked_path(app / PROGRAM)
     elf_check(program)
     if not (app / 'data').is_dir() or (app / 'data').is_symlink():

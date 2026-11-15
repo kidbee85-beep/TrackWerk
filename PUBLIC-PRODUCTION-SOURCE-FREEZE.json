@@ -1,16 +1,16 @@
 {
   "version": "1.1.0",
-  "version_code": 101003,
-  "reviewed_application_commit": "939e33b7b603d50b1f438f2620a26a38ccb84370",
+  "version_code": 101004,
+  "reviewed_application_commit": "3c2f41ff25c2ec208835df85a52663274b8288c2",
+  "source_export_commit": "affd28d34a1bac40ffaee27ce60a985dab31eb34",
   "compiled_files_changed_in_export": false,
-  "excluded_non_build_documents": [
-    "qa-claude/stufe1-protokoll.md",
-    "qa-claude/stufe5-zeichenzeit-host.csv",
-    "qa-claude/synth-cpu-host.txt"
+  "non_build_changes_after_compile": [
+    "shell/brick/TrackWerk.sh",
+    "tests/brick-launcher/check_launcher.py",
+    "tools/release/fix_miyoo_names.py"
   ],
-  "documentation_overlay": [
-    "docs/manual-en.md"
-  ],
-  "files": 8256,
-  "manifest_sha256": "1ce87b88d4a33bed691b4863c922a6db5d105d93b8579919ce00dc7a224b64c6"
+  "excluded_non_build_documents": 3,
+  "documentation_overlay": [],
+  "files": 8259,
+  "manifest_sha256": "865506aa516dd89a12ada7c317f3d1a36e116d01e75f93da2739f2794be8ac45"
 }

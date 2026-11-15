@@ -42,16 +42,16 @@ namespace ui = pt::ui;
 
 namespace {
 
-constexpr const char* kLogTag = "PocketTrackerSDL";
+constexpr const char* kLogTag = "TrackWerkSDL";
 
 // Only Java knows where Documents is; the activity passes it in `getArguments()`. The fallback keeps
 // a bring-up going, and says so in the log.
-constexpr const char* kFallbackAppRoot = "/storage/emulated/0/Documents/PocketTracker";
+constexpr const char* kFallbackAppRoot = "/storage/emulated/0/Documents/TrackWerk";
 
 // ─── stdout/stderr → logcat ───────────────────────────────────────────────────────────────────────
 //
 // On Android stdout goes nowhere, so a pipe and a pump send it to logcat — and to
-// `pockettracker-log.txt`, which a user can reach without a PC. Truncated at start, capped.
+// `trackwerk-log.txt`, which a user can reach without a PC. Truncated at start, capped.
 // ⚠️ The file starts in `filesDir`, the only directory certainly writable at the first line, and
 // moves into the granted tree once boot knows it (`relocate_log_file`), carrying what was written.
 std::mutex  g_logMutex;           // g_logFile is swapped on the SDL thread and written on the pump's
@@ -59,7 +59,7 @@ FILE*       g_logFile     = nullptr;   // null = logcat alone
 size_t      g_logFileSize = 0;
 std::string g_logPath;            // what g_logFile is open on; "" = nothing open
 constexpr size_t      kLogFileCap  = 512 * 1024;
-constexpr const char* kLogFileName = "pockettracker-log.txt";
+constexpr const char* kLogFileName = "trackwerk-log.txt";
 
 // Everything written so far, for the relocation to carry across. ⚠️ Held in memory, not re-read
 // from the first file (that would race the pump); appended under the write's lock, so no line is

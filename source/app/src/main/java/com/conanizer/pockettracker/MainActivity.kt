@@ -63,7 +63,7 @@ class MainActivity : SDLActivity() {
     private fun appRoot(): String =
         File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
-            "PocketTracker"
+            "TrackWerk"
         ).absolutePath
 
     private fun privateRoot(): String = filesDir.absolutePath
@@ -389,7 +389,7 @@ class MainActivity : SDLActivity() {
     /**
      * Every input device and the verdict on it, plus the device identity — for an "it opened without
      * the on-screen buttons" report ([hasPhysicalGameButtons] logs only a find). Returned as text so
-     * native writes it to `pockettracker-log.txt`; `Log` reaches logcat only. JNI by name.
+     * native writes it to `trackwerk-log.txt`; `Log` reaches logcat only. JNI by name.
      */
     @Keep
     fun describeInputDevices(): String {
@@ -672,7 +672,7 @@ class MainActivity : SDLActivity() {
         listOf("SCOPE", "FLAT", "OCTA", "OCTA_FULL", "SPECTRUM", "SPECTRUM_PEAKS").indexOf(name).coerceAtLeast(0)
 
     private companion object {
-        const val TAG = "PocketTrackerSDL"
+        const val TAG = "TrackWerk"
 
         /** How long an accepted rotation takes, before [portraitCheck] concludes it was refused. */
         const val ORIENTATION_SETTLE_MS = 2000L

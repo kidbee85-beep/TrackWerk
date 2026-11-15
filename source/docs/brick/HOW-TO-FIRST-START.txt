@@ -44,11 +44,11 @@ Unzip TrackWerk-0.9-Brick-KNULLI.zip into:
 SHARE/roms/ports/
 
 After extracting, you should have:
-roms/ports/Pocket Tracker Extreme.sh
-roms/ports/pockettracker_extreme/pockettracker_extreme.aarch64
-roms/ports/pockettracker_extreme/factory/Presets/
+roms/ports/TrackWerk.sh
+roms/ports/trackwerk/trackwerk.aarch64
+roms/ports/trackwerk/factory/Presets/
 
-Keep any existing pockettracker_extreme/data folder. Your projects, samples,
+Keep any existing trackwerk/data folder. Your projects, samples,
 recordings and edited presets belong there. PortMaster installation or updating
 is not required to start this standalone tracker.
 
@@ -58,10 +58,10 @@ first app window opens. It requires Python 3 only; no Android SDK or build tools
 Run it after copying has finished, while the card is still in the computer.
 
 macOS example:
-python3 "/Volumes/SHARE/roms/ports/pockettracker_extreme/tools/prepare_presets.py"
+python3 "/Volumes/SHARE/roms/ports/trackwerk/tools/prepare_presets.py"
 
 Windows example (replace E: with the actual SHARE drive):
-py "E:\roms\ports\pockettracker_extreme\tools\prepare_presets.py"
+py "E:\roms\ports\trackwerk\tools\prepare_presets.py"
 
 Linux: run python3 followed by the script's path on your mounted card.
 The script locates the adjacent factory/data folders automatically. It verifies
@@ -72,7 +72,7 @@ Without this optional step, the normal launcher prepares missing presets on
 its first launch. During that preparation the screen can remain black. This
 happens BEFORE the native first-frame 25-second watchdog starts; we do not have a
 measured universal SD-card setup time. The setup log is:
-roms/ports/pockettracker_extreme/log.txt
+roms/ports/trackwerk/log.txt
 Later launches skip preparation when the same factory pack is already ready.
 
 5. START
@@ -83,7 +83,7 @@ software-surface compatibility mode and the existing physical controls.
 
 6. ADD YOUR SAMPLES
 Copy your audio and category folders into:
-SHARE/roms/ports/pockettracker_extreme/data/Samples
+SHARE/roms/ports/trackwerk/data/Samples
 
 In the app choose INSTRUMENT > LOAD > Samples / Audio.
 Up/Down selects; A opens a folder or loads a sound; START auditions it.

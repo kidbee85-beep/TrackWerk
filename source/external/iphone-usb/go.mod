@@ -1,4 +1,4 @@
-module pockettracker-extreme/iphone-usb
+module trackwerk/iphone-usb
 
 go 1.23
 

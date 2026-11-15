@@ -76,7 +76,7 @@ std::string dir_of(const std::string& path) {
     return (slash == std::string::npos) ? std::string(".") : path.substr(0, slash);
 }
 
-// stdout and stderr → `<app root>/pockettracker-log.txt`, truncated each session. ⚠️ The Windows build
+// stdout and stderr → `<app root>/trackwerk-log.txt`, truncated each session. ⚠️ The Windows build
 // has no console, so without this every line goes nowhere. Only a terminal is taken over (a PortMaster
 // script's log is left alone); always on Windows. `PT_CONSOLE=1` keeps the output where it was.
 // ⚠️ `dup2`, not a second `freopen` — two FILE*s on one path overwrite each other's lines.
@@ -96,7 +96,7 @@ void open_session_log(const std::string& appRoot) {
 #endif
     std::error_code ec;
     std::filesystem::create_directories(appRoot, ec);   // first launch
-    const std::string path = appRoot + "/pockettracker-log.txt";
+    const std::string path = appRoot + "/trackwerk-log.txt";
     if (!std::freopen(path.c_str(), "w", stdout)) return;
 #ifdef _WIN32
     _dup2(_fileno(stdout), _fileno(stderr));
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, on_terminate_signal);
 
 #ifndef _WIN32
-    // The window's app id (Wayland app_id, X11 WM_CLASS), matched to `pockettracker.desktop` for the
+    // The window's app id (Wayland app_id, X11 WM_CLASS), matched to `trackwerk.desktop` for the
     // icon. SDL2 reads the WMCLASS variable, SDL3 SDL_APP_ID; a user's own wins.
     setenv("SDL_APP_ID", "pockettracker", 0);
     setenv("SDL_VIDEO_X11_WMCLASS", "pockettracker", 0);

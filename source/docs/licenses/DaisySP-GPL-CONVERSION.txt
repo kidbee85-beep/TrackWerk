@@ -2,7 +2,7 @@ DaisySP copies distributed under GNU GPL version 3 or later
 ==========================================================
 
 Conversion date: 9 November 2026
-Project: Pocket Tracker Extreme
+Project: TrackWerk
 
 The following copies were originally supplied under GNU LGPL version 2.1:
 

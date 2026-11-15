@@ -14,7 +14,7 @@ root = source.parent.parent
 qa = source / 'qa'
 out = root / 'outputs/TrackWerk-1.1.0-dev.2-Brick'
 out.mkdir(exist_ok=True)
-program = 'pockettracker_extreme.aarch64'
+program = 'trackwerk.aarch64'
 version = '1.1.0-dev.2'
 binary = (source / 'build-brick/pockettracker-sdl').read_bytes()
 checksum = hashlib.sha256(binary).hexdigest()
@@ -27,7 +27,7 @@ Die ausgeschaltete Brick-Karte am Mac einstecken und das ZIP entpacken.
 Im entpackten Ordner den folgenden Befehl ausführen. SHARE bei Bedarf
 durch den Namen der eingebundenen Karte ersetzen.
 
-python3 update_brick.py --target "/Volumes/SHARE/roms/ports/pockettracker_extreme"
+python3 update_brick.py --target "/Volumes/SHARE/roms/ports/trackwerk"
 
 Das Skript sichert die bisherige Programmdatei und ersetzt diese.
 Samples, Projekte, Presets und Einstellungen bleiben auf der Karte.
@@ -45,7 +45,7 @@ Die Schrift lässt sich unter Appearance → Typeface separat wählen.
 Zurück zur vorherigen Version
 Im Update-Protokoll steht previous_sha256. Dessen Wert einsetzen.
 
-python3 update_brick.py --target "/Volumes/SHARE/roms/ports/pockettracker_extreme" --rollback SHA256
+python3 update_brick.py --target "/Volumes/SHARE/roms/ports/trackwerk" --rollback SHA256
 
 Die Screenshots zeigen die echte Oberfläche mit Testdaten.
 Start und SDL-Testaufnahme sind in ARM64-Emulation geprüft.
@@ -84,7 +84,7 @@ with zipfile.ZipFile(package,'w') as archive:
 with tempfile.TemporaryDirectory(dir=qa,prefix='dev2-update-test-') as scratch:
     tmp = Path(scratch)
     unpacked = tmp / 'package'
-    target = tmp / 'roms/ports/pockettracker_extreme'
+    target = tmp / 'roms/ports/trackwerk'
     target.mkdir(parents=True)
     with zipfile.ZipFile(package) as archive:
         assert archive.testzip() is None and (archive.getinfo(program).external_attr >> 16) & 0o111

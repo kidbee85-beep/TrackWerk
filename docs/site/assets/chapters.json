@@ -32,7 +32,7 @@
     "shot": "splash",
     "steps": [
       "Back up your TrackWerk data folder and SD card before updating. Keep projects, samples and the previous program together.",
-      "Choose First Install for a card without TrackWerk. Choose Program Update for an existing installation, then follow that ZIP's START-HERE instructions.",
+      "Choose First Install for a card without TrackWerk. Choose Program Update for an existing installation, then follow that ZIP's START-HERE instructions. Older cards use its backed-up canonical-name migration before the program update.",
       "For Android, install the signed APK over the existing TrackWerk app. Keep the app installed and keep its granted working folder."
     ],
     "notes": [
@@ -46,7 +46,7 @@
       ],
       [
         "Android updates",
-        "Version 1.1.0 uses package com.kidbunka.trackwerk and the existing release signer. Its versionCode is 101003, higher than the 1.0 release and the 1.1 development APK. Uninstalling is unnecessary for an ordinary update and can remove app-private data."
+        "Version 1.1.0 uses package com.kidbunka.trackwerk and the existing release signer. Its versionCode is 101004, higher than the 1.0 release and the 1.1 development APK. Uninstalling is unnecessary for an ordinary update and can remove app-private data."
       ],
       [
         "Factory content",
@@ -660,7 +660,7 @@
       ],
       [
         "This edition",
-        "TrackWerk 1.1.0, Android versionCode 101003. Prepared for release approval in November 2026. Source and package identifiers are listed in the accompanying release manifest."
+        "TrackWerk 1.1.0, Android versionCode 101004. Prepared for release approval in November 2026. Source and package identifiers are listed in the accompanying release manifest."
       ]
     ],
     "tip": "Make something gloriously yours. Then save it."

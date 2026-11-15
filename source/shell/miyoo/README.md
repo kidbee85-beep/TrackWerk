@@ -1,30 +1,30 @@
-# PocketTracker — Miyoo Mini / Mini+ (OnionOS)
+# TrackWerk — Miyoo Mini / Mini+ (OnionOS)
 
 ## Before you start
 
-PocketTracker installs as a **port**, so it appears in Onion's **Ports** list alongside your games —
-which is what makes Onion count your play time and launches and offer PocketTracker in the Game
+TrackWerk installs as a **port**, so it appears in Onion's **Ports** list alongside your games —
+which is what makes Onion count your play time and launches and offer TrackWerk in the Game
 Switcher.
 
 ⚠️ **That means Onion's Ports Collection has to be installed**, because it is what provides the Ports
 list itself. Open **Apps → Package Manager → Emu**, find **Ports Collection**, and make sure it is
-installed. Most Onion setups already have it. Without it there is no Ports list for PocketTracker to
+installed. Most Onion setups already have it. Without it there is no Ports list for TrackWerk to
 appear in.
 
 ## Install
 
-You need `PocketTracker-<version>-miyoo-mini.zip` from the releases page, and a way to write to the
+You need `TrackWerk-<version>-miyoo-mini.zip` from the releases page, and a way to write to the
 device's SD card. **Method A** works on any Mini and is the one to use if you are unsure. **Method B**
 needs a Mini+ and Wi-Fi, and saves opening the device.
 
 Either way, what has to end up on the card is these two exact paths:
 
 ```
-Roms/PORTS/Shortcuts/PocketTracker.port
-Roms/PORTS/Games/PocketTracker/launch.sh
+Roms/PORTS/Shortcuts/TrackWerk.port
+Roms/PORTS/Games/TrackWerk/launch.sh
 ```
 
-⚠️ If it lands one folder deeper — `Roms/PocketTracker-0.9.9-miyoo-mini/PORTS/…` — PocketTracker does
+⚠️ If it lands one folder deeper — `Roms/TrackWerk-0.9.9-miyoo-mini/PORTS/…` — TrackWerk does
 not appear in the list at all, and nothing tells you why.
 
 ### A. With the card in a PC
@@ -36,13 +36,13 @@ not appear in the list at all, and nothing tells you why.
    nothing after it.
    - ⚠️ On Windows, *Extract All* fills the destination box in for you and adds a new folder named
      after the zip. Delete that last part so only the drive letter is left (`E:\`, not
-     `E:\PocketTracker-0.9.9-miyoo-mini\`). If that goes wrong, extract anywhere you like and drag the
+     `E:\TrackWerk-0.9.9-miyoo-mini\`). If that goes wrong, extract anywhere you like and drag the
      `Roms` folder onto the card by hand — it merges with the `Roms` folder already there and adds
-     PocketTracker to the ports you have.
-4. **Check the path.** Open the card and confirm `Roms\PORTS\Shortcuts\PocketTracker.port` is really
+     TrackWerk to the ports you have.
+4. **Check the path.** Open the card and confirm `Roms\PORTS\Shortcuts\TrackWerk.port` is really
    there.
 5. **Eject the card**, put it back in the device and switch it on.
-6. PocketTracker is in the **Ports** list. Press A on it.
+6. TrackWerk is in the **Ports** list. Press A on it.
 
 ### B. Over Wi-Fi (Mini+ only)
 
@@ -52,26 +52,26 @@ not appear in the list at all, and nothing tells you why.
 3. From the PC, open `\\<the IP address>` in Explorer, or point an FTP client at that address. What
    you are looking at is the top level of the card — the same view as method A.
 4. **Copy the `Roms` folder across.** It merges into the card's existing `Roms` folder and adds
-   PocketTracker to your ports. Copying takes a minute or two over Wi-Fi; let it finish.
-5. **Restart the device.** The lists are only read at boot, so PocketTracker does not appear until
+   TrackWerk to your ports. Copying takes a minute or two over Wi-Fi; let it finish.
+5. **Restart the device.** The lists are only read at boot, so TrackWerk does not appear until
    then.
-6. PocketTracker is in the **Ports** list. Press A on it.
+6. TrackWerk is in the **Ports** list. Press A on it.
 
 ### Upgrading from the older package
 
-Earlier builds installed onto the **Apps** shelf instead. **Delete `App/PocketTracker` from the card**
+Earlier builds installed onto the **Apps** shelf instead. **Delete `App/TrackWerk` from the card**
 after installing this one, or you will have two of them. Your songs, samples, soundfonts and settings
-are not in there — they live in `PocketTracker/` at the top level of the card and are untouched.
+are not in there — they live in `TrackWerk/` at the top level of the card and are untouched.
 
 ### If it does not start
 
 **Not in the Ports list at all** — either the Ports Collection is not installed (see the top of this
 file), or the files went in one folder too deep. Put the card back in the PC and check for
-`Roms/PORTS/Shortcuts/PocketTracker.port` exactly. If the entry is in the list but greyed out or
+`Roms/PORTS/Shortcuts/TrackWerk.port` exactly. If the entry is in the list but greyed out or
 missing after an update, run **~Import ports** at the top of the Ports list: it re-checks which ports
 have their files.
 
-**In the list, but pressing A does nothing** — `Roms/PORTS/Games/PocketTracker/log.txt` on the card
+**In the list, but pressing A does nothing** — `Roms/PORTS/Games/TrackWerk/log.txt` on the card
 holds the whole of that session's output and is overwritten each launch. That file is what to send if
 you report it. If there is no `log.txt` there at all, the launcher itself never ran, and saying so is
 the useful half of the report.
@@ -112,7 +112,7 @@ back the next time you start.
 Everything lives at the top level of the card, so you can pull it and drag files straight in:
 
 ```
-/mnt/SDCARD/PocketTracker/
+/mnt/SDCARD/TrackWerk/
 ├── Projects/      your songs (.ptp)
 ├── Samples/       .wav .mp3 .flac .ogg .opus
 ├── Soundfonts/    .sf2 .sf3
@@ -139,5 +139,5 @@ hardware is comfortable with.
 Unlike the PortMaster build, this package **ships its own SDL2** — the `mmiyoo` fork, which talks to
 the SigmaStar MI GFX and MI AO hardware. There is no system SDL2 on this device to link instead.
 It is in `libs/`, with its licence in `licenses/`. The `libneonarmmiyoo.so` beside it is part of
-PocketTracker: that fork looks for a library of that name at load time, and this is our own build of
+TrackWerk: that fork looks for a library of that name at load time, and this is our own build of
 what it asks for, under the same GPL-3.0 as the rest of the app.

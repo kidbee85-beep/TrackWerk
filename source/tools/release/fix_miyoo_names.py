@@ -34,11 +34,11 @@ def change_history(v,mappings):
 def fix(card,device,backup,apply=False):
     card=safe(Path(card).absolute())
     if device not in ['miyoo-mini','miyoo-plus']:raise RuntimeError('Unknown device')
-    if not (card/'PocketTrackerExtreme').is_dir():raise RuntimeError('Missing existing data directory')
+    if not (card/'TrackWerk').is_dir():raise RuntimeError('Missing existing data directory')
     apps=[]
-    if device=='miyoo-mini' or (card/'Roms/PORTS/Games/PocketTrackerExtreme/pockettracker').is_file():
-        apps.append(('PocketTrackerExtreme','TrackWerk 1.1' if device=='miyoo-mini' else 'TrackWerk 1.1 Offline'))
-    if device=='miyoo-plus':apps.insert(0,('PocketTrackerExtremePlusArchive','TrackWerk 1.1'))
+    if device=='miyoo-mini' or (card/'Roms/PORTS/Games/TrackWerk/trackwerk').is_file():
+        apps.append(('TrackWerk','TrackWerk 1.1' if device=='miyoo-mini' else 'TrackWerk 1.1 Offline'))
+    if device=='miyoo-plus':apps.insert(0,('TrackWerkPlus','TrackWerk 1.1'))
     maps={app:(label,label) for app,label in apps}
     writes={};removes={};original={};modes={};protected={}
     def remember(p):
@@ -71,13 +71,13 @@ def fix(card,device,backup,apply=False):
         if source!=dest and remember(source) is not None:removes[source]=remember(source)
         image=card/'Roms/PORTS/Imgs'/(app+'.png');newimage=image.with_name(label+'.png')
         if image.is_file() and not newimage.exists():put(newimage,remember(image))
-        p=card/'Roms/PORTS/Games'/app/'pockettracker'
+        p=card/'Roms/PORTS/Games'/app/'trackwerk'
         protected[str(p.relative_to(card))]=sha(p.read_bytes())
         for rel in ['launch.sh']:
             q=p.parent/rel
             protected[str(q.relative_to(card))]=sha(q.read_bytes())
     for name in ['config.json','settings.json','autosave.ptp','.factory-presets-pack.id']:
-        p=card/'PocketTrackerExtreme'/name
+        p=card/'TrackWerk'/name
         if p.is_file():protected[str(p.relative_to(card))]=sha(p.read_bytes())
     dbreports=[]
     for cache in (card/'Roms/PORTS').rglob('*_cache6.db'):

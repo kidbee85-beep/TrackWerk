@@ -67,7 +67,7 @@ class SafStorage(private val context: Context) {
         queryRow(docUri, DocumentsContract.Document.COLUMN_DISPLAY_NAME)?.let {
             if (it.isNotEmpty()) return clean(it)
         }
-        // `primary:Documents/PocketTracker` → `PocketTracker`; never dropped for want of a name.
+        // `primary:Documents/TrackWerk` → `PocketTracker`; never dropped for want of a name.
         return clean(docId.substringAfterLast('/').substringAfterLast(':').ifEmpty { "ROOT" })
     }
 
@@ -118,7 +118,7 @@ class SafStorage(private val context: Context) {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
         // Open at the app's folder rather than Recents. A hint only (API 29+); nothing relies on it.
         runCatching {
-            DocumentsContract.buildDocumentUri(EXTERNAL_STORAGE_AUTHORITY, "primary:Documents/PocketTracker")
+            DocumentsContract.buildDocumentUri(EXTERNAL_STORAGE_AUTHORITY, "primary:Documents/TrackWerk")
         }.onSuccess { intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
 
         return runCatching {
@@ -320,7 +320,7 @@ class SafStorage(private val context: Context) {
 
     private companion object {
         // ⚠️ The native side logs under `PocketTracker`.
-        const val TAG = "PocketTrackerSDL"
+        const val TAG = "TrackWerk"
 
         /** `MainActivity`'s prefs file, shared. */
         const val PREFS = "pockettracker_ui"

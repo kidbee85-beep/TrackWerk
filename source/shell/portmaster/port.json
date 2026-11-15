@@ -2,16 +2,16 @@
     "version": 4,
     "name": "pockettracker.zip",
     "items": [
-        "PocketTracker.sh",
+        "TrackWerk.sh",
         "pockettracker"
     ],
     "items_opt": [],
     "attr": {
-        "title": "PocketTracker",
+        "title": "TrackWerk",
         "porter": [
             "conan"
         ],
-        "desc": "PocketTracker is a music tracker for retro gaming handhelds.",
+        "desc": "TrackWerk is a music tracker for retro gaming handhelds.",
         "desc_md": null,
         "inst": "Ready to run - no BIOS, no extra files. Your songs and samples live in the port's own data/ folder, created on first launch.",
         "inst_md": null,

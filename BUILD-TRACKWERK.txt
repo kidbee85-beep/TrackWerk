@@ -1,14 +1,13 @@
 TrackWerk 1.1.0 - corresponding source and build notes
 
 source/ contains the common Android and Linux application tree. No Android overlay is required
-for 1.1. Earlier android-overlay/ and 1.0 publishing helpers are historical materials and must not
-be applied to the 1.1 tree. SOURCE-SNAPSHOT.json records the export policy and file inventory.
+for 1.1. Earlier 1.0 publishing helpers remain in the historical tag and must not be applied to 1.1. SOURCE-SNAPSHOT.json records the export policy and file inventory.
 
 Android
   JDK 21, Gradle 8.14.3, Android SDK 36, NDK 28.2.13676358, CMake 3.22.1.
   From source/: ./gradlew :app:assembleDebug
   A locally signed release is built with :app:assembleRelease and your own signing configuration.
-  The public update APK uses com.kidbunka.trackwerk, versionName 1.1.0, versionCode 101003.
+  The public update APK uses com.kidbunka.trackwerk, versionName 1.1.0, versionCode 101004.
   The private release key is not included. A differently signed APK cannot update that installation.
 
 Host shell and checks

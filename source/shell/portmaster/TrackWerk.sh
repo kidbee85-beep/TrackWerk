@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# PocketTracker - PortMaster launch script.
+# TrackWerk - PortMaster launch script.
 #
 # =============================================================================================
 #  DO NOT ADD gptokeyb TO THIS FILE.
@@ -9,7 +9,7 @@
 # It looks like an omission. Every other port has it. It is deliberate, and adding it back
 # reintroduces a bug that took a device session to find.
 #
-# gptokeyb exists to fake KEYBOARD presses for games that cannot read a gamepad. PocketTracker
+# gptokeyb exists to fake KEYBOARD presses for games that cannot read a gamepad. TrackWerk
 # reads the pad itself, through SDL's GameController API (shell/sdl/sdl-input.cpp), and it ALSO reads
 # the keyboard, because the same source builds the desktop dev binary. So with gptokeyb running,
 # every physical press arrives TWICE by two different paths - and gptokeyb's built-in defaults do
@@ -61,6 +61,7 @@ cd "$GAMEDIR"
 # under this root at boot rather than lazily, so a user can pull the SD card, put samples in, and
 # put it back. Keeping it under $GAMEDIR is what makes that reachable from a PC.
 export POCKETTRACKER_HOME="$GAMEDIR/data"
+export TRACKWERK_HOME="$POCKETTRACKER_HOME"
 
 # The shell opens SDL GameControllers, so the pad needs a mapping or SDL_IsGameController() is false
 # and nothing responds. There are TWO channels for that, and measuring on a Miyoo Flip (spruce) showed

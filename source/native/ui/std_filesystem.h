@@ -1,7 +1,7 @@
 #pragma once
 
 // ui/filesystem.h on <filesystem>: the desktop and handheld shells, and every tool.
-// ⚠️ The folder names under the root are the same on every platform, so a copied `PocketTracker/`
+// ⚠️ The folder names under the root are the same on every platform, so a copied `TrackWerk/`
 // folder is found where the app looks.
 
 #include "songcore/media_path.h"   // SONGS_FOLDER
@@ -81,9 +81,9 @@ std::string path_sanitize(const std::string& name, bool allow_dot);
 
 std::string to_lower(std::string s);
 
-// The app's folder when the shell does not say: `$POCKETTRACKER_HOME`, else Documents\PocketTracker
-// (Windows, as Explorer resolves it), $HOME/Documents/PocketTracker (macOS),
-// $XDG_DATA_HOME or ~/.local/share/PocketTracker (Linux), else ./PocketTracker.
+// TRACKWERK_HOME is preferred; the older environment spelling remains compatible.
+// Otherwise use Documents/TrackWerk (Windows/macOS) or the XDG TrackWerk folder (Linux).
+// A single previous default home is renamed without overwriting a current destination.
 std::string default_app_root();
 
 }  // namespace pt::ui
