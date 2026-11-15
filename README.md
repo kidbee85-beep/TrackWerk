@@ -2,7 +2,7 @@
 
 **Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch on YouTube](https://youtu.be/RA0bE7sNRhA) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch on YouTube](https://youtu.be/RA0bE7sNRhA) · [45-second Short](https://youtube.com/shorts/Xiw1upX_7Wk) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
 ![TrackWerk 1.1 / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
 
