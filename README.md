@@ -1,10 +1,18 @@
-# TrackWerk 1.1
+# TrackWerk 1.2.0
 
 **Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.1](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.1.0) · [Watch on YouTube](https://youtu.be/RA0bE7sNRhA) · [45-second Short](https://youtube.com/shorts/Xiw1upX_7Wk) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.2.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.2.0) · [New 1.2 update film](https://kidbee85-beep.github.io/TrackWerk/assets/video/trackwerk-1.2-update.mp4) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
-![TrackWerk 1.1 / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
+![TrackWerk / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
+
+## New in 1.2.0
+
+- Twelve-tab sound browser: 2,048 instrument presets, independent preview, favourites, recent sounds and protected replacement.
+- Interactive First Beat tutorial and contextual help.
+- Clearer source/provider/genre selection and progressive preview for supported MP3 downloads.
+- Targeted MIDI Panic and USB output-selection reliability fixes. Direct iPhone capture still needs physical validation.
+- Native Linux desktop packages for ARM64 and x86-64, with separate user data. Read the [1.2 guide and exact test limits](https://kidbee85-beep.github.io/TrackWerk/update-1.2.html).
 
 ## A demo party in your pocket
 
@@ -15,21 +23,22 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 - **Studio synthesis.** 123 models with sixteen variation positions, including SID Chip, DCO Poly, FM SysEx banks, spectral and granular models. Load DX7 voice banks and save the selected FM voice with the song.
 - **Ideas you can edit.** Drumlab suggests rhythms from your sounds. Harmony supplies 48 progression templates, locks and phrase output; its preview uses loaded samples, SoundFonts or external MIDI.
 - **Performance with a way home.** Eight Punch banks, internal mix recording, track mute/solo, effects, mastering, mix and stem export. Hold a momentary move, release it, then record the good accident.
-- **A proper handbook.** Illustrated English workflows, all forty Scenes, detailed tracker commands and practical installation/update instructions. The embedded 7:15 film includes native audio, English captions and chapter jumps.
+- **A proper handbook.** Illustrated English workflows, all forty Scenes, detailed tracker commands and practical installation/update instructions. The new two-minute update film uses native audio and English captions; the illustrated core handbook remains available.
 
 ## Choose your device
 
 | Device | Package / operating system | Notes |
 | --- | --- | --- |
 | TrimUI Brick | KNULLI | Native ARM64 profile |
-| Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.1 |
+| Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.2.0 |
 | Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
 | Powkiddy RGB20S | AmberELEC | Games-card package, preserving projects and settings |
-| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 101004; same app ID and signer as 1.0 |
+| Linux desktop | Debian 13 .deb / SDL 2.32.4+ | ARM64 and x86-64; final desktop UI acceptance remains open |
+| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 102000; same app ID and signer as 1.0 |
 
-Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises 25 verified predecessors, including the installed b3aecfa development build; a menu-name helper also updates legacy Apps/Ports metadata. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
+Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises the previous public and known development binaries, using canonical or legacy folders without a rename. Complete the metadata step in START-HERE-1.2.0 so the menu/version labels match. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
 
-The factory library remains the same 2,432-preset collection; its unchanged 1.0 archive is included in the 1.1 release. Five public demo projects use internal synth engines. Sample-based soundtrack compositions are mixed audio; commercial raw sample-library files are excluded.
+The factory library remains the same 2,432-preset collection; its unchanged 1.0 archive is included in the 1.2 release. Five public demo projects use internal synth engines. Sample-based soundtrack compositions are mixed audio; commercial raw sample-library files are excluded.
 
 Networking, MIDI and external audio inputs depend on the platform and hardware. YouTube is off by default and requires an explicit opt-in. Check the actual recording's reuse terms before releasing sampled music. There is no universal polyphony or CPU claim: the workload depends on the project and device.
 

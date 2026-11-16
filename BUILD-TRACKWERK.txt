@@ -1,13 +1,13 @@
-TrackWerk 1.1.0 - corresponding source and build notes
+TrackWerk 1.2.0 - corresponding source and build notes
 
 source/ contains the common Android and Linux application tree. No Android overlay is required
-for 1.1. Earlier 1.0 publishing helpers remain in the historical tag and must not be applied to 1.1. SOURCE-SNAPSHOT.json records the export policy and file inventory.
+for 1.2. Earlier 1.0 publishing helpers remain in the historical tag and must not be applied to 1.2. SOURCE-SNAPSHOT.json records the export policy and file inventory.
 
 Android
   JDK 21, Gradle 8.14.3, Android SDK 36, NDK 28.2.13676358, CMake 3.22.1.
   From source/: ./gradlew :app:assembleDebug
   A locally signed release is built with :app:assembleRelease and your own signing configuration.
-  The public update APK uses com.kidbunka.trackwerk, versionName 1.1.0, versionCode 101004.
+  The public update APK uses com.kidbunka.trackwerk, versionName 1.2.0, versionCode 102000.
   The private release key is not included. A differently signed APK cannot update that installation.
 
 Host shell and checks
@@ -16,7 +16,7 @@ Host shell and checks
   SDL2 development files are required. The vendored source can be selected with
   -DFETCHCONTENT_SOURCE_DIR_SDL2=/absolute/path/to/source/native/vendor/SDL2
   Execute build/host/pockettracker-sdl. The pt* checks are in build/host/native/.
-  The release approval run built the SDL shell and passed all 83 host checks.
+  The release approval run built the SDL shell and passed all 88 host checks.
 
 Linux handheld profiles
   Use the same CMake shell target with a Zig 0.14.1 cross-toolchain and an SDL2Config.cmake
@@ -34,9 +34,11 @@ Update packages retain the established launcher and user-data directories. Follo
 Do not overwrite a music card with a full system image to update an application.
 All third-party notices remain in source/LICENSE, source/CREDITS.md and source/docs/licenses/.
 
-Post-release portability fix
-The current main branch explicitly includes <iterator> in the SID header for GCC 15 standalone
-checks. This adds the required standard-library declaration and changes no DSP operations.
-The v1.1.0 tag and distributed binaries remain the verified release bytes. When building the
-release Source ZIP with GCC 15, apply release-tools/patches/TrackWerk-1.1.0-gcc15-header.patch.
-Current main also names the Android store changelog for the shipped versionCode 101004.
+GCC 15 portability
+The required <iterator> include is already in this source. Do not apply the historical 1.1 patch.
+
+Program-update recipes and the menu/version metadata helper are in release-tools/1.2/.
+The application subtree was built at commit b24ad7abe43f6784cb8ef34dee7661db0d02dade.
+Packaging and website commits may follow without changing that compiled subtree.
+Native Linux desktop: PT_HANDHELD=OFF, Debian13 SDL2.32.4+, package1.2.0-1.
+See the published 1.2 guide and RELEASE-QA.json for runtime/physical validation limits.

@@ -1,17 +1,11 @@
 {
-  "version": "1.1.0",
-  "version_code": 101004,
-  "reviewed_application_commit": "3c2f41ff25c2ec208835df85a52663274b8288c2",
-  "compiled_files_changed_in_export": true,
-  "non_build_changes_after_compile": [
-    "shell/brick/TrackWerk.sh",
-    "tests/brick-launcher/check_launcher.py",
-    "tools/release/fix_miyoo_names.py"
-  ],
-  "excluded_non_build_documents": 3,
-  "documentation_overlay": [],
-  "files": 8259,
-  "manifest_sha256": "794d995a148437070d89c0f8298736c88e5f64e4802d1529fd6c240815cd5fb7",
+  "version": "1.2.0",
+  "version_code": 102000,
+  "reviewed_application_commit": "b24ad7abe43f6784cb8ef34dee7661db0d02dade",
+  "compiled_files_changed_after_compile": false,
+  "files": 8273,
+  "manifest_sha256": "24beacbf8828cdf052a4e707faf2030364fc46e6fb7ada55b1120e02b1758fd9",
+  "scope": "source/ subtree; packaging recipes are in release-tools/1.2",
   "source_entries": [
     {
       "path": ".github/FUNDING.yml",
@@ -86,7 +80,7 @@
     {
       "path": "app/build.gradle.kts",
       "bytes": 10646,
-      "sha256": "2cfeaf3608d887b49253e8b96b925ef4f57ed652eea94b08a8227c8a02b0d93e"
+      "sha256": "a212d8baeb9ac6660043d08f578cc4ee05f2e83c4e57af29a07bb69481b68665"
     },
     {
       "path": "app/proguard-rules.pro",
@@ -700,8 +694,8 @@
     },
     {
       "path": "docs/brick/HOW-TO-FIRST-START.txt",
-      "bytes": 5215,
-      "sha256": "3a76b1cc0ace007119bdd6f19e17740a240f2ffa428645d82f0885cd246c7437"
+      "bytes": 5217,
+      "sha256": "476bebaee8530b217700033e2c8752a344a628efedd364f894de7ac8ca39e635"
     },
     {
       "path": "docs/brick/KNULLI-Official-Download.url",
@@ -720,8 +714,8 @@
     },
     {
       "path": "docs/brick/UPDATE-EXISTING-INSTALL.txt",
-      "bytes": 5014,
-      "sha256": "019a96d06230703b191ee21d689bd8a068e53cccdb33992b6f71a95112c0078f"
+      "bytes": 5018,
+      "sha256": "dc934a9cf16ef17f8143f600793c8cdb33ac73793410e7bb68c2a245b6c08610"
     },
     {
       "path": "docs/brick/knulli-reference.json",
@@ -850,8 +844,8 @@
     },
     {
       "path": "docs/quick-start-guide.md",
-      "bytes": 5944,
-      "sha256": "51ca28a5ed95ab68caf22c4ef60a83fb0d0af6c68cdcdf08ff1505d8344d134f"
+      "bytes": 9015,
+      "sha256": "5887b03a49d7976bf08c61b887759b6b685828ad229f8d4c48210ecbf6467476"
     },
     {
       "path": "docs/technical-architecture.md",
@@ -20495,8 +20489,8 @@
     },
     {
       "path": "native/CMakeLists.txt",
-      "bytes": 62937,
-      "sha256": "b37fe08d3138a896b5bc2effa7945b23c36679b9608dccbbf8c0427198ab3089"
+      "bytes": 64224,
+      "sha256": "35816dae726b2469c5480fac318b693ed9e86e3ec4873ea46cb9d10b5c29d216"
     },
     {
       "path": "native/audio-backend.h",
@@ -21305,13 +21299,13 @@
     },
     {
       "path": "native/songcore/host.cpp",
-      "bytes": 60590,
-      "sha256": "b1a1e6ed9c39754adb7c4eba389d24dbf2e7cdebcc498c163ec3bc4f16efef20"
+      "bytes": 61917,
+      "sha256": "47aa41ad497da39e1626b699b81f40ad73b3d4258c58808bfc237f90452b11dd"
     },
     {
       "path": "native/songcore/host.h",
-      "bytes": 35655,
-      "sha256": "1fb0d994580c21bb8e2c725406312b0df5dd0eb233725e15f34aeb0390917ea4"
+      "bytes": 36210,
+      "sha256": "6abb2091d2b049a3eee2a607f7d3f4fb676561c0efbee55ad6ed0941f3d1444b"
     },
     {
       "path": "native/songcore/media_path.h",
@@ -21335,8 +21329,8 @@
     },
     {
       "path": "native/songcore/midi_out.h",
-      "bytes": 43907,
-      "sha256": "7a67974a620276285b164c7db755451924740721dd4baec7b7c727eee0b1d447"
+      "bytes": 48173,
+      "sha256": "272418918279d6a890feed88a21c8ca82bc81abe32365f5e175756638702d269"
     },
     {
       "path": "native/songcore/midi_sync_in.h",
@@ -21625,8 +21619,8 @@
     },
     {
       "path": "native/ui/app_state.h",
-      "bytes": 22097,
-      "sha256": "7f4984283eedbef7de0710b83b096996e0be7ce72740637cf7360102c1a6875e"
+      "bytes": 22631,
+      "sha256": "ddc6baf3bb16e9767fd57e2bba182c1860bcd3b8b9a141ff549d577fce98d25b"
     },
     {
       "path": "native/ui/audio_capture.h",
@@ -21705,8 +21699,8 @@
     },
     {
       "path": "native/ui/dispatch/buttons.cpp",
-      "bytes": 4332,
-      "sha256": "5bad17df31f8f4fa1def0a9b7cca5c8a44f577023de0de3cf12cc264dd1837c3"
+      "bytes": 4585,
+      "sha256": "697a272da88615d6c40f69890fd9ebb3dcbd89328b1312bef2e6ecce30d10286"
     },
     {
       "path": "native/ui/dispatch/chords.cpp",
@@ -21725,8 +21719,8 @@
     },
     {
       "path": "native/ui/dispatch/layers/confirm.cpp",
-      "bytes": 4833,
-      "sha256": "18cb437a5613a8573ceb5599fcde72aec7122a242daaed9436fe543f815e0d48"
+      "bytes": 4981,
+      "sha256": "755695557e8de6c5278267b9471a715dea38406ca7464a9d13ef1319f8e8c29d"
     },
     {
       "path": "native/ui/dispatch/layers/eq.cpp",
@@ -21775,13 +21769,13 @@
     },
     {
       "path": "native/ui/dispatch/midi.cpp",
-      "bytes": 9960,
-      "sha256": "d9bbe4121a50e5c22c91e106688e58a4bd5d7f7660c6ea1493e45ffb65af059b"
+      "bytes": 10028,
+      "sha256": "f8842c099e9d501b7470a5cb5eb1195fca56590ba5cf419e7e68d07ad5f84638"
     },
     {
       "path": "native/ui/dispatch/project.cpp",
-      "bytes": 8534,
-      "sha256": "9fecd9a297bd60aefcceb0d68b88133611f704d46acaa5643666e76d11d7c2b5"
+      "bytes": 11567,
+      "sha256": "733d114c093953907b853f287d26c4a43588cf337b452ef93387067dd248b1d9"
     },
     {
       "path": "native/ui/dispatch/route.cpp",
@@ -21800,8 +21794,8 @@
     },
     {
       "path": "native/ui/dispatch/screens/midi.cpp",
-      "bytes": 6760,
-      "sha256": "b24687f0cb80dae096c9ba85058fb27d8dd50556035d0af76650da76d252906e"
+      "bytes": 9422,
+      "sha256": "22d655ed4204407f6c4b1b7968890a3a771c3f93e190c929c68c24a07b107ded"
     },
     {
       "path": "native/ui/dispatch/screens/mixer.cpp",
@@ -21820,8 +21814,8 @@
     },
     {
       "path": "native/ui/dispatch/screens/sample_editor.cpp",
-      "bytes": 87633,
-      "sha256": "276efb853713ec5f64e1e401dc5fa93a1e5ef2d91e95fd412d2ca1001eff2d86"
+      "bytes": 87818,
+      "sha256": "8ddcd0be598ef3f3d37eaa7d5bbfe7cc80681f092b1c21ce442cdc5e45a737e6"
     },
     {
       "path": "native/ui/dispatch/screens/scale_groove.cpp",
@@ -21872,6 +21866,16 @@
       "path": "native/ui/filesystem.h",
       "bytes": 8188,
       "sha256": "d87dec6d866327405fe16d18ed6e2f5ab23388f8b41f8c523ee453cf6405f599"
+    },
+    {
+      "path": "native/ui/first_beat.cpp",
+      "bytes": 11042,
+      "sha256": "47ba70efb208b7ba5aeea3b1b4b98004369493c9556bf0ff7ebe0af0692e3441"
+    },
+    {
+      "path": "native/ui/first_beat.h",
+      "bytes": 4990,
+      "sha256": "4a0ddef1e4f4da5688bcb5c153321eb2947d4e4548ab5fef06be94da1a2b6f6e"
     },
     {
       "path": "native/ui/fm_library.cpp",
@@ -21940,13 +21944,13 @@
     },
     {
       "path": "native/ui/help_text.h",
-      "bytes": 135796,
-      "sha256": "609f607fab96dfe738136c5568445d5664e66b09bdadf89aeb67fa0800fe499d"
+      "bytes": 136277,
+      "sha256": "408eccdba0f977fe3fdd5516188a98eaa17d7b8c4ca373e77b9dad86e7fe5eff"
     },
     {
       "path": "native/ui/helpers.h",
-      "bytes": 13872,
-      "sha256": "71955769ad6ae2a3fad15e8b1436084fd0961db5f7ae6aa03456645f87b0158b"
+      "bytes": 16505,
+      "sha256": "a5c7390a8957f93ef5d3644ce5e116d1dd8342e9d7d15e387c3ceae90c60d2e7"
     },
     {
       "path": "native/ui/input_config.cpp",
@@ -21960,13 +21964,13 @@
     },
     {
       "path": "native/ui/input_dispatcher.cpp",
-      "bytes": 22869,
-      "sha256": "b62cf7910f9018896ee3aa05faaf7bee5ad9df7db802c0389f623b8c4f2e5c12"
+      "bytes": 23006,
+      "sha256": "8506fc769653b9881a16f439b170a57be571a185422cafdf51cbf05be57db490"
     },
     {
       "path": "native/ui/input_dispatcher.h",
-      "bytes": 56135,
-      "sha256": "f926f394ef8d295ad213da1cebf09d4c38be85bee139662e4dabecc412eca56c"
+      "bytes": 57298,
+      "sha256": "550dc561e06dbe19d85c51c75f4d7c38c92193d146e379da7fbcfbfe6aabf672"
     },
     {
       "path": "native/ui/instrument_row_layout.h",
@@ -21975,8 +21979,8 @@
     },
     {
       "path": "native/ui/layout.cpp",
-      "bytes": 38758,
-      "sha256": "3cf14d2fc42d49be705e84b28cbb9160c51da7842723cd7ef17b2a0d18bdb018"
+      "bytes": 40094,
+      "sha256": "e903835e9f2593a453dd9885713c491254d0e1e0c7eded9a497291cd9f744299"
     },
     {
       "path": "native/ui/layout.h",
@@ -22045,8 +22049,8 @@
     },
     {
       "path": "native/ui/modules/chain_editor.cpp",
-      "bytes": 8020,
-      "sha256": "7a248a839a8f7d2bb1e6e584a80e09606935ad9dc8010e28b5d13f6d697777ff"
+      "bytes": 8476,
+      "sha256": "9394b3f220e6bdb262d5dfca78ffe505e6738918f64f95d1b126d761f4f9e882"
     },
     {
       "path": "native/ui/modules/chain_editor.h",
@@ -22055,13 +22059,13 @@
     },
     {
       "path": "native/ui/modules/confirm_dialog.cpp",
-      "bytes": 4179,
-      "sha256": "bf5d39d93ad97bddb5c4c4e1af7956cfca6919aeb30fdc7b9acf81c49fbd1ac3"
+      "bytes": 4255,
+      "sha256": "6d5dec1cf241a51c904b78d6924a7cd8d94a14a5b3ce130f5cf4138502767f1b"
     },
     {
       "path": "native/ui/modules/confirm_dialog.h",
-      "bytes": 2088,
-      "sha256": "723dd92e119ba0d03b6f69fe7c0444f3c1c3d89e932cc1a7c82f1f2e1b9c6b1c"
+      "bytes": 2192,
+      "sha256": "6296769084784d604b9dea1a17067d6ff5e708e550d240b439b993cc2951d0e9"
     },
     {
       "path": "native/ui/modules/effects_editor.cpp",
@@ -22135,8 +22139,8 @@
     },
     {
       "path": "native/ui/modules/instrument_editor.cpp",
-      "bytes": 25934,
-      "sha256": "43a443e8b6267bc356bb032f8a1434e85f4c30e1fed6eb857106d36e71c5e8d4"
+      "bytes": 26373,
+      "sha256": "ec9d6c428a132659faeb985581af8f5d5a02e79f08c3ebba5c4ae3d708712797"
     },
     {
       "path": "native/ui/modules/instrument_editor.h",
@@ -22145,8 +22149,8 @@
     },
     {
       "path": "native/ui/modules/instrument_pool.cpp",
-      "bytes": 5857,
-      "sha256": "7855e4116ac4941446ff1d94cb14ba142c6f52bd94af6d497c85d91778de5b11"
+      "bytes": 6101,
+      "sha256": "22ab5c9640ceff2ea47b5368faa125701297c0b11c877c1889ca7312cbffef9e"
     },
     {
       "path": "native/ui/modules/instrument_pool.h",
@@ -22185,8 +22189,8 @@
     },
     {
       "path": "native/ui/modules/midi_settings.cpp",
-      "bytes": 14022,
-      "sha256": "2e43c83ac9dab5b241e68feff364c0ca9732f5774257f10c6ce5607013debad3"
+      "bytes": 15462,
+      "sha256": "610fb4a01846dd44056a4bb3305df1f87ac298e17c475abd36a0f7abfd449241"
     },
     {
       "path": "native/ui/modules/midi_settings.h",
@@ -22235,8 +22239,8 @@
     },
     {
       "path": "native/ui/modules/phrase_editor.cpp",
-      "bytes": 20456,
-      "sha256": "d87f5f1d7fe57b7217f1390d4d53d2962ec84e2ba8bf8133a0a6c711bf1baa2a"
+      "bytes": 21608,
+      "sha256": "731ffebf34b6e3dbbca8175a267940b44ff09ac9018138e725e0e08d7c0759b1"
     },
     {
       "path": "native/ui/modules/phrase_editor.h",
@@ -22300,13 +22304,13 @@
     },
     {
       "path": "native/ui/modules/settings_editor.h",
-      "bytes": 8200,
-      "sha256": "96e72604f9350c8f36f39bf2be763f79c0705aeaaf2ceae6000bba78c4ad9f2b"
+      "bytes": 8866,
+      "sha256": "308391c9ce8994835559722c6d3c44a7b011ee4d50479ea73b9625ce17c696a4"
     },
     {
       "path": "native/ui/modules/song_editor.cpp",
-      "bytes": 7161,
-      "sha256": "e015fd87005b36bdd663c2932ae3b8256107a58a2f63864690d0de4bb4024f29"
+      "bytes": 7439,
+      "sha256": "d9df0085c19089e7949b7d0bf05aaa2dd47c072d0dd570867e0a4b8a1453c2c5"
     },
     {
       "path": "native/ui/modules/song_editor.h",
@@ -22470,13 +22474,13 @@
     },
     {
       "path": "native/ui/settings_row_layout.h",
-      "bytes": 12798,
-      "sha256": "50e423dbdb9ff5107e05a0bb3c5864329680a5262b6a723b181839648a9af4a7"
+      "bytes": 12836,
+      "sha256": "dbcdd2de6d5910e353d31d4d44fbc6df6e0b26ac79de0354fdee68ac00c68814"
     },
     {
       "path": "native/ui/settings_store.cpp",
-      "bytes": 13268,
-      "sha256": "dbe576633c5ae9af9ee7e94161a0d12495a2b1106a28160ba8c39027b43dbc82"
+      "bytes": 15161,
+      "sha256": "4981bd587cdf46055692125ea0ec117f50087506e1458770adf46f0e8c006ffb"
     },
     {
       "path": "native/ui/settings_store.h",
@@ -22487,6 +22491,16 @@
       "path": "native/ui/song_pointer.h",
       "bytes": 4396,
       "sha256": "a1246b82956921b3a350fb1054f3a4109cf54992c15b7096be6d7fd3de6f8d42"
+    },
+    {
+      "path": "native/ui/sound_browser.cpp",
+      "bytes": 8334,
+      "sha256": "fc90ebfda287b968f27583ae2b3732eefa85fc8e4a20fd54fa9cd8c4a0787573"
+    },
+    {
+      "path": "native/ui/sound_browser.h",
+      "bytes": 4259,
+      "sha256": "a3be763b8ba025a8d2270d845dc1a45461b476c5c48f140ea827baa9e71fc132"
     },
     {
       "path": "native/ui/source_credits.cpp",
@@ -22500,13 +22514,13 @@
     },
     {
       "path": "native/ui/source_sampler.cpp",
-      "bytes": 71475,
-      "sha256": "70451d67c6a537bd039cf11a165257eb33836fab75a45f80652f114fbaf1db7a"
+      "bytes": 79454,
+      "sha256": "6d034c8cd73e6873dc4613275f293b71427421ab46c3e6959272025281c3eb6b"
     },
     {
       "path": "native/ui/source_sampler.h",
-      "bytes": 5457,
-      "sha256": "9c91a8292bb4a1ab2f1ffb764536c7068ea7ba076d7ec9e4b1c939c6cc31f73e"
+      "bytes": 7396,
+      "sha256": "05790ba440ec5f54d07783474b1ba14de5fbf83d177c512d63196ac4f8ee683b"
     },
     {
       "path": "native/ui/std_filesystem.cpp",
@@ -22525,8 +22539,8 @@
     },
     {
       "path": "native/ui/studio.cpp",
-      "bytes": 28618,
-      "sha256": "31e6356afa23f24fe791b7ed9ffe6713f9bbd7f6bc56937899ebcf29844b9256"
+      "bytes": 29291,
+      "sha256": "fcc5d3e8aa7ba1423e5e034b934f9a43999bf497c069964745690f698c7f4337"
     },
     {
       "path": "native/ui/studio.h",
@@ -22540,8 +22554,8 @@
     },
     {
       "path": "native/ui/studio_help.cpp",
-      "bytes": 35330,
-      "sha256": "6f6632d186973017f398bc1e47c5c494bfd91eb49272f10d1b44035f44b1c3cf"
+      "bytes": 36621,
+      "sha256": "c754a470c81240f1697860a13ef6af2e0d6f0b5d7ab8b4c17ad3069f5279dc01"
     },
     {
       "path": "native/ui/studio_help.h",
@@ -22560,18 +22574,18 @@
     },
     {
       "path": "native/ui/studio_synth.cpp",
-      "bytes": 29484,
-      "sha256": "12238f4d88d50ebc8d81b0cc3b75f7df712d23c60048a44024a34d9dc219736d"
+      "bytes": 39811,
+      "sha256": "e8823d94b02b7f38dabc7593585e27aea98408d1ee565125fceea5859ec804c9"
     },
     {
       "path": "native/ui/studio_synth_picker.h",
-      "bytes": 1218,
-      "sha256": "7a69085313aba886f498d38481c53a614eaeb6967fcc5a0c3e2b85d6d615c7f3"
+      "bytes": 2404,
+      "sha256": "a2ac9d8558a3672b77e3fe7ff85c1931f230987fe19381a8abf68667071ba1d2"
     },
     {
       "path": "native/ui/studio_view.cpp",
-      "bytes": 37349,
-      "sha256": "1db0821877a15225ecead9ec20bd65ff0d13495fe5d29948e90a4ceaa91f84e4"
+      "bytes": 42152,
+      "sha256": "2bbbb506f19475b1d5f0f4bb432d036b630b21e3aac3c688a0fccf7444b15df9"
     },
     {
       "path": "native/ui/studio_workspace.h",
@@ -38069,11 +38083,6 @@
       "sha256": "71bf582640e6eddf572804e06c29f8651f7427e74526b8666d106f29f01dc8c9"
     },
     {
-      "path": "qa/prepare-dev2-brick.py",
-      "bytes": 7301,
-      "sha256": "7d319673ab54a1fbf800de6a8f7105fa49d84f52d39f7250bf29577eee710afb"
-    },
-    {
       "path": "settings.gradle.kts",
       "bytes": 639,
       "sha256": "9290737318482f01e026e7e4d3a29b3753353ca8227df633d52a653ec945bab3"
@@ -38085,8 +38094,8 @@
     },
     {
       "path": "shell/CMakeLists.txt",
-      "bytes": 20044,
-      "sha256": "b9fe45b06ce02c9d2480382e642a12c9d192297392acf98d62e8d8a8fdd7b951"
+      "bytes": 20759,
+      "sha256": "48cd8efd75cd3e90c6de8ee653fb974e41cf2d338808010fa22ff9e59326c41f"
     },
     {
       "path": "shell/Dockerfile.linux",
@@ -38160,18 +38169,18 @@
     },
     {
       "path": "shell/app.cpp",
-      "bytes": 87872,
-      "sha256": "f1ccd2ae18c6962a0a983e9fb190a3cc47338ad7e051191ca3cc75559535a812"
+      "bytes": 88947,
+      "sha256": "bad3c3ccef0aa0f98daf644fa5296694a5be1cfc588521760a0c590ea832cc12"
     },
     {
       "path": "shell/app.h",
-      "bytes": 6297,
-      "sha256": "3dd4b8b6714ecaf781641e91ce089efaf6cafeb7030e9dccdd94b8ab7d2f2cfa"
+      "bytes": 6552,
+      "sha256": "c70705f24079d575fd30b4f0e2829da591070ded025053f5fbea90ffb768f9b4"
     },
     {
       "path": "shell/brick/README.txt",
-      "bytes": 4916,
-      "sha256": "10a2cab80cd787f3e23da267021cb2e39b68e0d1806f59a10e88163892fa112d"
+      "bytes": 4918,
+      "sha256": "80312640addb6967b0d1e6548a1fa198584b2cd944595885b888f1d9ec946f4b"
     },
     {
       "path": "shell/brick/TrackWerk.sh",
@@ -38285,8 +38294,8 @@
     },
     {
       "path": "shell/linux/sample-recorder.cpp",
-      "bytes": 24488,
-      "sha256": "e45fd8b1aa607ead54e2237f496b1971495af0c58c7fdef4bbe984686898e3cd"
+      "bytes": 24860,
+      "sha256": "741f718e48bd03dee003e5ad4bbcbb31456dc121a7400c2db3a8e8dba8c9338d"
     },
     {
       "path": "shell/linux/sample-recorder.h",
@@ -38300,8 +38309,8 @@
     },
     {
       "path": "shell/linux/source-live-mp3.h",
-      "bytes": 5110,
-      "sha256": "6d69808e0cb0bbffd478e459470dc112aba0577210cfd9607b67df9a93162fb4"
+      "bytes": 5456,
+      "sha256": "ee3f8c83f407c4edf767d4660216dbcdce9b551bed609f1f0ae13f158b49e8c5"
     },
     {
       "path": "shell/linux/source-live-policy.h",
@@ -38310,8 +38319,8 @@
     },
     {
       "path": "shell/linux/source-sampler.cpp",
-      "bytes": 101100,
-      "sha256": "01d7dbd415b89a06e0c911aab178c9f9b119adb6bbb95128f59060303b806f14"
+      "bytes": 111107,
+      "sha256": "26d8fa34c1fdae6495ecec820306b600ff66be56740701fcbfee48bac2e5f191"
     },
     {
       "path": "shell/linux/source-sampler.h",
@@ -38319,9 +38328,19 @@
       "sha256": "add51cad3aaab75462768931eb53e7be0c0590eaa58e802c621061702d3c83c7"
     },
     {
+      "path": "shell/linux/usb-audio-diagnosis.h",
+      "bytes": 6370,
+      "sha256": "71ccf964a6eeb8fc11a9901a29b7b3117ea1ce9778cf85ff589efde4059a6ed6"
+    },
+    {
+      "path": "shell/linux/usb-audio-outputs.h",
+      "bytes": 7129,
+      "sha256": "bae34e2e4fa52119f434f64e91de5c0b9fa90bec43af65c4c325b3c0f52a44bd"
+    },
+    {
       "path": "shell/main.cpp",
-      "bytes": 13504,
-      "sha256": "926a28a28916a9deffdcf966c20c07f1cdebb45dc2dbbe54131708e6afe2298a"
+      "bytes": 14604,
+      "sha256": "1843bbb0147399aee69953f282663109cd69340b7cefe210c04350b01a4729fa"
     },
     {
       "path": "shell/midi/midi-in-base.cpp",
@@ -38464,19 +38483,29 @@
       "sha256": "82de0c502cb2d286c40f43b1c4681c3d34c6cd735556772c88ab1985dcc93914"
     },
     {
+      "path": "shell/sdl/linux-audio-outputs.cpp",
+      "bytes": 2721,
+      "sha256": "502269462eea66418b36b0ead26387fe3080085cdd791f44733aaec47531583e"
+    },
+    {
+      "path": "shell/sdl/linux-audio-outputs.h",
+      "bytes": 2606,
+      "sha256": "75ef32d92ef0f156a5c074398096ae9dccb9bc9e2d3c3864cc919d94a3ca5f96"
+    },
+    {
       "path": "shell/sdl/make-window-icon.ps1",
       "bytes": 5620,
       "sha256": "b6ccc7d753042959f1dd60088b6e0c2d727548085e411316ba892c67fd732477"
     },
     {
       "path": "shell/sdl/sdl-audio-engine.cpp",
-      "bytes": 11844,
-      "sha256": "2a206e13c552990a34106355f0f96ea951d49a45bd4cc9f1794a0673dfa528e0"
+      "bytes": 11986,
+      "sha256": "8cc7f79613a58ebd7e0a00fa82d2c66f4f227468a416439aa2c1c053ae213612"
     },
     {
       "path": "shell/sdl/sdl-audio-engine.h",
-      "bytes": 2556,
-      "sha256": "aabf3440a4242fc9cdb2c56bef1480c8175365e3e648e1d610f637cf22cc34b0"
+      "bytes": 3098,
+      "sha256": "3ecbccfae1b575565f348ea554656ed871abe9dfe0fcf2726c32847787984689"
     },
     {
       "path": "shell/sdl/sdl-input.cpp",
@@ -38785,8 +38814,8 @@
     },
     {
       "path": "tests/studio/demo_fx.cpp",
-      "bytes": 28349,
-      "sha256": "490802a0e9f31441a63c97b5ed7f3283136ce43d608ee1366a05beb912f8e532"
+      "bytes": 32341,
+      "sha256": "76da3a12218391f718800b71680e9da46ed7cc80b56883b12f4501800fa9d1d2"
     },
     {
       "path": "tests/studio/drumlab.cpp",
@@ -38817,6 +38846,11 @@
       "path": "tests/studio/fft_roundtrip.cpp",
       "bytes": 8175,
       "sha256": "02464dccf4a328cfc03f7eeb58c17fc54d6b1ba4a98a5859c5636af6418c7d32"
+    },
+    {
+      "path": "tests/studio/first_beat.cpp",
+      "bytes": 19514,
+      "sha256": "3eeba4325ced43a79f7327f76447dd0fa81811cdeec69ba63ee91ec3c998ad99"
     },
     {
       "path": "tests/studio/fixtures/README.txt",
@@ -38924,6 +38958,16 @@
       "sha256": "1409843f15d12b4debc7d9597304590f5c0ae535907cd11343e13f8a33178dba"
     },
     {
+      "path": "tests/studio/linux_sources_progressive.cpp",
+      "bytes": 16797,
+      "sha256": "490a9bdc54a9cb1a0efaf61e233ef0f8bbba7602e5b3d3d2d199740a6c801fd7"
+    },
+    {
+      "path": "tests/studio/linux_sources_progressive_fixture.py",
+      "bytes": 6916,
+      "sha256": "31c1ebc5a5f927b0dc17d8cb9e0b3ca6f936b36b4a5ceeee45c62b952911d02d"
+    },
+    {
       "path": "tests/studio/live_dsp.cpp",
       "bytes": 14809,
       "sha256": "8c41c35d98c0be22646bda46f235acbb2f5d87de0667428175699f16d370aefb"
@@ -38967,6 +39011,11 @@
       "path": "tests/studio/m8_import.cpp",
       "bytes": 4227,
       "sha256": "19def0cfb1704b32463fc234cdd449cf492f306135639c892054e5be8517bb4c"
+    },
+    {
+      "path": "tests/studio/midi_test.cpp",
+      "bytes": 15587,
+      "sha256": "851a7ada1f1700e2a977aca7666502a57de5259434cbf333df2c9122d363d308"
     },
     {
       "path": "tests/studio/navigation.cpp",
@@ -39099,6 +39148,11 @@
       "sha256": "f54993cf11ede08a2b27dd46894248994f7a8d4cdc61d6896a05aed0e1c93065"
     },
     {
+      "path": "tests/studio/sound_browser.cpp",
+      "bytes": 31205,
+      "sha256": "d83b253efb5ca062b61475c7bd197fdf00f1821a623dc34ec14909793be4fb7a"
+    },
+    {
       "path": "tests/studio/source_bars.cpp",
       "bytes": 3603,
       "sha256": "79ce8d36ddef2da42b4fcc1b4b5471588eafe732ba4b8afef0d6512a3dd28021"
@@ -39110,8 +39164,8 @@
     },
     {
       "path": "tests/studio/source_integration.cpp",
-      "bytes": 10953,
-      "sha256": "fb03e2b15d9d1eb92f64bb565b3afba67b2c744a7c00a147ce20fad9aae040c5"
+      "bytes": 11293,
+      "sha256": "4c447bbb487eee5e88f84f4eb409e8083e9f47bd89341e23a71b19216105cdba"
     },
     {
       "path": "tests/studio/source_query.cpp",
@@ -39127,6 +39181,11 @@
       "path": "tests/studio/source_youtube.cpp",
       "bytes": 5894,
       "sha256": "1d9652f49ad876dc62820552f6a4e4b1ac2d2896f2de657362cec3d4cf23443b"
+    },
+    {
+      "path": "tests/studio/sources_ux.cpp",
+      "bytes": 19681,
+      "sha256": "a553ddeee771b01106e230c9ada4f377f0465eced3b2ef220713045752af3221"
     },
     {
       "path": "tests/studio/spectral_additive.cpp",
@@ -39182,6 +39241,11 @@
       "path": "tests/studio/ui_polish.cpp",
       "bytes": 26349,
       "sha256": "7989a28271d1ad8dccf762ba38fec355b13fe12f71c5483ffd4d7bb8ba62815f"
+    },
+    {
+      "path": "tests/studio/usb_audio_diagnosis.cpp",
+      "bytes": 15637,
+      "sha256": "466400e02aae0d9662c2588849bf853a228f7b3c27e2764f987fcc7e7ad5567d"
     },
     {
       "path": "tests/studio/warps_init.cpp",
@@ -41307,18 +41371,6 @@
       "path": "vendor/newpipe-extractor/timeago-parser/src/main/java/org/schabi/newpipe/extractor/timeago/patterns/zu.java",
       "bytes": 1034,
       "sha256": "7f6bc2018576d9db8ef9c357c442e407346ac71d0320c00e6feb38e20355fa01"
-    }
-  ],
-  "released_source_manifest_sha256": "865506aa516dd89a12ada7c317f3d1a36e116d01e75f93da2739f2794be8ac45",
-  "release_source_export_commit": "affd28d34a1bac40ffaee27ce60a985dab31eb34",
-  "post_release_changes": [
-    {
-      "path": "native/studio/sid_chip.h",
-      "change": "Explicit iterator header required by standalone GCC 15 builds; no DSP operations changed"
-    },
-    {
-      "path": "fastlane/metadata/android/en-US/changelogs/101004.txt",
-      "change": "Match the published APK version code and inventory filename"
     }
   ]
 }

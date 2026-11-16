@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=TrackWerk
+Comment=Music tracker, synthesis studio and source sampler
+Exec=trackwerk %f
+TryExec=trackwerk
+Icon=org.kidbunka.TrackWerk
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+StartupNotify=false
+StartupWMClass=org.kidbunka.TrackWerk
+Keywords=tracker;music;synthesizer;sampling;MIDI;

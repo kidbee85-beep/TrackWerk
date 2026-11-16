@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""TrackWerk Linux launcher. Package files are read-only; user data remains outside the package."""
+import os,sys,tempfile,shutil,ctypes,errno
+from pathlib import Path
+PACKAGE_VERSION="1.2.0-1"
+SOURCE_COMMIT="b24ad7abe43f6784cb8ef34dee7661db0d02dade"
+def data_root(env):
+    for key in ("TRACKWERK_HOME","POCKETTRACKER_HOME"):
+        if env.get(key):return Path(os.path.abspath(env[key]))
+    base=Path(env.get("XDG_DATA_HOME") or str(Path(env.get("HOME",str(Path.home())))/".local/share"))
+    if not base.is_absolute():base=Path(env.get("HOME",str(Path.home())))/".local/share"
+    current,previous=base/"TrackWerk",base/"PocketTracker"
+    # Preserve access to old data without moving or replacing any existing folder.
+    if previous.is_dir() and (not current.exists() or not current.is_dir()):return previous
+    return current
+
+def publish_new(temp,target):
+    # Linux renameat2 is atomic and works on normal Linux and removable filesystems.
+    # RENAME_NOREPLACE never replaces a user's preset, even with two launchers racing.
+    if sys.platform.startswith('linux'):
+        libc=ctypes.CDLL(None,use_errno=True)
+        rename=getattr(libc,'renameat2',None)
+        if rename is not None:
+            rename.argtypes=[ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint]
+            rename.restype=ctypes.c_int
+            if rename(-100,os.fsencode(temp),-100,os.fsencode(target),1)==0:return True
+            err=ctypes.get_errno()
+            if err==errno.EEXIST:return False
+            if err not in (errno.ENOSYS,errno.EINVAL,errno.EOPNOTSUPP):raise OSError(err,os.strerror(err),str(target))
+    try:os.link(temp,target);return True
+    except FileExistsError:return False
+
+def seed_presets(factory,root):
+    if not factory.is_dir():return 0
+    dest=root/"Presets"
+    if dest.is_symlink():return 0
+    dest.mkdir(parents=True,exist_ok=True);added=0
+    for src in sorted(factory.rglob("*")):
+        rel=src.relative_to(factory)
+        if src.is_symlink() or not src.is_file() or any(x.startswith('.') for x in rel.parts):continue
+        target=dest/rel;parent=dest;safe=True
+        for part in rel.parts[:-1]:
+            parent=parent/part
+            if parent.is_symlink():safe=False;break
+            parent.mkdir(exist_ok=True)
+        if not safe or target.exists() or target.is_symlink():continue
+        fd,temp=tempfile.mkstemp(prefix='.trackwerk-seed-',dir=str(parent))
+        try:
+            with os.fdopen(fd,'wb') as dst,src.open('rb') as inp:
+                shutil.copyfileobj(inp,dst);dst.flush();os.fsync(dst.fileno())
+            if publish_new(temp,target):added+=1
+        finally:
+            if os.path.lexists(temp):os.unlink(temp)
+    return added
+
+def main(argv=None):
+    argv=list(sys.argv[1:] if argv is None else argv)
+    if argv==['--version']:
+        print('TrackWerk '+PACKAGE_VERSION+'; source '+SOURCE_COMMIT+'; upstream runtime label 1.1.0');return 0
+    if argv==['--help']:
+        print('TrackWerk music tracker and synthesis studio\nUsage: trackwerk [project.ptp] [media-base-dir] [app-root]\nDiagnostics: --version, --print-data-dir\nData: $TRACKWERK_HOME, then $POCKETTRACKER_HOME, otherwise $XDG_DATA_HOME/TrackWerk.\nExisting PocketTracker data stays accessible. SELECT opens in-app help.');return 0
+    root=data_root(os.environ)
+    if argv==['--print-data-dir']:print(root);return 0
+    prefix=Path(__file__).resolve().parents[1];lib=prefix/'lib/trackwerk';binary=lib/'trackwerk.bin'
+    if not binary.is_file():raise RuntimeError('TrackWerk executable is missing; reinstall the trackwerk package')
+    # Native argument 3 overrides the environment: seed the same explicit root, never a second one.
+    if len(argv)>2:root=Path(os.path.abspath(argv[2]))
+    root.mkdir(parents=True,exist_ok=True)
+    try:seed_presets(prefix/'share/trackwerk/factory/Presets',root)
+    except OSError as e:print('TrackWerk: factory preset setup incomplete: '+str(e),file=sys.stderr)
+    env=os.environ.copy();env['TRACKWERK_HOME']=str(root)
+    env.setdefault('SDL_APP_ID','org.kidbunka.TrackWerk');env.setdefault('SDL_VIDEO_X11_WMCLASS','org.kidbunka.TrackWerk')
+    os.execve(str(binary),[str(binary),*argv],env)
+if __name__=='__main__':
+    try:sys.exit(main())
+    except (OSError,RuntimeError) as e:print('TrackWerk: '+str(e),file=sys.stderr);sys.exit(1)
