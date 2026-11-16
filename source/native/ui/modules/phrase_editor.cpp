@@ -187,9 +187,15 @@ void PhraseEditorModule::draw(Canvas& c, int x, int y, const PhraseEditorState& 
     const int fx3ValueX = colX;
 
     int rowY = y + TEXT_PADDING;
-    c.draw_text("PHRASE " + hex2(s.phrase.id), x + 10, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    const std::string title = "PHRASE " + hex2(s.phrase.id);
+    c.draw_text(title, x + 10, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    // Underlined in the phrase's own colour (its cells on CHAIN wear it); the chain it came through
+    // underlined in that chain's colour.
+    c.fill_rect(x + 10, rowY + 17, Canvas::text_width(title, CHAR_SPACING, FONT_SCALE), 2, ref_color(t, s.phrase.id));
     // The chain row and its song cell (PhraseEditorState).
     if (s.viaChain >= 0 && s.viaChainRow >= 0) {
+        c.fill_rect(x + 190, rowY + 17, Canvas::text_width("C" + hex2(s.viaChain), CHAR_SPACING, FONT_SCALE), 2,
+                    ref_color(t, s.viaChain));
         std::string via = "C" + hex2(s.viaChain) + "/" + hex1(s.viaChainRow);
         if (s.songRow >= 0 && s.songTrack >= 0)
             via += "  S" + hex2(s.songRow) + " T" + std::to_string(s.songTrack + 1);
@@ -303,6 +309,15 @@ void PhraseEditorModule::draw_row(Canvas& c, int x, int y, int index, const Phra
     draw_cell(note_name(step.note), noteX, 1, cutOff || emptyNote, t.textValue, emptyNote ? " - " : nullptr);
     draw_cell(hex2(step.volume), volX, 2, cutOff || !hasNote, t.textParam,
               !hasNote && step.volume == defaults.volume ? "  " : nullptr);
+    // The level under its number: a thin bar, full at 7F, so loud and soft hits read without reading.
+    if (hasNote && !cutOff) {
+        const int barW = (2 * CHAR_W) * std::clamp(step.volume, 0, 127) / 127;
+        c.fill_rect(volX, dataRowY + ROW_HEIGHT - 3, 2 * CHAR_W, 2, with_alpha(t.textParam, .14f));
+        if (barW > 0) c.fill_rect(volX, dataRowY + ROW_HEIGHT - 3, barW, 2, with_alpha(t.rowCursor, .70f));
+    }
+    // The instrument's own colour as a short mark before its number (as in the pool and its title).
+    if (hasNote && !cutOff && step.instrument >= 0)
+        c.fill_rect(instX - 6, dataRowY + 4, 3, ROW_HEIGHT - 8, with_alpha(inst_color(t, step.instrument), .9f));
     draw_cell(hex2(step.instrument), instX, 3, cutOff || !hasNote, t.textParam,
               !hasNote && step.instrument == defaults.instrument ? "  " : nullptr);
 

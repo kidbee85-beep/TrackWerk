@@ -21,7 +21,10 @@ void ChainEditorModule::draw(Canvas& c, int x, int y, const ChainEditorState& s)
     const int tspX  = colX;
 
     int rowY = y + TEXT_PADDING;
-    c.draw_text("CHAIN " + hex2(s.chain.id), x + 10, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    const std::string title = "CHAIN " + hex2(s.chain.id);
+    c.draw_text(title, x + 10, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    // Underlined in the chain's own colour: the colour its cells wear on SONG.
+    c.fill_rect(x + 10, rowY + 17, Canvas::text_width(title, CHAR_SPACING, FONT_SCALE), 2, ref_color(t, s.chain.id));
     // The song cell in the title's dim colour: context, not a second title.
     if (s.songRow >= 0 && s.songTrack >= 0) {
         c.draw_text("S" + hex2(s.songRow) + " T" + std::to_string(s.songTrack + 1), x + 170, rowY,
@@ -101,6 +104,8 @@ void ChainEditorModule::draw_row(Canvas& c, int x, int y, int index, const Chain
     for (const TrackPlayhead& ph : s.playheads)
         if (ph.chainId == s.chain.id && ph.chainRow == index) draw_playhead(c, stepX + CHAR_W, textY, t);
 
+    // The phrase number in its own colour (as chains on SONG): the same phrase twice reads at a glance.
+    if (!isEmpty) draw_ref_chip(c, phX - 5, dataRowY + 2, 2 * CHAR_W + 8, ROW_HEIGHT - 4, ref_color(t, phraseRef));
     cells.cell(isEmpty ? "--" : hex2(phraseRef), phX, cur(1), sel(1), isEmpty, t.textValue);
 
     // An empty slot has no transpose to show.

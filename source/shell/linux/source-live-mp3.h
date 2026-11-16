@@ -46,6 +46,9 @@ class Mp3Decoder {
     bool header_=false;
     int rate_=0,channels_=0;
     uint64_t input_=0,decodedFrames_=0;
+    // Bytes of the leading ID3 tag (up to 4 MiB, skipped). They never count against the 256 KiB
+    // search for the first audio frame (Codex, STUFE2-ID3-BEFUND): a cover-art tag is not audio.
+    uint64_t metadata_=0;
     template<class Sink> void process(Sink& sink,bool final) {
         while(used_>=(final?4u:8192u)) {
             drmp3dec_frame_info info{};
@@ -78,12 +81,14 @@ public:
                     const size_t tag=(size_t(bytes_[6])<<21)|(size_t(bytes_[7])<<14)|(size_t(bytes_[8])<<7)|bytes_[9];
                     if(tag>4*1024*1024)throw std::runtime_error("Live MP3 metadata exceeds4MiB");
                     const size_t total=10+tag+((bytes_[5]&16)?10:0),remove=std::min(total,used_);
+                    metadata_=total;
                     skip_=total-remove;used_-=remove;std::memmove(bytes_.data(),bytes_.data()+remove,used_);
                 }
             }
             process(sink,false);
             if(used_==bytes_.size())throw std::runtime_error("Live station did not supply decodable MP3 frames");
-            if(input_>256*1024&&!decodedFrames_)throw std::runtime_error("Live station is not a supported MP3 stream");
+            // Audio bytes only: what arrived after the tag.
+            if(input_-std::min(input_,metadata_)>256*1024&&!decodedFrames_)throw std::runtime_error("Live station is not a supported MP3 stream");
         }
     }
     template<class Sink> void finish(Sink&& sink){process(sink,true);}

@@ -184,7 +184,15 @@ void InstrumentEditorModule::draw(Canvas& c, int x, int y, const InstrumentEdito
 
     int rowY = y + TEXT_PADDING;
 
-    c.draw_text("INSTRUMENT " + hex2(ins.id), nameX, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    const std::string title = "INSTRUMENT " + hex2(ins.id);
+    c.draw_text(title, nameX, rowY, t.textTitle, CHAR_SPACING, FONT_SCALE);
+    // The instrument's colour (PHRASE and the pool use it too): filled when it has a sound.
+    {
+        const Argb ink = inst_color(t, ins.id);
+        const int chipX = nameX + Canvas::text_width(title, CHAR_SPACING, FONT_SCALE) + 10;
+        if (songcore::instrument_is_free(ins)) c.stroke_rect(chipX, rowY, 12, 12, with_alpha(ink, .7f));
+        else c.fill_rect(chipX, rowY, 12, 12, ink);
+    }
     rowY += ROW_HEIGHT + 14;
 
     const int rows = instrument_row_count(type);

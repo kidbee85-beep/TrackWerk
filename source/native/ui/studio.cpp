@@ -196,12 +196,15 @@ void open_studio_appearance(AppState& s){
 // The Sources screen's YouTube opt-in is a saved setting; the sampler edits a mirror of it.
 static bool studio_source_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){
  s.sourceSampler.youtubeEnabled=s.settings.sourceYoutube;
+ s.sourceSampler.currentSlot=s.currentInstrument;
  const bool handled=source_sampler_button(e,s.sourceSampler,host,engine);
  s.settings.sourceYoutube=s.sourceSampler.youtubeEnabled;
  return handled;
 }
 
 bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,FileSystem& fs){
+ // A replace question on Sources belongs to that screen: elsewhere, or after Studio closed, it is gone.
+ if(!s.studioOpen||s.studioTab!=7||e.cancelled)source_sampler_disarm(s.sourceSampler);
  const uint16_t modalReturnBit=e.button==Button::A?1u:e.button==Button::B?2u:0u;
  const auto buttonMask=button_bit(e.button);
  // A release must clear the tab latch even if Help owns that key-up.
@@ -304,12 +307,12 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
  if(studio_workspace_button(e,s,host,engine))return true;
  if(!s.studioOpen)return false;
  if(sample_granular_preset_picker_button(e,s,host))return true;
- if(studio_synth_picker_button(e,s,host,engine))return true;
+ if(studio_synth_picker_button(e,s,host,engine,fs))return true;
  // An external stop/panic may have released DSP without a physical A-up event.
  if(s.studioTab==3&&s.studioAUsed&&engine.studioRack.punch.load()==0)s.studioAUsed=false;
  if((e.button==Button::SELECT&&e.mods.r)||(e.button==Button::R_SHIFT&&e.mods.select)){
    s.studioPunchBankHeld=0;
-   if(e.action==ButtonAction::PRESSED){studio_synth_stop_audition(s,host);drumlab_stop(s.drumLab,host,engine);s.drumLab.gridFocused=false;source_sampler_stop(s.sourceSampler);if(s.captureBackend&&s.capture.active())s.captureBackend->stop();s.studioShortcutRelease=true;s.studioOpen=false;s.studioHelp=false;s.studioAUsed=false;engine.studioRack.punch.store(0);host.stop_preview(true);restore_appearance_context(s);}return true;
+   if(e.action==ButtonAction::PRESSED){studio_synth_stop_audition(s,host);drumlab_stop(s.drumLab,host,engine);s.drumLab.gridFocused=false;source_sampler_stop(s.sourceSampler);if(s.captureBackend&&s.capture.active())s.captureBackend->stop();s.studioShortcutRelease=true;s.studioOpen=false;s.studioHelp=false;source_sampler_disarm(s.sourceSampler);s.studioAUsed=false;engine.studioRack.punch.store(0);host.stop_preview(true);restore_appearance_context(s);}return true;
  }
  // The direct Punch chord also closes/switches a Studio page without a hidden action.
  if(!e.mods.r&&!e.mods.a&&!e.mods.b&&((e.button==Button::SELECT&&e.mods.l)||(e.button==Button::L_SHIFT&&e.mods.select))){
@@ -377,7 +380,14 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
    if(s.studioTab==6&&s.studioRow==0){s.scenePicker=scene_picker_start(s.theme);return true;}
    if(sample_granular_open_preset_picker(s)){studio_synth_stop_audition(s,host);return true;}
    if(sample_granular_studio(s)&&s.studioRow==kGranularWaveRow)return sample_granular_wave_action(s);
-   if(studio_synth_open_picker_for_row(s,host))return true;
+   if(studio_synth_open_picker_for_row(s,host)){
+    // Reopened on a factory tab: read it now (on the pack the app loads from today), so the first
+    // frame lists it instead of waiting for a press.
+    std::vector<SoundEntry> scratch;
+    if(s.studioSynthPicker.mode==StudioSynthPickerMode::Preset)
+     sound_tab_entries(s.soundLibrary,fs,s.studioSynthPicker.tab,s.settings.soundFavorites,s.settings.soundRecent,scratch);
+    return true;
+   }
    if(s.studioTab==4){studio_capture_action(s,host,engine,fs);return true;}
    if(s.studioTab==0&&s.studioRow==studio_synth_apply_row(s)){
     if(sample_granular_studio(s))sample_granular_action(s,host,engine,fs);

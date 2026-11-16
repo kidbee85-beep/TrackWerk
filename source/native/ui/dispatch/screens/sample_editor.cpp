@@ -386,6 +386,7 @@ void InputDispatcher::init_sample_editor_state() {
     se.isModified       = false;
     se.showConfirmClose = false;
     se.playbackPosition = -1.0f;
+    if (se.toolMessage == FIRST_BEAT_SAMPLE_HINT) se.toolMessage.clear();
 }
 
 void InputDispatcher::close_sample_editor(bool viaBack) {
@@ -1299,6 +1300,7 @@ void InputDispatcher::save_sample_to(const std::string& path, bool adopt_name) {
     se.sampleFilePath = std::move(editorPath);
     if (adopt_name) se.sampleName = std::move(name);
     se.isModified = false;
+    if (se.toolMessage == FIRST_BEAT_SAMPLE_HINT) se.toolMessage.clear();   // the First beat hint is answered
     if (songcore::detail::last_publish_rescued_backup())
         set_status(s_, "SAVED; OLD BACKUP KEPT AS _PTBAK.WAV", true);
 

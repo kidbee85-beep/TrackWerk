@@ -86,7 +86,7 @@ class InputDispatcher {
     // ⚠️ It goes false on the frame that must be drawn: the caller owes the active→idle edge a redraw.
     // A new screen-changing timer belongs in this expression.
     bool has_pending_timed_work() const {
-        return statusDismissAtMs_ != 0 || browserStatusDismissAtMs_ != 0 || autosavePending_ ||
+        return statusDismissAtMs_ != 0 || browserStatusDismissAtMs_ != 0 || autosavePending_ || midiTestOffAtMs_ != 0 ||
                (s_.localSampleRange.isOpen&&s_.localSampleRange.source.playing);
     }
 
@@ -110,6 +110,11 @@ class InputDispatcher {
     // Write the autosave now if there is unsaved work — the app is leaving.
     // ⚠️ From the frame loop's exit path, never a signal handler: it allocates and writes a file.
     void flush_autosave();
+
+    // End a sounding MIDI TEST note now (its off only while the sender still owes it) and stop its
+    // timer: backgrounded, focus or controller lost, MIDI screen left, another project. Idempotent,
+    // through the sender's lock, never a panic of a playing song.
+    void cancel_midi_test();
 
     // ── D-pad alone: move the cursor (or drag a selection's edge) ────────────────────────────────
     void on_dpad_up();
@@ -217,6 +222,9 @@ class InputDispatcher {
     // A button went down: put help away (the compact panel on any press but SELECT, the overlay on any).
     void on_help_dismiss();
     void on_help_button(Button button);
+    // First beat (ui/first_beat.h): starts the tutorial in a new project — behind NEW's confirm when
+    // the work is unsaved — or ends it. Help's START.
+    void toggle_first_beat();
 
     bool help_full_open() const { return s_.helpOpen || s_.helpFull; }
     bool punch_open() const { return s_.studioOpen&&s_.studioTab==3; }
@@ -379,6 +387,9 @@ class InputDispatcher {
     // watches it for changes; detection lands one frame after the set.
     std::string statusLastSeen_{};
     long long   statusDismissAtMs_ = 0;
+    // MIDI TEST's note-off: when it is due, and the bytes (channel set by the TEST).
+    long long   midiTestOffAtMs_ = 0;
+    std::string midiTestPort_;   // the port the test note went to: its off goes there or nowhere
 
     // The file browser's line. ⚠️ A separate pair: one pair watching two fields re-arms every frame.
     std::string browserStatusLastSeen_{};
@@ -677,6 +688,10 @@ class InputDispatcher {
 
     // A backend can exist with no port open; "TEST SENT" into a closed one would lie.
     bool port_open() const { return s_.midiOut != nullptr && s_.midiOut->is_open(); }
+    // MIDI TEST / PANIC without a port: what is missing (no device, OUTPUT off, not plugged in).
+    std::string midi_no_port_reason() const;
+    // MIDI TEST's note-off when due (or now with `force`); each frame and before a new TEST.
+    void run_due_midi_test_off(bool force = false);
 
     // UP/DOWN walk the rows, LEFT/RIGHT the row's channels; both wrap.
     void theme_move_cursor(int d_row, int d_channel);
@@ -735,6 +750,8 @@ class InputDispatcher {
 
     // NEW, with the engine sync a fresh project needs.
     void start_new_project();
+    // First beat's own new project under a free name (FIRSTBEAT, FIRSTBEAT2 …), so SAVE never overwrites.
+    void begin_first_beat();
 
     // Slot 0 across the board, and no selection. Shared by NEW and LOAD.
     void reset_editing_context();

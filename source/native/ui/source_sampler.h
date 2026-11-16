@@ -73,6 +73,11 @@ struct SourceSamplerState {
     bool openWhenReady = false;
     bool importContextBound = false, importIsAutomatic = false;
     bool takeRequestIdsAvailable = false;
+    // A file that plays while it downloads (backend capability progressive_mp3, Linux 1.2). durationMs
+    // is then the loaded length; totalMs the catalogue's (0 unknown). Backends without the fields
+    // (Android MediaPlayer, older builds) leave these false / 0 and nothing changes for them.
+    bool progressiveAvailable = false, downloading = false;
+    int64_t totalMs = 0;
     const songcore::Project* importProject = nullptr; // Compared only, never dereferenced.
     int importProjectVersion = 0;
     int importInstrument = -1;
@@ -90,6 +95,19 @@ struct SourceSamplerState {
     std::optional<ClipRequest> quickClipRequest;
     std::string catalogProvider, catalogGenre, catalogCollection, shelfTitle;
     double progress = 0;
+    // Provider / Genre as a list (1.2): A opens it, Up / Down choose, A takes the choice, B keeps
+    // the old one. 0 closed, 1 provider, 2 genre.
+    int choiceList = 0, choiceCursor = 0;
+    // The slot a take goes to when Target slot is "Current instrument" (studio.cpp mirrors it in),
+    // and an import into an occupied slot armed by a first A (the second replaces it).
+    int currentSlot = 0;
+    bool replaceArmed = false;
+    // What the armed question was about: the second A replaces only this slot with this take in
+    // this project version. Anything else asks again (Codex, STUFE2A-BEFUND-HILFE-BESTAETIGUNG).
+    int armedSlot = -1;
+    std::string armedClip;
+    const songcore::Project* armedProject = nullptr;   // compared only
+    int armedVersion = -1;
     uint64_t lastPollMs = 0;
     bool hasPolled = false;
     std::string lastSnapshot;
@@ -101,6 +119,9 @@ const char* source_sampler_provider_name(int provider);
 // At most one backend snapshot per100ms. Draws consume only this parsed cache.
 bool source_sampler_poll(SourceSamplerState&, uint64_t nowMs);
 void source_sampler_stop(SourceSamplerState&);
+// Drop a pending "A again replaces" question. Studio-wide: help, leaving Sources, focus or controller
+// loss, a cancelled button. Playback and radio are left alone.
+void source_sampler_disarm(SourceSamplerState&);
 bool source_sampler_submit_query(SourceSamplerState&, const std::string& query);
 bool source_sampler_button(const ButtonEvent&, SourceSamplerState&, songcore::SongcoreHost&, AudioEngine&);
 void source_sampler_bind_import_context(AppState&);
@@ -112,4 +133,10 @@ inline constexpr int SOURCE_YOUTUBE_PROVIDER = 2;
 // Whether a result or title passes the licence filter.
 bool source_sampler_item_shown(const SourceSamplerState&, const SourceSamplerItem&);
 void source_sampler_draw(Canvas&, const SourceSamplerState&, const Theme&, const songcore::Project&);
+// The same, with the current instrument (Target slot shows where a take lands and if it is in use).
+void source_sampler_draw(Canvas&, const SourceSamplerState&, const Theme&, const songcore::Project&, int currentSlot);
+// The four orientation phases (FIND, LISTEN, MARK, USE) of a control row; not a wizard.
+int source_sampler_row_phase(int row);
+// The slot a take lands in: the Target slot, or the current instrument.
+inline int source_sampler_take_slot(const SourceSamplerState& s) { return s.targetInstrument >= 0 ? s.targetInstrument : s.currentSlot; }
 } // namespace pt::ui

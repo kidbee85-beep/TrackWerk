@@ -12,6 +12,8 @@
 
 #include "audio-backend.h"
 
+#include <string>
+
 class AudioEngine;
 
 class SdlAudioEngine : public AudioBackend {
@@ -47,6 +49,12 @@ class SdlAudioEngine : public AudioBackend {
     using ExternalAudio = void (*)(void*, float*, int, int);
     void set_external_audio(ExternalAudio hook, void* userdata);
 
+    // Strict: an AUDIODEV that will not open fails the open, instead of the usual quiet retry on the
+    // default device (Linux USB outputs: a USB card that fails must not look like it plays).
+    void set_strict_route(bool strict) { strictRoute_ = strict; }
+    // The AUDIODEV the last successful open used ("" = SDL's default device): the route that plays.
+    const std::string& opened_audiodev() const { return openedAudiodev_; }
+
   private:
     static void SDLCALL audioCallback(void* userdata, Uint8* out, int lenBytes);
 
@@ -58,6 +66,8 @@ class SdlAudioEngine : public AudioBackend {
     int               pinnedRate_   = 0;
     ExternalAudio     externalAudio_ = nullptr;
     void*             externalUser_ = nullptr;
+    bool              strictRoute_  = false;
+    std::string       openedAudiodev_;
 };
 
 #endif  // POCKETTRACKER_SDL_AUDIO_ENGINE_H

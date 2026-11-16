@@ -589,7 +589,87 @@ int main(int argc, char** argv) {
         far.slide(old.data(), view, 200, 100);                              // a jump of a whole view: none
         assert(differing(far, after, 0, 0, DESIGN_W, DESIGN_H) == 0);
     }
+    // ── Reference colours (1.2): one colour per number, neighbours apart; the volume bar follows VOL ──
+    {
+        const Theme th = theme_default();
+        assert(ref_color(th, 5) == ref_color(th, 5));
+        for (int id = 0; id < 16; ++id) assert(ok_delta_e(ref_color(th, id), ref_color(th, id + 1)) > 0.05);
+        auto p = songcore::make_default_project();
+        p.tracks[0].chainRefs = {3};
+        AppState st;
+        st.project = &p;
+        st.theme = th;
+        st.currentScreen = ScreenType::SONG;
+        st.cursorRow = 5;   // the cursor away from row 0
+        Canvas with, without;
+        TrackerLayout a, b;
+        a.draw(with, st);
+        p.tracks[0].chainRefs = {-1};
+        b.draw(without, st);
+        assert(differing(with, without, 0, 0, DESIGN_W, DESIGN_H) > 60);   // the chip and the number
+        // PHRASE: a loud and a soft note draw bars of different length.
+        st.currentScreen = ScreenType::PHRASE;
+        st.currentPhrase = 0;
+        p.phrases[0].steps[2].note = songcore::Note::C4();
+        p.phrases[0].steps[2].volume = 0x7F;
+        Canvas loud, soft;
+        TrackerLayout c1, c2;
+        c1.draw(loud, st);
+        p.phrases[0].steps[2].volume = 0x20;
+        c2.draw(soft, st);
+        assert(differing(loud, soft, 0, 0, DESIGN_W, DESIGN_H) > 10);
+    }
+    // ── Instrument colours (1.2): opposite the reference walk, drawn only for a slot with a sound ──
+    {
+        const Theme th = theme_default();
+        assert(inst_color(th, 0) != ref_color(th, 0));
+        for (int id = 0; id < 16; ++id) assert(ok_delta_e(inst_color(th, id), inst_color(th, id + 1)) > 0.05);
+        auto p = songcore::make_default_project();
+        AppState st;
+        st.project = &p;
+        st.theme = th;
+        st.currentScreen = ScreenType::INST_POOL;
+        st.currentInstrument = 5;   // the cursor away from slot 00, the list still at its top
+        Canvas freeSlot, used;
+        TrackerLayout a, b;
+        a.draw(freeSlot, st);
+        p.instruments[0].sampleFilePath = std::string("/@mutable/0/0");
+        b.draw(used, st);
+        assert(differing(freeSlot, used, 0, 0, 40, DESIGN_H) > 20);   // the mark left of the slot number
+    }
+    // ── Title underlines (1.2): CHAIN and PHRASE titles wear their number's colour ──────────────
+    {
+        auto p = songcore::make_default_project();
+        AppState st;
+        st.project = &p;
+        st.theme = theme_default();
+        st.currentScreen = ScreenType::CHAIN;
+        Canvas c1, c2;
+        TrackerLayout a, b;
+        st.currentChain = 1;
+        a.draw(c1, st);
+        st.currentChain = 2;
+        b.draw(c2, st);
+        // The title area: the digit changes too, so only count the underline row below the text.
+        int under = 0;
+        for (int y = 0; y < 120; ++y)
+            for (int x = 0; x < 200; ++x)
+                under += c1.pixels()[y * DESIGN_W + x] != c2.pixels()[y * DESIGN_W + x] &&
+                         c1.pixels()[y * DESIGN_W + x] == (ref_color(st.theme, 1) | 0xff000000u);
+        assert(under > 50);
+    }
+    // ── The colour cache never goes stale across themes (the Scene browser draws several a frame) ──
+    {
+        const Theme a = theme_default(), b = scene_preset(20, VisualizerType::SCOPE);
+        for (int round = 0; round < 3; ++round)
+            for (int id : {0, 1, 7, 42, 255, 300}) {
+                assert(ref_color(a, id) == ref_color_detail::walk(a.rowCursor, 0.0, id));
+                assert(ref_color(b, id) == ref_color_detail::walk(b.rowCursor, 0.0, id));
+                assert(inst_color(a, id) == ref_color_detail::walk(a.rowCursor, 180.0, id));
+                assert(inst_color(b, id) == ref_color_detail::walk(b.rowCursor, 180.0, id));
+            }
+    }
     std::cout << "ptdemo-fx-check: starfield, plasma, copper and scroller confined and deterministic; attract parts, "
-                 "loop and per-design look; COPPER / STARFIELD / PLASMA react to sound and save by name; afterglow, blinds and eleven transitions exact, also limited to a stage, the iris pixel-equal to the per-pixel rule; smooth scrolling lands on every in-between list exactly and the lists mark their scroll; status entrance, cursor glide, edit flash and rail trigger LEDs settle exactly; show peak caps hold and fall; Studio tab and screen-map highlights glide and settle; knob, fader and dynamics curve ease and settle; the cursor glides between synth controls; the phrase and chain playheads glide forward and jump at the wrap; Motion off ends running effects at once\n";
+                 "loop and per-design look; COPPER / STARFIELD / PLASMA react to sound and save by name; afterglow, blinds and eleven transitions exact, also limited to a stage, the iris pixel-equal to the per-pixel rule; smooth scrolling lands on every in-between list exactly and the lists mark their scroll; status entrance, cursor glide, edit flash and rail trigger LEDs settle exactly; show peak caps hold and fall; reference colours stay per number and the volume bar follows VOL; instrument colours mark used slots; CHAIN and PHRASE titles underline in their colour; the colour cache follows every theme; Studio tab and screen-map highlights glide and settle; knob, fader and dynamics curve ease and settle; the cursor glides between synth controls; the phrase and chain playheads glide forward and jump at the wrap; Motion off ends running effects at once\n";
     return 0;
 }

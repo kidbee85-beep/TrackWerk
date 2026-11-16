@@ -37,6 +37,7 @@ std::string confirm_dialog_title(ConfirmDialogState::Kind kind) {
         case ConfirmDialogState::Kind::EXIT:        return "EXIT?";
         case ConfirmDialogState::Kind::RECOVER:     return "RECOVER WORK?";
         case ConfirmDialogState::Kind::COLLECT_EXISTS: return "ALREADY IN SONGS";
+        case ConfirmDialogState::Kind::FIRST_BEAT:  return "DISCARD WORK?";
         case ConfirmDialogState::Kind::NONE:        break;
     }
     return "";

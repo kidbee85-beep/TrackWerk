@@ -39,21 +39,34 @@ GestureResult InputDispatcher::midi_map_screen(Gesture g) {
 
 void InputDispatcher::midi_action() {
     switch (static_cast<MidiRow>(s_.midiCursorRow)) {
-        case MidiRow::PANIC:
-            // Every owed note-off, through the consumer — the panic STOP sends.
-            host_.midi_out().panic();
-            s_.midiStatusText = port_open() ? "PANIC SENT" : "NO PORT";
+        case MidiRow::PANIC: {
+            // ⚠️ Not only the notes this app owes: Sustain off and All Notes Off on all sixteen
+            // channels, through the sender's lock (ExternalConsumer::panic_all_channels). SENT only when
+            // messages reached a port that did not break.
+            if (!port_open()) { host_.midi_out().panic(); s_.midiStatusText = midi_no_port_reason(); break; }
+            midiTestOffAtMs_ = 0;   // the panic ended the test note too
+            const int sent = host_.midi_out().panic_all_channels();
+            s_.midiStatusText = sent > 0 ? "PANIC SENT" : "SEND FAILED: REPLUG IT";
             break;
+        }
 
         case MidiRow::TEST: {
-            // ⚠️ Straight to the port, past the sequencer: a silent TEST must mean "no cable". The
-            // note-off follows at once.
-            if (!port_open()) { s_.midiStatusText = "NO PORT"; break; }
-            const uint8_t on[3]  = {0x90, 60, 100};   // C-4, channel 1, mf
-            const uint8_t off[3] = {0x80, 60, 0};
-            s_.midiOut->send(on, 3);
-            s_.midiOut->send(off, 3);
-            s_.midiStatusText = "TEST SENT";
+            // Through the sender's lock and tracked (a PANIC or a port change ends it), held 250 ms so a
+            // slow attack is heard; the note-off comes from run_due_midi_test_off, never by waiting.
+            if (!port_open()) { s_.midiStatusText = midi_no_port_reason(); break; }
+            cancel_midi_test();   // a test still sounding ends first
+            const int ch = std::clamp(s_.settings.midiTestChannel, 0, 15);
+            // C-4, mf. The sender owns the owed off (ExternalConsumer::test_note_on): any STOP, play
+            // start, PANIC, port swap or song note on that key takes it back, so the timer can never
+            // end a note the song plays.
+            if (!host_.midi_out().test_note_on(static_cast<uint8_t>(ch), 60, 100)) {
+                s_.midiStatusText = "SEND FAILED: REPLUG IT";
+                break;
+            }
+            midiTestOffAtMs_ = now_ms_ + 250;
+            midiTestPort_ = s_.midiOutOpenName;
+            const std::string chText = (ch + 1 < 10 ? "0" : "") + std::to_string(ch + 1);
+            s_.midiStatusText = "TEST C-4 CH " + chText + " SENT";
             break;
         }
 
@@ -69,6 +82,38 @@ void InputDispatcher::midi_action() {
         default:
             break;
     }
+}
+
+// Why nothing could be sent, in the words of the fix: no device at all, OUTPUT switched off, or a
+// saved device that is not plugged in.
+std::string InputDispatcher::midi_no_port_reason() const {
+    const bool anyDevice = static_cast<int>(s_.midiDeviceNames.size()) > MIDI_FIRST_PORT;
+    if (!anyDevice) return "NO MIDI DEVICE FOUND";
+    if (s_.settings.midiOutDevice.empty() || s_.settings.midiOutDevice == MIDI_PORT_OFF)
+        return "OUTPUT IS OFF: PICK ONE";
+    return "OUTPUT NOT CONNECTED";
+}
+
+// The TEST note's end, 250 ms after it began (or at once with `force`). The off is sent only while the
+// sender still owes it (see test_note_on), under the sender's lock.
+void InputDispatcher::run_due_midi_test_off(bool force) {
+    if (midiTestOffAtMs_ == 0 || (!force && now_ms_ < midiTestOffAtMs_)) return;
+    midiTestOffAtMs_ = 0;
+    // ⚠️ Never a late off to another device: a hotplug that moved AUTO to a new port drops it (the old
+    // port's panic on its close already ended the note).
+    if (!port_open() || s_.midiOutOpenName != midiTestPort_) {
+        host_.midi_out().drop_test_note();
+        return;
+    }
+    host_.midi_out().end_test_note();
+}
+
+// Leaving the test early: backgrounded, focus or controller lost, the MIDI screen left, another
+// project. Idempotent; ends only the test note, never panics a playing song.
+void InputDispatcher::cancel_midi_test() {
+    if (midiTestOffAtMs_ == 0 && !host_.midi_out().test_note_owed()) return;
+    midiTestOffAtMs_ = std::max<long long>(midiTestOffAtMs_, 1);
+    run_due_midi_test_off(/*force=*/true);
 }
 
 void InputDispatcher::clamp_midi_map_cursor() {

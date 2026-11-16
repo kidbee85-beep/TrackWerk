@@ -215,6 +215,9 @@ void http(const std::string& url,Transfer& transfer,const Cancel& cancel,const s
             option(20163,&sourceSocket);option(10164,&fixture);
             option(20079,&receiveHeaders);option(10029,&transfer);
             option(19,1L);option(20,5L); // Fail a silent/broken connection after5seconds.
+        }else if(transfer.stream){
+            // A progressive archive MP3 (1.2): the stream needs the status line and type too.
+            option(20079,&receiveHeaders);option(10029,&transfer);
         }
         option(99,1L);option(43,0L);option(20219,&progress);option(10057,&cancel);
         option(181,testBase().empty()?2L:3L); // HTTPS; HTTP only for explicit local fixture server.
@@ -569,6 +572,64 @@ void storePcm16(unsigned char* out, int16_t sample) {
     out[0] = static_cast<unsigned char>(value);
     out[1] = static_cast<unsigned char>(value >> 8);
 }
+
+// A finite MP3 heard while it downloads (1.2, Sources part B). One thread downloads, decodes it with
+// the bounded live decoder and appends PCM16 to the preview cache. `ready` counts frames that are
+// written AND flushed: a reader clamped to it never sees half a stereo frame or an unwritten byte.
+// Bounded like the old path: MEDIA_LIMIT compressed, PCM_LIMIT on disk. Nothing here touches the
+// audio callback; the source worker reads `ready` and the cache through its own handle.
+struct ProgressiveDownload {
+    std::atomic<bool> stop{false},done{false};
+    std::atomic<int64_t> ready{0},received{0};
+    std::atomic<int> rate{0},channels{0};
+    std::thread thread;std::mutex errorMutex;std::string error;
+    ProgressiveDownload(const std::string& url,const std::string& cachePath,const std::string& ca){
+        thread=std::thread([this,url,cachePath,ca]{
+            FILE* out=nullptr;
+            try{
+                out=std::fopen(cachePath.c_str(),"wb");if(!out)throw std::runtime_error("Cannot create the audio cache");
+                std::vector<int16_t> pending;pending.reserve(size_t(48000/4+1152)*2);int64_t written=0;
+                auto flush=[&]{
+                    if(pending.empty())return;
+                    const int ch=channels.load(std::memory_order_relaxed);
+                    const size_t frames=pending.size()/size_t(ch);
+                    if((written+int64_t(frames))*ch*int64_t(sizeof(int16_t))>PCM_LIMIT)
+                        throw std::runtime_error("Track is longer than the bounded 512 MiB preview cache");
+                    if(std::fwrite(pending.data(),sizeof(int16_t)*size_t(ch),frames,out)!=frames||std::fflush(out)!=0)
+                        throw std::runtime_error("Cannot write the audio cache; the SD card may be full");
+                    written+=int64_t(frames);pending.clear();
+                    ready.store(written,std::memory_order_release);   // only now readable
+                };
+                auto sink=[&](const float* data,size_t frames,int sampleRate,int ch){
+                    if(stop.load(std::memory_order_acquire))throw Cancelled{};
+                    if(!rate.load(std::memory_order_relaxed)){channels.store(ch,std::memory_order_relaxed);rate.store(sampleRate,std::memory_order_release);}
+                    for(size_t i=0;i<frames*size_t(ch);++i)pending.push_back(radioPcm16(data[i]));
+                    if(pending.size()>=size_t(sampleRate/4)*size_t(ch))flush();   // a quarter second at a time
+                };
+                Cancel cancel=[&]{return stop.load(std::memory_order_acquire);};
+                source_live::Mp3Decoder decoder;
+                Transfer transfer;transfer.limit=MEDIA_LIMIT;
+                transfer.stream=[&](const unsigned char* data,size_t n){received.fetch_add(int64_t(n),std::memory_order_relaxed);decoder.feed(data,n,sink);};
+                http(url,transfer,cancel,ca,false,180);
+                decoder.finish(sink);flush();
+                if(!decoder.frames())throw std::runtime_error("This MP3 contained no audio");
+            }catch(const Cancelled&){}
+            catch(const std::exception& e){std::lock_guard<std::mutex> lock(errorMutex);error=e.what();}
+            catch(...){std::lock_guard<std::mutex> lock(errorMutex);error="The MP3 download failed";}
+            if(out)std::fclose(out);
+            done.store(true,std::memory_order_release);
+        });
+    }
+    ~ProgressiveDownload(){stop=true;if(thread.joinable())thread.join();}
+    // The decoder words its errors for radio; an archive file is no station.
+    std::string failure(){
+        std::lock_guard<std::mutex> lock(errorMutex);std::string e=error;
+        for(const char* from:{"Live station","Live source","Live MP3","live MP3"}){
+            for(size_t at=e.find(from);at!=std::string::npos;at=e.find(from))e.replace(at,std::strlen(from),"MP3");
+        }
+        return e;
+    }
+};
 }
 
 struct SourceSampler::Impl {
@@ -582,6 +643,8 @@ struct SourceSampler::Impl {
     std::atomic<int> sourceRate{44100};std::atomic<int64_t> length{0};int producerRate=48000;double producerFrame=0;int64_t playBase=0;uint64_t audioEpoch=0,audioFrames=0;
     std::array<int16_t,4096*2> readBlock{};int64_t readBase=-1;int readCount=0;
     std::unique_ptr<LiveStream> live;bool liveMode=false;int liveSeconds=30,previewGain=100;
+    // A finite MP3 still downloading (part B): `pcm.frames` follows its flushed frames.
+    std::unique_ptr<ProgressiveDownload> progressive;bool progressiveAutoPlay=false,downloadEnded=true;
     int64_t liveTakeFrames=0,liveTakeMaximum=0;uint64_t liveTakeEpoch=0;uint32_t liveTakeRequest=0;
     FILE* liveTake=nullptr;std::string liveTakePath,liveTakeTemporary;
     source_live::StereoHistory liveHistory;
@@ -620,7 +683,7 @@ struct SourceSampler::Impl {
         if(!curl().lib){state["status"]="network_unavailable";state["error"]=curl().failure;}
         loadFavorites();publish();worker=std::thread([this]{run();});
     }
-    ~Impl(){quit=true;++cancelEpoch;playing=false;enabled=false;wake.notify_all();if(worker.joinable())worker.join();stopLive();quiesce();if(pcmFile)std::fclose(pcmFile);}
+    ~Impl(){quit=true;++cancelEpoch;playing=false;enabled=false;wake.notify_all();if(worker.joinable())worker.join();progressive.reset();stopLive();quiesce();if(pcmFile)std::fclose(pcmFile);}
     void quiesce(){enabled.store(false);while(readers.load()!=0)std::this_thread::yield();}
     int64_t frameMs(int64_t frame)const{return pcm.rate?std::max<int64_t>(0,frame)*1000/pcm.rate:0;}
     int64_t currentMs()const{return frameMs(position.load());}
@@ -643,7 +706,12 @@ struct SourceSampler::Impl {
 #endif
         state["providers"].push_back({{"id","radio_browser"},{"name","Radio Browser / live"},{"available",curl().lib!=nullptr},{"live",true}});
         state["providers"].push_back({{"id","somafm"},{"name","SomaFM / personal"},{"available",curl().lib!=nullptr},{"live",true}});
-        state["capabilities"]={{"live_mp3",true},{"live_history",true},{"preview_gain",true},{"favorites",true},{"take_request_id",true}};
+        state["capabilities"]={{"live_mp3",true},{"live_history",true},{"preview_gain",true},{"favorites",true},{"take_request_id",true},{"progressive_mp3",true}};
+        // Part B: what is loaded of a file still downloading. duration_ms is the loaded length;
+        // total_ms the catalogue's (0 unknown). A backend without these fields is not progressive.
+        state["downloading"]=progressive!=nullptr;
+        state["loaded_ms"]=liveMode?0:pcm.rate?pcm.frames*1000/pcm.rate:0;
+        state["total_ms"]=liveMode?0:active.duration;
         state["results"]=json::array();for(const auto& t:results)state["results"].push_back(itemJson(t));state["tracks"]=json::array();for(const auto& t:tracks)state["tracks"].push_back(itemJson(t));
         auto raw=state.dump(-1,' ',true);{std::lock_guard<std::mutex> lock(snapshotMutex);snapshot=std::move(raw);}lastPublish=Clock::now();
     }
@@ -1037,7 +1105,7 @@ struct SourceSampler::Impl {
         }
     }
     void pause(){playing=false;quiesce();}
-    void dropTrack(){stopLive();liveMode=false;liveModeAudio=false;pause();if(pcmFile){std::fclose(pcmFile);pcmFile=nullptr;}prepared=false;pcm={};position=0;active={};trackIndex=-1;recording=false;readBase=-1;readCount=0;inMs=outMs=0;clearClip();}
+    void dropTrack(){progressive.reset();downloadEnded=true;stopLive();liveMode=false;liveModeAudio=false;pause();if(pcmFile){std::fclose(pcmFile);pcmFile=nullptr;}prepared=false;pcm={};position=0;active={};trackIndex=-1;recording=false;readBase=-1;readCount=0;inMs=outMs=0;clearClip();}
     void seek(int64_t ms,bool play){
         if(liveMode)throw std::runtime_error("LIVE radio cannot seek; record a timed take instead");
         if(!prepared)throw std::runtime_error("Select an audio track first");pause();position=std::clamp<int64_t>(ms*pcm.rate/1000,0,pcm.frames);producerFrame=double(position.load());producerRate=outputRate.load();playBase=position.load();readIndex=writeIndex=0;atEnd=false;readBase=-1;readCount=0;++playEpoch;
@@ -1051,7 +1119,8 @@ struct SourceSampler::Impl {
     void fill(){
         if(!prepared||!pcmFile)return;auto r=readIndex.load(std::memory_order_acquire);auto w=writeIndex.load(std::memory_order_relaxed);const auto maximum=RING-2;
         while(w-r<maximum&&producerFrame<pcm.frames){const int64_t frame=int64_t(producerFrame);const double fraction=producerFrame-frame;float l0=sample(frame,0),r0=sample(frame,1),l1=sample(std::min(frame+1,pcm.frames-1),0),r1=sample(std::min(frame+1,pcm.frames-1),1);ring[(w%RING)*2]=float(l0+(l1-l0)*fraction);ring[(w%RING)*2+1]=float(r0+(r1-r0)*fraction);++w;producerFrame+=double(pcm.rate)/producerRate;}
-        writeIndex.store(w,std::memory_order_release);if(producerFrame>=pcm.frames)atEnd=true;
+        // At the loaded edge of a file still downloading, playback waits for more instead of ending.
+        writeIndex.store(w,std::memory_order_release);if(producerFrame>=pcm.frames)atEnd=downloadEnded;
     }
     void audio(float* output,int frames,int rate){
         if(rate<8000||rate>192000||frames<=0)return;outputRate.store(rate);readers.fetch_add(1);
@@ -1071,10 +1140,58 @@ struct SourceSampler::Impl {
         }
         readers.fetch_sub(1);
     }
+    // MP3 from Archive / Commons plays while it downloads; every other format and YouTube keep the
+    // download-then-decode path. PT_SOURCE_PROGRESSIVE=0 forces that path (fallback check).
+    bool progressiveFile(const Track& t)const{
+        if(provider=="youtube")return false;
+        if(const char* off=std::getenv("PT_SOURCE_PROGRESSIVE");off&&std::string(off)=="0")return false;
+        return (t.ext.empty()?extension(t.url):t.ext)=="mp3";
+    }
+    std::string clockText(int64_t frames)const{
+        const auto ms=pcm.rate?frames*1000/pcm.rate:0;char text[24];
+        std::snprintf(text,sizeof(text),"%lld:%02lld",static_cast<long long>(ms/60000),static_cast<long long>(ms/1000%60));return text;
+    }
+    void startProgressive(int index,Track t,bool autoPlay){
+        dropTrack();   // ends a running download and closes the old cache before a new one starts
+        pcmPath=(fs::path(cacheDir)/"preview.s16").string();std::remove(pcmPath.c_str());
+        active=std::move(t);trackIndex=index;progressiveAutoPlay=autoPlay;downloadEnded=false;
+        state["busy"]=true;message("loading","Buffering the MP3; it plays before the download ends. Stop cancels.");publish();
+        progressive=std::make_unique<ProgressiveDownload>(active.url,pcmPath,ca);
+    }
+    // The worker's half: become playable after half a second, then follow the flushed frames.
+    void pumpProgressive(){
+        if(!progressive)return;
+        auto& d=*progressive;
+        const auto ready=d.ready.load(std::memory_order_acquire);
+        const bool finished=d.done.load(std::memory_order_acquire);
+        if(!prepared){
+            const int rate=d.rate.load(std::memory_order_acquire);
+            if(!(rate>0&&(ready>=rate/2||(finished&&ready>0)))){
+                if(!finished)return;
+                const auto error=d.failure();progressive.reset();downloadEnded=true;std::remove(pcmPath.c_str());active={};trackIndex=-1;
+                throw std::runtime_error(error.empty()?"This MP3 contained no audio":error);
+            }
+            pcmFile=std::fopen(pcmPath.c_str(),"rb");
+            if(!pcmFile){progressive.reset();downloadEnded=true;active={};trackIndex=-1;throw std::runtime_error("Cannot open the audio cache");}
+            pcm={rate,d.channels.load(std::memory_order_acquire),ready};prepared=true;sourceRate=rate;length=ready;
+            inMs=0;outMs=std::min<int64_t>(30000,ready*1000/rate);state["busy"]=false;
+            seek(0,progressiveAutoPlay);
+            message("ready",progressiveAutoPlay?"Playing while it downloads. Seek, IN/OUT and Render reach the loaded part."
+                                               :"Audio ready while it downloads. Play to listen, then set IN/OUT.");
+        }
+        if(ready>pcm.frames){pcm.frames=ready;length.store(ready);}
+        if(finished){
+            const auto error=d.failure();progressive.reset();downloadEnded=true;
+            if(!error.empty())message("partial","Download stopped at "+clockText(pcm.frames)+": "+error+". The loaded part plays and renders.");
+        }
+    }
     void prepareTrack(int index,bool autoPlay,const Cancel& cancel){
-        if(index<0||index>=int(tracks.size()))throw std::runtime_error("Choose a valid track");Track t=tracks[index];pause();recording=false;clearClip();state["busy"]=true;message("loading","Downloading and preparing audio preview; Stop cancels.");publish();
+        if(index<0||index>=int(tracks.size()))throw std::runtime_error("Choose a valid track");Track t=tracks[index];
+        if(progressive){progressive.reset();downloadEnded=true;}   // one download at a time; the old part stays until replaced
+        pause();recording=false;clearClip();state["busy"]=true;message("loading","Downloading and preparing audio preview; Stop cancels.");publish();
         if(t.live){startLive(index,std::move(t),autoPlay,cancel);return;}
         if(provider=="youtube")t=youtubeResolve(tool,t,cancel);if(!allowed(t.url))throw std::runtime_error("Unsupported audio source address");
+        if(progressiveFile(t)){startProgressive(index,std::move(t),autoPlay);return;}
         const auto media=(fs::path(cacheDir)/"source.media").string();const auto cache=(fs::path(cacheDir)/"preview.s16.tmp").string();
         try{
             if(provider=="youtube"){
@@ -1106,6 +1223,8 @@ struct SourceSampler::Impl {
     void render(const Cancel& cancel,uint32_t request=0){
         if(liveMode)throw std::runtime_error("LIVE radio uses timed Record, not IN/OUT rendering");
         if(!prepared)throw std::runtime_error("Select an audio track first");if(outMs<=inMs||outMs-inMs>CLIP_LIMIT_MS)throw std::runtime_error("Choose an IN/OUT range up to "+std::to_string(CLIP_LIMIT_MS/1000)+" seconds");pause();recording=false;clearClip();state["busy"]=true;state["rendering"]=true;message("rendering","Rendering marked audio to PCM16 WAV.");publish();
+        // OUT past the loaded audio (a file still downloading) is refused, never cut short.
+        if(outMs*pcm.rate/1000>pcm.frames)throw std::runtime_error("OUT is past the loaded audio ("+clockText(pcm.frames)+" so far). Wait for more, or move OUT.");
         const int64_t first=std::clamp<int64_t>(inMs*pcm.rate/1000,0,pcm.frames),last=std::clamp<int64_t>(outMs*pcm.rate/1000,first,pcm.frames);if(last<=first)throw std::runtime_error("The selected region contains no frames");
         const auto stamp=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();const std::string path=(fs::path(root)/"Samples"/"Digging"/("Digging-"+std::to_string(stamp)+".wav")).string(),temporary=path+".tmp";
         try{
@@ -1141,18 +1260,25 @@ struct SourceSampler::Impl {
             const int index=int(number(args,"index",selected));if(index<0||index>=int(results.size()))throw std::runtime_error("Choose a valid result");dropTrack();tracks.clear();sourceTracks.clear();selected=index;state["busy"]=true;message("loading","Reading available audio tracks...");publish();if(provider=="archive")tracks=archiveOpen(results[index],cancel,ca);else tracks={results[index]};sourceTracks=tracks;trackIndex=tracks.empty()?-1:0;sortTitle=false;state["busy"]=false;message("tracks","Choose a track and press A to listen.");
             if(tracks.size()==1&&args.value("auto_listen",false))prepareTrack(0,true,cancel);
         }else if(a=="track"||a=="listen"){
-            const int index=int(number(args,"index",trackIndex));if(a=="listen"&&index==trackIndex&&prepared){
+            const int index=int(number(args,"index",trackIndex));
+            if(a=="listen"&&index==trackIndex&&progressive&&!prepared){progressiveAutoPlay=!progressiveAutoPlay;message("loading",progressiveAutoPlay?"Buffering; it plays when ready.":"Buffering; it waits paused when ready.");return;}
+            if(a=="listen"&&index==trackIndex&&prepared){
                 if(liveMode){if(playing.load())pauseRadio();else resumeRadio(cancel);}
-                else{if(playing.load())pause();else seek(position.load()>=pcm.frames?0:currentMs(),true);message("ready",playing.load()?"Playing source audio.":"Source paused.");}
+                else{if(playing.load())pause();else seek(position.load()>=pcm.frames&&downloadEnded?0:currentMs(),true);message("ready",playing.load()?"Playing source audio.":progressive?"Paused; the download continues.":"Source paused.");}
             }else prepareTrack(index,a=="listen",cancel);
-        }else if(a=="play"){if(liveMode)resumeRadio(cancel);else{if(position.load()>=pcm.frames)seek(0,true);else seek(currentMs(),true);message("playing","Playing source audio.");}}
-        else if(a=="pause"){if(liveMode){pauseRadio();return;}if(recording){outMs=std::min<int64_t>(currentMs(),inMs+CLIP_LIMIT_MS);recording=false;}pause();message("paused","Source paused.");}
+        }else if(a=="play"){if(liveMode)resumeRadio(cancel);else{if(position.load()>=pcm.frames&&downloadEnded)seek(0,true);else seek(currentMs(),true);message("playing","Playing source audio.");}}
+        else if(a=="pause"){if(liveMode){pauseRadio();return;}if(recording){outMs=std::min<int64_t>(currentMs(),inMs+CLIP_LIMIT_MS);recording=false;}pause();message("paused",progressive?"Paused; the download continues. Stop cancels it.":"Source paused.");}
         else if(a=="seek"){recording=false;const bool wasPlaying=playing.load();seek(number(args,"position_ms",currentMs()),wasPlaying);message("ready","Position changed.");}
         else if(a=="mark_in"||a=="mark_out"||a=="set_region"){
             if(liveMode)throw std::runtime_error("LIVE radio has no seek/IN/OUT markers; use a timed recording");
             if(!prepared)throw std::runtime_error("Select an audio track first");const auto duration=pcm.frames*1000/pcm.rate;int64_t start=inMs,end=outMs;
             if(a=="mark_in")start=number(args,"position_ms",currentMs());else if(a=="mark_out")end=number(args,"position_ms",currentMs());else{start=number(args,"in_ms",inMs);end=number(args,"out_ms",outMs);}
-            start=std::clamp<int64_t>(start,0,std::max<int64_t>(0,duration-1));end=std::clamp<int64_t>(end,0,duration);if(a=="mark_in"&&end<=start)end=std::min<int64_t>(duration,start+30000);if(end<=start)throw std::runtime_error("OUT must follow IN");end=std::min<int64_t>(end,start+CLIP_LIMIT_MS);inMs=start;outMs=end;clearClip();message("ready","IN/OUT updated.");
+            // Still downloading: a marker past the loaded audio is refused, never quietly moved.
+            if(!downloadEnded&&a!="mark_in"&&(end>duration||start>=duration))
+                throw std::runtime_error("That is past the loaded audio ("+clockText(pcm.frames)+" so far). Wait for more, or set it earlier.");
+            const bool outCut=!downloadEnded&&a=="mark_in"&&start+30000>duration;
+            start=std::clamp<int64_t>(start,0,std::max<int64_t>(0,duration-1));end=std::clamp<int64_t>(end,0,duration);if(a=="mark_in"&&end<=start)end=std::min<int64_t>(duration,start+30000);if(end<=start)throw std::runtime_error("OUT must follow IN");end=std::min<int64_t>(end,start+CLIP_LIMIT_MS);inMs=start;outMs=end;clearClip();
+            message("ready",outCut?"IN set. OUT stops at the loaded end ("+clockText(pcm.frames)+") for now.":"IN/OUT updated.");
         }else if(a=="record"){
             if (liveMode) {
                 const bool enable = args.value("enabled", !recording);
@@ -1179,6 +1305,14 @@ struct SourceSampler::Impl {
             if(index<0||index>=int(list.size()))throw std::runtime_error("Select a live station to save");toggleFavorite(list[index]);
         }
         else if(a=="sort")reorder(text(args,"order")=="title");
+        else if((a=="cancel"||a=="stop")&&progressive){
+            // Stop ends the download; what is loaded stays playable and renderable (Pause keeps downloading).
+            progressive.reset();downloadEnded=true;
+            if(!prepared){dropTrack();state["busy"]=false;message("stopped","Download cancelled before any audio arrived.");return;}
+            if(recording){outMs=std::min<int64_t>(currentMs(),inMs+CLIP_LIMIT_MS);recording=false;}
+            pause();state["busy"]=false;state["rendering"]=false;
+            message("stopped","Download cancelled at "+clockText(pcm.frames)+". The loaded part stays playable; choose the track again for the rest.");
+        }
         else if(a=="cancel"||a=="stop"){if(liveMode){stopLive();pause();prepared=false;state["busy"]=false;state["rendering"]=false;message("stopped","Live source stopped. Play reconnects; an unfinished recording was discarded.");return;}if(recording){outMs=std::min<int64_t>(currentMs(),inMs+CLIP_LIMIT_MS);recording=false;}pause();state["busy"]=false;state["rendering"]=false;message("stopped","Source stopped. Play resumes at the current position.");}
         else if(a=="info")message("source",active.page.empty()?"Source page appears above; no web browser is installed.":"Source: "+active.page+" | License: "+active.license);
         else if(a=="query_dialog"){queryRequested=true;message("ready","Use the on-screen search keyboard, or select Random.");}
@@ -1191,6 +1325,7 @@ struct SourceSampler::Impl {
             Job job;bool have=false;{std::unique_lock<std::mutex> lock(queueMutex);if(jobs.empty())wake.wait_for(lock,std::chrono::milliseconds(5));if(!jobs.empty()){job=std::move(jobs.front());jobs.pop_front();have=true;}}
             try{
                 if(have)dispatch(job);
+                pumpProgressive();
                 if(liveMode&&(live||liveHistory.end())) {writeHistoryExport();pumpLive();}
                 else if(playing.load()){
                     if(producerRate!=outputRate.load())seek(currentMs(),true);fill();

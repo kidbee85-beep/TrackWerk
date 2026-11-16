@@ -4,6 +4,7 @@
 #include <string>
 
 #include "ui/sample_granular_presets.h"
+#include "ui/sound_browser.h"
 #include "ui/theme_io.h"
 #include "ui/demo_font_style.h"
 #include "vendor/nlohmann/json.hpp"
@@ -85,6 +86,23 @@ bool load_settings(FileSystem& fs, SettingsValues& values, Theme& theme) {
                 favorites.push_back(index);
         }
     }
+    // The sound browser's lists: a damaged or hand-edited entry is skipped, duplicates collapse, and
+    // the lists stay bounded; an older file without them leaves both empty.
+    auto read_keys = [&](const char* name, std::vector<std::string>& out, int max) {
+        out.clear();
+        const auto saved = j.find(name);
+        if (saved == j.end() || !saved->is_array()) return;
+        for (const auto& key : *saved) {
+            if (static_cast<int>(out.size()) == max) break;
+            if (!key.is_string()) continue;
+            const auto k = key.get<std::string>();
+            if (sound_key_valid(k) && std::find(out.begin(), out.end(), k) == out.end()) out.push_back(k);
+        }
+    };
+    read_keys("soundFavorites", values.soundFavorites, kSoundFavoritesMax);
+    read_keys("soundRecent", values.soundRecent, kSoundRecentMax);
+    values.soundPreviewLevel = clamp(get_int(j, "soundPreviewLevel", kSoundPreviewLevelDefault) / 10 * 10,
+                                     kSoundPreviewLevelMin, kSoundPreviewLevelMax);
     values.navSongRelative    = get_bool(j, "navSongRelative", values.navSongRelative);
     values.traceEnabled       = get_bool(j, "trace",              values.traceEnabled);
 
@@ -109,12 +127,15 @@ bool load_settings(FileSystem& fs, SettingsValues& values, Theme& theme) {
     values.midiControlChannel = get_int(j, "midi_control_channel", values.midiControlChannel);
     if (values.midiControlChannel < 0 || values.midiControlChannel > songcore::MIDI_CTL_CH_ALL)
         values.midiControlChannel = songcore::MIDI_CTL_CH_ALL;
+    values.midiTestChannel = get_int(j, "midi_test_channel", values.midiTestChannel);
+    if (values.midiTestChannel < 0 || values.midiTestChannel > 15) values.midiTestChannel = 0;
     values.midiInVoices = get_int(j, "midi_in_voices", values.midiInVoices);
     if (values.midiInVoices < 1 || values.midiInVoices > 8) values.midiInVoices = 4;
     values.midiVelocity = get_bool(j, "midi_velocity", values.midiVelocity);
     values.audioOutput  = get_string(j, "audio_output", values.audioOutput);   // a driver name
 
     values.autosaveResumeAuto = get_bool(j, "autosaveResumeAuto", values.autosaveResumeAuto);
+    values.firstBeatDone = get_bool(j, "firstBeatDone", values.firstBeatDone);
 
     // ── The device rows, read and written on every platform even where not shown ─────────────────
     // ⚠️ Android's prefs import writes these keys before boot; a key one side writes and the other drops
@@ -162,6 +183,10 @@ std::string serialize_settings(const SettingsValues& values, const Theme& theme)
     j["lastSampleScroll"]   = values.lastSampleScroll;
     j["lastSampleSort"]     = values.lastSampleSort;
     if (!values.sampleGranularFavorites.empty()) j["sampleGranularFavorites"] = values.sampleGranularFavorites;
+    // Written only when used, so an older file stays byte-identical.
+    if (!values.soundFavorites.empty()) j["soundFavorites"] = values.soundFavorites;
+    if (!values.soundRecent.empty()) j["soundRecent"] = values.soundRecent;
+    if (values.soundPreviewLevel != kSoundPreviewLevelDefault) j["soundPreviewLevel"] = values.soundPreviewLevel;
     j["navSongRelative"]    = values.navSongRelative;
     j["abxy"]               = values.abxyIndex;            // 0 AUTO, 1 XBOX, 2 NINTENDO
     j["touchButtonsWithPad"] = values.touchButtonsWithPad;
@@ -170,6 +195,7 @@ std::string serialize_settings(const SettingsValues& values, const Theme& theme)
     j["help"]               = values.helpMode;             // 0 OFF, 1 SHORT, 2 FULL
     j["trace"]              = values.traceEnabled;
     j["autosaveResumeAuto"] = values.autosaveResumeAuto;
+    if (values.firstBeatDone) j["firstBeatDone"] = true;   // an older file stays byte-identical
     j["visualizer"]         = static_cast<int>(theme.visualizerType);
 
     j["midi_out_device"]    = values.midiOutDevice;
@@ -179,6 +205,7 @@ std::string serialize_settings(const SettingsValues& values, const Theme& theme)
     j["midi_sync_out"]      = values.midiSyncOut;
     j["midi_sync_in"]       = values.midiSyncIn;
     j["midi_control_channel"] = values.midiControlChannel;   // 0-15 (shown 01-16), or MIDI_CTL_CH_ALL
+    if (values.midiTestChannel != 0) j["midi_test_channel"] = values.midiTestChannel;   // older files stay as they were
     j["midi_in_voices"]       = values.midiInVoices;         // 1 = MONO, 2-8 = POLY
     j["midi_velocity"]        = values.midiVelocity;
     j["audio_output"]         = values.audioOutput;

@@ -67,7 +67,12 @@ int main(int argc,char** argv){
     old.root={0,2};old.filterType="lp";old.filterCut=0;old.drive=255;old.reverse=true;old.tableId=3;
     old.modSlots[0].type=songcore::ModType::AHD;old.modSlots[0].dest=songcore::ModDest::VOLUME;old.modSlots[0].decay=1;
     host.edit_project().instruments[17].name="Unrelated instrument";
-    AppState s=ready(host,backend,file,73);action(s,host,*engine,fs);
+    AppState s=ready(host,backend,file,73);
+    // 1.2 (Sources USE): slot 73 is in use, so the first A only asks; nothing moves until the second.
+    const auto occupied=songcore::serialize_project(host.project());
+    action(s,host,*engine,fs);
+    assert(s.studioOpen&&s.sourceSampler.replaceArmed&&songcore::serialize_project(host.project())==occupied&&s.projectVersion==0);
+    action(s,host,*engine,fs);
     assert(!s.studioOpen&&s.pendingSampleEditor&&s.currentInstrument==73&&s.projectVersion==1);
     const auto copied=s.sourceImportedPath;assert(!copied.empty());
     assert(std::filesystem::path(copied).parent_path()==out/"app-data/Samples/Clips");

@@ -3,6 +3,7 @@
 
 // The layout grid every screen is built on, and the cell painters the editors share.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -62,6 +63,62 @@ inline Argb with_alpha(Argb c, float alpha) {
     const float a = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
     const Argb  v = static_cast<Argb>(a * 255.0f + 0.5f);   // round
     return (v << 24) | (c & 0x00FFFFFFu);
+}
+
+// ─── Reference colours (TrackWerk 1.2) ───────────────────────────────────────────────────────────
+
+// A reference number's own colour: chain numbers on SONG, phrase numbers on CHAIN. The theme's accent
+// turned round the OkLch hue circle by the golden angle per number, so neighbours differ, the same
+// number always looks the same, and every palette keeps its own lightness. A grey accent gets a
+// little chroma so it still yields a hue.
+namespace ref_color_detail {
+// One OkLch walk per accent and start angle, cached: a SONG screen asks for up to 128 colours a frame,
+// and the conversion (cube roots, a gamut walk) is real work on a Cortex-A7. A new accent (another
+// theme) clears it and only the ids asked for are computed again; ids beyond the table are computed
+// directly. UI thread only.
+struct Table {
+    Argb accent = 0;
+    bool have[256] = {};
+    Argb colours[256] = {};
+};
+inline Argb walk(Argb accent, double startDeg, int id) {
+    OkLch c = to_oklch(accent);
+    c.C = c.C < 0.08 ? 0.08 : c.C;
+    c.H = std::fmod(c.H + startDeg + 137.50776 * id, 360.0);
+    if (c.H < 0) c.H += 360.0;
+    return to_argb(c);
+}
+inline Argb lookup(Table& table, Argb accent, double startDeg, int id) {
+    if (id < 0 || id >= 256) return walk(accent, startDeg, id);
+    if (table.accent != accent) {   // another theme: forget, and fill again only what is asked for
+        std::fill(std::begin(table.have), std::end(table.have), false);
+        table.accent = accent;
+    }
+    if (!table.have[id]) {
+        table.colours[id] = walk(accent, startDeg, id);
+        table.have[id] = true;
+    }
+    return table.colours[id];
+}
+}  // namespace ref_color_detail
+
+inline Argb ref_color(const Theme& t, int id) {
+    static ref_color_detail::Table table;
+    return ref_color_detail::lookup(table, t.rowCursor, 0.0, id);
+}
+
+// An instrument's own colour, wherever it appears (PHRASE INST, the pool, the INSTRUMENT title): the
+// same golden-angle walk as ref_color, started opposite on the hue circle so instrument 00 and
+// chain 00 do not look alike.
+inline Argb inst_color(const Theme& t, int id) {
+    static ref_color_detail::Table table;
+    return ref_color_detail::lookup(table, t.rowCursor, 180.0, id);
+}
+
+// The chip behind a reference cell: a faint tint and a bright edge at its left.
+inline void draw_ref_chip(Canvas& c, int x, int y, int w, int h, Argb ink) {
+    c.fill_rect(x, y, w, h, with_alpha(ink, .16f));
+    c.fill_rect(x, y, 2, h, with_alpha(ink, .85f));
 }
 
 // ─── Modal chrome ────────────────────────────────────────────────────────────────────────────────

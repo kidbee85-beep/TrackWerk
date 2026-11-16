@@ -231,7 +231,7 @@ bool SdlAudioEngine::openStream() {
 #ifndef _WIN32
     // An `hw:` AUDIODEV is exclusive: if something else holds the chip, play through the default
     // device instead. SDL reads AUDIODEV at open time.
-    if (device_ == 0 && std::getenv("AUDIODEV") != nullptr) {
+    if (device_ == 0 && std::getenv("AUDIODEV") != nullptr && !strictRoute_) {
         std::fprintf(stderr, "audio:   AUDIODEV=%s failed (%s), trying the default device\n",
                      std::getenv("AUDIODEV"), SDL_GetError());
         unsetenv("AUDIODEV");
@@ -251,6 +251,10 @@ bool SdlAudioEngine::openStream() {
     }
 
     // Before the unpause: the device opens paused, so no race on these fields.
+    {
+        const char* opened = std::getenv("AUDIODEV");
+        openedAudiodev_ = opened != nullptr ? opened : "";
+    }
     sampleRate_   = got.freq;
     channels_     = got.channels;
     bufferFrames_ = got.samples;  // ⚠️ the size the device chose

@@ -29,6 +29,11 @@ void InputDispatcher::on_help_button(Button button) {
         s_.helpOpen = !s_.helpFull;
     } else if (button == Button::B || button == Button::SELECT) {
         on_help_dismiss();
+    } else if (button == Button::START) {
+        toggle_first_beat();   // help's foot says so (draw_first_beat_help_strip)
+    } else if (button == Button::L_SHIFT && s_.firstBeat.active) {
+        first_beat_step_back(s_);
+        on_help_dismiss();
     }
 }
 

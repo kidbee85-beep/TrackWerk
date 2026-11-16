@@ -270,7 +270,7 @@ enum class MidiRow {
     VELOCITY = 8,   // ON | OFF              — OFF plays every live key at full strength (settings.json)
     MAPPING  = 9,   // A: the mapping list   — the project
     PANIC    = 10,  // A: ALL NOTES OFF
-    TEST     = 11,  // A: C-4 CH 1
+    TEST     = 11,  // A: C-4 on the test channel (A+D-PAD picks 01..16)
 };
 
 // Unlike PROJECT's, these rows may be inserted: nothing stores a MIDI row index.

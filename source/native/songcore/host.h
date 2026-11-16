@@ -31,6 +31,10 @@
 
 namespace songcore {
 
+// A .pti's text into a preset, with the checks INSTRUMENT > LOAD makes (types of paths, synth
+// parameters, FM voice, granular block). False for anything else; never throws.
+bool parse_instrument_preset_checked(const std::string& blob, InstrumentPreset& out);
+
 class SongcoreHost {
   public:
     // `engine` may be null (a trace-only host for tests). The rate is re-read from it on every verb.
@@ -322,6 +326,9 @@ class SongcoreHost {
 
     // A .pti into instrument `id`. A parse/decode failure preserves its old instrument and table.
     bool load_instrument_preset(int id, const std::string& path);
+    // Put a slot back as it was, field for field (the sound browser's B after a use). An empty
+    // instrument clears the slot; a synth or sample reloads its source. False if the source failed.
+    bool restore_instrument(int id, const Instrument& ins, const std::optional<Table>& table);
     bool instrument_media_ready(int id) const;
     // Every transport start, including MIDI, passes here before scheduling its new take.
     void set_before_play_hook(std::function<void()> hook) {beforePlayHook_=std::move(hook);}

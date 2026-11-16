@@ -183,10 +183,16 @@ int SDLCALL on_app_event(void* userdata, SDL_Event* e) {
         }
     }
 
-    // 2. A backgrounded app can be killed before the 3 s autosave debounce fires.
+    // 2. A MIDI TEST note still sounding ends now: a frozen process would never send its off.
+    // Only that note — a song left playing under the service is not panicked. A Sources "A again
+    // replaces" question is dropped too; the source itself keeps playing.
+    c->dispatch->cancel_midi_test();
+    ui::source_sampler_disarm(c->state->sourceSampler);
+
+    // 3. A backgrounded app can be killed before the 3 s autosave debounce fires.
     c->dispatch->flush_autosave();
 
-    // 3. Settings: on Android the save after the loop runs only on a real destroy.
+    // 4. Settings: on Android the save after the loop runs only on a real destroy.
     switch (c->settingsAutosave.flush(*c->filesystem, c->state->settings, c->state->theme)) {
         using SW = ui::SettingsWrite;
         case SW::UNCHANGED: break;
@@ -199,7 +205,7 @@ int SDLCALL on_app_event(void* userdata, SDL_Event* e) {
             break;
     }
 
-    // 4. ⚠️ A stream left open in the background comes back dead. Last, because the close waits for
+    // 5. ⚠️ A stream left open in the background comes back dead. Last, because the close waits for
     // the callback in flight; the loop reopens it on return.
     if (!keep) {
         c->audio->closeStream();
@@ -916,6 +922,7 @@ void FrameLoop::update_overlay() {
 // The name is rewritten only when a pick plays, so a driver absent at boot is tried again next launch.
 void FrameLoop::sync_audio_output(Uint64 now) {
     if (!cfg.audioOutputs) return;
+    cfg.audioOutputs->poll(static_cast<uint64_t>(now));
 
     ui::SettingsValues&             sv   = state.settings;
     const std::vector<std::string>& outs = cfg.audioOutputs->names();
@@ -964,7 +971,9 @@ void FrameLoop::sync_audio_output(Uint64 now) {
     }
 
     // Also moves with no pick: a driver that did not come back after a reset.
-    const int active = cfg.audioOutputs->active();
+    // Bounded: a list that just shrank (a USB card pulled out) must never be read past its end.
+    const int reported = cfg.audioOutputs->active();
+    const int active = reported >= 0 && reported < static_cast<int>(outs.size()) ? reported : 0;
     if (active != playingAudioOut) {
         if (pick < 0 && playingAudioOut > 0) {
             state.statusMessage = "AUDIO OUT LOST: SYSTEM";
@@ -975,7 +984,7 @@ void FrameLoop::sync_audio_output(Uint64 now) {
         host.set_midi_offset_ms(ui::midi_offset_in_force(sv, state.midiAutoOffsetMs));
     }
     shownAudioOut = sv.audioOutIndex = active;
-    state.audioOutText = outs[static_cast<size_t>(active)];
+    state.audioOutText = outs.empty() ? std::string() : outs[static_cast<size_t>(active)];
 }
 
 void FrameLoop::handle_input(Uint64 now) {
@@ -1051,6 +1060,8 @@ void FrameLoop::handle_sdl_event(const SDL_Event& e, Uint64 now) {
         if(state.studioTab==3)state.studioAUsed=false;
         ui::live_resample_stop(state,engineRef,*cfg.filesystem);
         ui::sample_granular_recording_interrupt(state,host,engineRef);
+        dispatch.cancel_midi_test();   // the TEST note's off is not left to a timer that may not run
+        ui::source_sampler_disarm(state.sourceSampler);   // no "A again replaces" across a focus loss
     }
     // Any event may change the screen; over-drawing costs one frame, and present() compares pixels.
     sawInput = true;
@@ -1282,6 +1293,9 @@ void FrameLoop::draw_frame(Uint64 now) {
     // first frame, a settling resize, falling meters, a timed status message (and the frame it clears
     // on). present() then skips a frame identical to the screen. ⚠️ That net cannot catch a frame that
     // is never drawn — hence the last terms.
+    // First beat: tick off the steps the player has done (project, screen, transport); a new step
+    // redraws the card.
+    const bool firstBeatChanged = ui::first_beat_poll(state, state.isPlaying);
     const bool timedWork = dispatch.has_pending_timed_work();
     // Motion in flight, and one frame after it: the last drawn frame of a glide or slide may still
     // be a few pixels short, so the frame past its end is drawn too and lands it exactly.
@@ -1303,7 +1317,7 @@ void FrameLoop::draw_frame(Uint64 now) {
     if(sourceImported&&state.pendingSampleEditor){state.pendingSampleEditor=false;dispatch.open_imported_sample_editor();}
     const bool sourceQueryRequested=state.studioOpen&&state.studioTab==7&&!state.qwerty.isOpen&&cfg.sources&&cfg.sources->take_query_request();
     if(sourceQueryRequested)dispatch.open_source_search();
-    if (audible || audibleEdge || sawInput || !drewOnce || moving || motionEdge || settling || metersFalling || captureChanged || granularChanged || granularRecordingChanged || resampleChanged || sourceChanged || sourceImported || sourceQueryRequested || splashChanged || harmonyChanged || state.attractActive || state.showActive || state.drumLab.previewRunning ||
+    if (audible || audibleEdge || sawInput || !drewOnce || moving || motionEdge || firstBeatChanged || settling || metersFalling || captureChanged || granularChanged || granularRecordingChanged || resampleChanged || sourceChanged || sourceImported || sourceQueryRequested || splashChanged || harmonyChanged || state.attractActive || state.showActive || state.drumLab.previewRunning ||
         timedWork || timedWorkEdge || masterMaxChanged || banner || bannerEdge ||
         (state.scenePicker >= 0 && state.settings.sceneMotion)) {   // the Scene browser's live preview (modal, short-lived)
         layout.draw(screen.canvas, state);

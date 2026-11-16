@@ -1,4 +1,5 @@
 #include "linux/sample-recorder.h"
+#include "linux/usb-audio-diagnosis.h"
 
 #include <SDL.h>
 #include "vendor/nlohmann/json.hpp"
@@ -246,6 +247,10 @@ struct SdlSampleRecorder::Impl {
             result.push_back({{"id", id}, {"name", name}, {"kind", inputKind(name)},
                               {"channels", {1, 2}}, {"rates", {44100, 48000}}});
         }
+        // A USB interface the firmware cannot drive is plugged in: every row says so (the Record page
+        // shows the selected row's detail), so nobody hunts for a missing input in the list.
+        const auto usb = usb_audio_diagnosis(usb_audio_seen());
+        if (!usb.empty()) for (auto& row : result) row["detail"] = usb;
         cachedInputs = result; haveInputs = true; discoveryFailed = false;
         return result;
     }

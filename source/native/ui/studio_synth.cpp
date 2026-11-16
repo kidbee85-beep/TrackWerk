@@ -1,6 +1,10 @@
 #include "ui/studio.h"
 #include "ui/studio_synth_picker.h"
 #include "ui/fm_library.h"
+#include "ui/filesystem.h"
+#include "ui/sample_granular_recording.h"
+#include "ui/sound_browser.h"
+#include "songcore/project_io.h"
 #include <cstring>
 #include "studio/synth_params.h"
 #include "songcore/note_tables.h"
@@ -175,11 +179,76 @@ void preview_picker_choice(AppState& s,songcore::SongcoreHost& host){
  const bool current=!fromGranular&&model==s.studioModel&&
   (modelPicker||(!s.studioSynthCustom&&picker.item==s.studioVariation));
  if(!current)draft.studioSynthParams.fill(-1);
+ draft.volume=std::clamp(static_cast<int>(std::lround(draft.volume*s.settings.soundPreviewLevel/100.0)),0,255);   // preview only
  const int variation=modelPicker?s.studioVariation:picker.item;
  const auto uri=current?patch_uri(s):studio::uri(studio::preset_code(model,variation));
  const bool wasSounding=picker.previewSounding;
  picker.previewSounding=host.preview_studio_synth(draft,uri,true);
  if(wasSounding&&!picker.previewSounding)host.stop_preview(true);
+}
+
+// ── The sound browser (PRESET mode's factory tabs) ──────────────────────────────────────────────
+
+std::vector<SoundEntry>& browser_scratch(){static std::vector<SoundEntry> v;return v;}
+const std::vector<SoundEntry>& browser_entries(AppState& s,FileSystem& fs){
+ return sound_tab_entries(s.soundLibrary,fs,s.studioSynthPicker.tab,s.settings.soundFavorites,s.settings.soundRecent,browser_scratch());
+}
+const SoundEntry* browser_entry(AppState& s,FileSystem& fs){
+ auto& picker=s.studioSynthPicker;
+ const auto& v=browser_entries(s,fs);
+ if(v.empty())return nullptr;
+ auto& row=picker.rows[static_cast<size_t>(picker.tab)];
+ row=std::clamp(row,0,static_cast<int>(v.size())-1);
+ return &v[static_cast<size_t>(row)];
+}
+std::string entry_name(const SoundEntry& e){return e.variant.empty()?e.family:e.family+" "+e.variant;}
+// Recording or resampling hears the preview lane: a browse preview must not end up in a take.
+const char* preview_blocked(const AppState& s){
+ if(s.capture.active())return "STOP THE RECORDING TO PREVIEW";
+ if(s.resampleView.active||s.resampleView.saving)return "FINISH THE RESAMPLE TO PREVIEW";
+ if(granular_recording_busy(s.sampleGranular.recording))return "FINISH THE GRANULAR TAKE TO PREVIEW";
+ return nullptr;
+}
+// A factory .pti: parsed and checked like INSTRUMENT > LOAD would, a Studio synth only.
+bool read_sound(FileSystem& fs,const std::string& path,songcore::InstrumentPreset& out){
+ // The same checks as INSTRUMENT > LOAD (songcore::parse_instrument_preset_checked), then: a Studio
+ // synth only, the browser's one kind of sound.
+ std::string blob;
+ if(!fs.read_file(path,blob)||!songcore::parse_instrument_preset_checked(blob,out))return false;
+ return !out.instrument.granularEnabled&&out.instrument.sampleFilePath&&
+        out.instrument.sampleFilePath->rfind("/@mutable/",0)==0&&
+        studio::uri_code(out.instrument.sampleFilePath->c_str())>=0;
+}
+void preview_sound(AppState& s,songcore::SongcoreHost& host,FileSystem& fs){
+ auto& picker=s.studioSynthPicker;
+ const auto* e=browser_entry(s,fs);
+ const bool wasSounding=picker.previewSounding;
+ if(!e){if(wasSounding)host.stop_preview(true);picker.previewSounding=false;return;}
+ if(const char* why=preview_blocked(s)){if(wasSounding)host.stop_preview(true);picker.previewSounding=false;s.studioMessage=why;return;}
+ songcore::InstrumentPreset ip;
+ if(!read_sound(fs,sound_pack_root(fs)+"/"+e->key,ip)){
+  if(wasSounding)host.stop_preview(true);picker.previewSounding=false;
+  s.studioMessage="Cannot read "+entry_name(*e)+": missing or damaged";return;
+ }
+ auto draft=ip.instrument;
+ // The level scales the sound's own volume, which tops out at 255: a loud preset reaches its ceiling
+ // below 200 %. That ceiling is kept and shown, not hidden.
+ picker.previewCeiling=draft.volume>0?std::min(kSoundPreviewLevelMax,255*100/draft.volume):kSoundPreviewLevelMax;
+ draft.volume=std::clamp(static_cast<int>(std::lround(draft.volume*s.settings.soundPreviewLevel/100.0)),0,255);
+ picker.previewSounding=host.preview_studio_synth(draft,*draft.sampleFilePath,true);
+ if(wasSounding&&!picker.previewSounding)host.stop_preview(true);
+}
+bool slot_has_way_back(const songcore::Instrument& ins){
+ if(songcore::instrument_is_free(ins))return true;
+ return ins.instrumentType==songcore::InstrumentType::SAMPLER&&!ins.granularEnabled&&
+        ins.sampleFilePath&&ins.sampleFilePath->rfind("/@mutable/",0)==0;
+}
+// The Studio's synth page follows the slot's new sound; the browser stays as it was.
+void follow_slot(AppState& s){
+ const auto picker=s.studioSynthPicker;
+ open_studio_synth(s,s.project->instruments[static_cast<size_t>(s.currentInstrument)]);
+ s.studioSynthPicker=picker;
+ s.studioRow=2;
 }
 }
 
@@ -251,38 +320,139 @@ bool studio_synth_open_picker_for_row(AppState& s,songcore::SongcoreHost& host){
  }else{
   picker.mode=StudioSynthPickerMode::Preset;
   picker.item=std::clamp(s.studioVariation,0,studio::variation_count()-1);
+  picker.tab=s.soundLastTab;     // the browser reopens where it was left
+  picker.rows=s.soundLastRows;
  }
  return true;
 }
 
-bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){
+namespace {
+void close_browser(AppState& s){
+ const auto& picker=s.studioSynthPicker;
+ if(picker.mode==StudioSynthPickerMode::Preset){s.soundLastTab=picker.tab;s.soundLastRows=picker.rows;}
+ studio_synth_close_picker(s);
+}
+
+// A on a factory sound: into the marked slot, now. A sample, SoundFont or granular slot asks first
+// (its sound cannot come back); an empty or synth slot is kept as it was, for B.
+void use_sound(AppState& s,songcore::SongcoreHost& host,FileSystem& fs){
+ auto& picker=s.studioSynthPicker;
+ const auto* e=browser_entry(s,fs);
+ if(!e)return;
+ const SoundEntry entry=*e;   // the FAV / RECENT list may change below
+ const int slot=s.currentInstrument;
+ if(entry.key==picker.usedKey){
+  studio_synth_stop_audition(s,host);
+  s.studioMessage="Kept: "+entry_name(entry)+" on slot "+songcore::hex2(slot);
+  close_browser(s);
+  return;
+ }
+ const auto& before=s.project->instruments[static_cast<size_t>(slot)];
+ const bool firstUse=picker.usedKey.empty();
+ if(firstUse&&!slot_has_way_back(before)&&!picker.confirmReplace){
+  picker.confirmReplace=true;
+  s.studioMessage="Replaces the sound in slot "+songcore::hex2(slot)+", no undo. A: Use  B: Keep";
+  return;
+ }
+ studio_synth_stop_audition(s,host);
+ songcore::InstrumentPreset check;
+ const std::string path=sound_pack_root(fs)+"/"+entry.key;
+ if(!read_sound(fs,path,check)){s.studioMessage="Cannot use "+entry_name(entry)+": missing or damaged - slot kept";picker.confirmReplace=false;return;}
+ std::optional<StudioSynthPickerState::Original> original;
+ if(firstUse&&slot_has_way_back(before)){
+  original=StudioSynthPickerState::Original{before,std::nullopt,s.projectVersion,s.settings.soundRecent};
+  if(slot<static_cast<int>(s.project->tables.size()))original->table=s.project->tables[static_cast<size_t>(slot)];
+ }
+ if(!host.load_instrument_preset(slot,path)){
+  s.studioMessage="Could not load "+entry_name(entry)+" - slot kept";
+  picker.confirmReplace=false;
+  return;
+ }
+ if(original)picker.original=std::move(original);
+ picker.usedKey=entry.key;
+ picker.confirmReplace=false;
+ ++s.projectVersion;
+ sound_push_recent(s.settings.soundRecent,entry.key);   // a use, not a preview, makes it recent
+ follow_slot(s);
+ s.studioMessage="Slot "+songcore::hex2(slot)+": "+entry_name(entry)+(picker.original?"   A: Keep  B: Undo":"   A: Keep");
+ // The slot's new sound at its root, until the next button: owned by the picker like a held preview,
+ // so B, closing, help and focus loss end it (studio_synth_stop_audition).
+ if(!host.is_playing()){host.preview_instrument(slot);s.studioSynthPicker.previewSounding=true;}
+}
+
+// B: back out. A pending question is answered no; after a use the slot goes back to how it was,
+// recent list included, and the project is as clean as before.
+void cancel_browser(AppState& s,songcore::SongcoreHost& host){
+ auto& picker=s.studioSynthPicker;
+ studio_synth_stop_audition(s,host);
+ if(picker.confirmReplace){picker.confirmReplace=false;s.studioMessage.clear();return;}
+ if(!picker.usedKey.empty()&&picker.original){
+  const auto original=*picker.original;
+  const int slot=s.currentInstrument;
+  if(host.restore_instrument(slot,original.instrument,original.table)){
+   s.projectVersion=original.projectVersion;
+   s.settings.soundRecent=original.recent;
+   follow_slot(s);
+   s.studioMessage="Slot "+songcore::hex2(slot)+" is back as it was";
+  }else s.studioMessage="Could not restore slot "+songcore::hex2(slot)+" - its source is missing";
+ }else if(!picker.usedKey.empty())s.studioMessage="Kept: the new sound stays on slot "+songcore::hex2(s.currentInstrument);
+ close_browser(s);
+}
+
+void star_sound(AppState& s,FileSystem& fs){
+ auto& picker=s.studioSynthPicker;
+ if(picker.tab==SoundTab::MODEL){s.studioMessage="Stars are for the factory sounds: Right to their tabs";return;}
+ const auto* e=browser_entry(s,fs);
+ if(!e)return;
+ const SoundEntry entry=*e;
+ bool starred=false;
+ if(!sound_toggle_favorite(s.settings.soundFavorites,entry.key,starred)){
+  s.studioMessage="Favorites are full ("+std::to_string(kSoundFavoritesMax)+"): remove a star first";return;
+ }
+ s.studioMessage=(starred?"Starred: ":"Star removed: ")+entry_name(entry);
+}
+}  // namespace
+
+bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,FileSystem& fs){
  if(!studio_synth_picker_open(s))return false;
  auto& picker=s.studioSynthPicker;
- if(picker.instrument!=s.currentInstrument){studio_synth_stop_audition(s,host);studio_synth_close_picker(s);return true;}
+ const bool browser=picker.mode==StudioSynthPickerMode::Preset;
+ if(browser)sound_library_sync(s.soundLibrary,fs);   // the home folder may have moved since the last press
+ const bool factory=browser&&picker.tab!=SoundTab::MODEL;
+ if(picker.instrument!=s.currentInstrument){studio_synth_stop_audition(s,host);close_browser(s);return true;}
  if(e.button==Button::START){picker.chooseArmed=false;studio_synth_stop_audition(s,host);return false;}
+ // A preview nobody holds (the root note after a use) ends at the next button, L excepted.
+ if(e.action==ButtonAction::PRESSED&&picker.previewSounding&&!picker.previewHeld&&e.button!=Button::L_SHIFT)
+  studio_synth_stop_audition(s,host);
+ auto preview=[&]{if(browser&&picker.tab!=SoundTab::MODEL)preview_sound(s,host,fs);else preview_picker_choice(s,host);};
  if(e.button==Button::L_SHIFT){
   if(e.action==ButtonAction::RELEASED){studio_synth_stop_audition(s,host);return true;}
   if(!picker.previewHeld&&!e.mods.a&&!e.mods.b&&!e.mods.select&&!e.mods.r){
    picker.previewHeld=true;
    picker.chooseArmed=false;
-   preview_picker_choice(s,host);
+   preview();
   }
   return true;
  }
  if(e.button==Button::B){
   picker.chooseArmed=false;
-  if(e.action==ButtonAction::RELEASED){studio_synth_stop_audition(s,host);studio_synth_close_picker(s);}
+  if(e.action==ButtonAction::RELEASED){
+   if(browser)cancel_browser(s,host);
+   else{studio_synth_stop_audition(s,host);studio_synth_close_picker(s);}
+  }
   return true;
  }
  if(e.button==Button::A){
   if(e.action==ButtonAction::PRESSED){
    picker.chooseArmed=!e.mods.b&&!e.mods.select;
   }else if(picker.chooseArmed){
+   picker.chooseArmed=false;
+   if(factory){use_sound(s,host,fs);return true;}
    const auto mode=picker.mode;
    const int chosen=mode==StudioSynthPickerMode::Model?
     studio_synth_model_groups()[picker.group].firstModel+picker.item:picker.item;
    studio_synth_stop_audition(s,host);
-   studio_synth_close_picker(s);
+   if(browser)close_browser(s);else studio_synth_close_picker(s);
    if(mode==StudioSynthPickerMode::Model){
     select_model(s,host,engine,chosen);
     if(chosen!=kSampleGranularModel){
@@ -296,6 +466,8 @@ bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::Songc
  if(e.action==ButtonAction::RELEASED||e.mods.b||e.mods.select)return true;
  picker.chooseArmed=false;
  const int previousGroup=picker.group,previousItem=picker.item;
+ const SoundTab previousTab=picker.tab;
+ const int previousRow=picker.rows[static_cast<size_t>(picker.tab)];
  if(picker.mode==StudioSynthPickerMode::Model){
   const auto& groups=studio_synth_model_groups();
   if(e.button==Button::R_SHIFT){picker.group=0;picker.item=0;}
@@ -305,16 +477,38 @@ bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::Songc
   }
   if(e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN)
    picker.item=std::clamp(picker.item+(e.button==Button::DPAD_DOWN?1:-1),0,groups[picker.group].count-1);
- }else if(is_dpad(e.button)){
-  const int count=studio::variation_count();
-  const int columnSize=(count+1)/2;
-  const int item=picker.item;
-  if(e.button==Button::DPAD_UP&&item%columnSize>0)--picker.item;
-  if(e.button==Button::DPAD_DOWN&&item+1<count&&(item+1)%columnSize!=0)++picker.item;
-  if(e.button==Button::DPAD_LEFT&&item>=columnSize)picker.item-=columnSize;
-  if(e.button==Button::DPAD_RIGHT&&item<columnSize&&item+columnSize<count)picker.item+=columnSize;
+ }else{
+  if(e.button==Button::R_SHIFT){if(!e.mods.a&&!e.mods.l)star_sound(s,fs);return true;}
+  if(!is_dpad(e.button))return true;
+  const bool horizontal=e.button==Button::DPAD_LEFT||e.button==Button::DPAD_RIGHT;
+  const int step=(e.button==Button::DPAD_RIGHT||e.button==Button::DPAD_DOWN)?1:-1;
+  if(e.mods.a&&horizontal){
+   // A + Left / Right: the preview level, for every preview in the browser; the song never changes.
+   auto& level=s.settings.soundPreviewLevel;
+   level=std::clamp(level+step*10,kSoundPreviewLevelMin,kSoundPreviewLevelMax);
+   s.studioMessage="Preview level "+std::to_string(level)+" %";
+   if(picker.previewCeiling>0&&level>picker.previewCeiling)
+    s.studioMessage+=" - this sound is at its loudest from "+std::to_string(picker.previewCeiling)+" %";
+   if(picker.previewHeld)preview();
+   return true;
+  }
+  const int jump=e.mods.a?8:1;   // A + Up / Down: a page
+  picker.confirmReplace=false;
+  if(horizontal){
+   picker.tab=static_cast<SoundTab>(std::clamp(static_cast<int>(picker.tab)+step,0,kSoundTabCount-1));
+   if(picker.tab!=SoundTab::MODEL)browser_entry(s,fs);   // first visit reads the tab's folders
+  }else if(picker.tab==SoundTab::MODEL){
+   picker.item=std::clamp(picker.item+step*jump,0,studio::variation_count()-1);
+  }else{
+   const int count=static_cast<int>(browser_entries(s,fs).size());
+   auto& row=picker.rows[static_cast<size_t>(picker.tab)];
+   row=std::clamp(row+step*jump,0,std::max(0,count-1));
+  }
+  if(picker.tab!=SoundTab::MODEL&&picker.tab!=previousTab)s.studioMessage.clear();
  }
- if(picker.previewHeld&&(picker.group!=previousGroup||picker.item!=previousItem))preview_picker_choice(s,host);
+ if(picker.previewHeld&&(picker.group!=previousGroup||picker.item!=previousItem||picker.tab!=previousTab||
+                         picker.rows[static_cast<size_t>(picker.tab)]!=previousRow))
+  preview();
  return true;
 }
 

@@ -8,6 +8,7 @@
 #include "ui/filesystem.h"
 #include "ui/platform_caps.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -33,6 +34,9 @@ class AudioOutputSelector {
     virtual int active() const = 0;
     // Switch at the engine's current rate. On failure the previous output is back and `error` says why.
     virtual bool select(int index, std::string& error) = 0;
+    // Called every frame: notice outputs plugged in or out (Linux USB audio). The selector rate-limits
+    // itself; a needed reopen is reported through AudioBackend::deviceLost.
+    virtual void poll(uint64_t nowMs) { (void)nowMs; }
 };
 
 // What the shared shell is given rather than decides; filled by the platform's `main` before `run()`.

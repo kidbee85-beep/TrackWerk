@@ -513,11 +513,11 @@ bool SongcoreHost::last_load_cancelled() const {
     return engine_ && engine_->lastLoadFailure() == AudioEngine::LoadFailure::CANCELLED;
 }
 
-bool SongcoreHost::load_instrument_preset(int id, const std::string& path) {
-    if(id<0||id>=static_cast<int>(project_.instruments.size()))return false;
-    std::string blob;
-    if (!pt_read_file(path.c_str(), blob)) return false;
-
+// A .pti's text into a preset, refusing what must never reach a slot: not JSON, an object that is
+// no instrument, wrong-typed paths, synth parameters or FM voice, a broken granular block. Shared by
+// INSTRUMENT > LOAD and the sound browser's preview, so both refuse the same files. Never throws.
+bool parse_instrument_preset_checked(const std::string& blob, InstrumentPreset& out) {
+  try {
     json j = json::parse(blob, /*cb=*/nullptr, /*allow_exceptions=*/false);
     if (j.is_discarded() || !j.is_object()) return false;
 
@@ -542,7 +542,19 @@ bool SongcoreHost::load_instrument_preset(int id, const std::string& path) {
         studio::fm_sysex::PackedVoice voice{};
         if(!values.at("fmVoice").is_string()||!studio::fm_sysex::from_hex(values.at("fmVoice").get<std::string>(),voice))return false;
     }
-    InstrumentPreset ip = parse_instrument_preset(j);
+    out = parse_instrument_preset(j);
+    return true;
+  } catch (...) {
+    return false;   // a wrong type deeper in the instrument
+  }
+}
+
+bool SongcoreHost::load_instrument_preset(int id, const std::string& path) {
+    if(id<0||id>=static_cast<int>(project_.instruments.size()))return false;
+    std::string blob;
+    if (!pt_read_file(path.c_str(), blob)) return false;
+    InstrumentPreset ip;
+    if (!parse_instrument_preset_checked(blob, ip)) return false;
     if(ip.instrument.granularEnabled){
         if(!ip.instrument.sampleFilePath)return false;
         const auto slash=path.find_last_of("/\\");
@@ -561,6 +573,23 @@ bool SongcoreHost::load_instrument_preset(int id, const std::string& path) {
     invalidate_tables();   // the preset may have brought a table with it
     push_instrument(id);
     return sourceOk;
+}
+
+bool SongcoreHost::restore_instrument(int id, const Instrument& ins, const std::optional<Table>& table) {
+    if (id < 0 || id >= static_cast<int>(project_.instruments.size())) return false;
+    bool ok = true;
+    if (instrument_is_free(ins)) {
+        songcore::clear_instrument(engine_, project_, id, routing_);
+    } else {
+        InstrumentPreset ip;
+        ip.instrument = ins;
+        ok = apply_instrument_preset(engine_, project_, id, ip, routing_, mediaRoots_);
+    }
+    if (ok) project_.instruments[static_cast<size_t>(id)] = ins;   // every field as it was
+    if (table && id < static_cast<int>(project_.tables.size())) project_.tables[static_cast<size_t>(id)] = *table;
+    invalidate_tables();
+    push_instrument(id);
+    return ok;
 }
 
 bool SongcoreHost::preview_file(const std::string& path) {

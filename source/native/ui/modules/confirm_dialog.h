@@ -27,6 +27,7 @@ struct ConfirmDialogState {
         RECOVER,
 
         COLLECT_EXISTS,   // PROJECT → COLLECT, when Songs/<name> is already there
+        FIRST_BEAT,       // help → START (First beat), when DIRTY: the tutorial starts a new project
     };
 
     // COLLECT_EXISTS's answers, left to right; `arg` is the one under the cursor.

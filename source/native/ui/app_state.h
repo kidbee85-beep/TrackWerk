@@ -32,6 +32,7 @@
 #include "ui/modules/midi_settings.h"   // AudioLoad
 #include "ui/modules/theme_editor.h"
 #include "ui/modules/settings_editor.h"
+#include "ui/first_beat.h"
 #include "ui/platform_caps.h"
 #include "ui/playhead.h"
 #include "ui/selection.h"
@@ -111,6 +112,11 @@ struct AppState {
     songcore::Instrument studioDraft;
     PerformState perform;  // PERFORM's cursor and the engine values it shows
     FmLibrary fmLibrary;   // FM SYSEX banks: scanned when the Studio first needs them
+    // The sound browser's factory pack, each category read the first time it is shown; and the tab
+    // and rows the browser left off at, so it reopens there (session only).
+    SoundLibrary soundLibrary;
+    SoundTab soundLastTab = SoundTab::MODEL;
+    std::array<int, kSoundTabCount> soundLastRows{};
     StudioSynthPickerState studioSynthPicker;
     StudioSynthCompare studioSynthCompare;
     // ⚠️ The one Project the host owns, edited in place (`host.edit_project()`) — never a copy.
@@ -430,6 +436,10 @@ struct AppState {
 
     // The .ptp this project came from or was last saved to; empty until it has one.
     std::string projectPath{};
+    // Every completed project load (load_project_done); the First beat tutorial watches it.
+    int projectLoads = 0;
+    // The optional guided first beat (ui/first_beat.h).
+    FirstBeat firstBeat;
 
     // Set by EXIT; the shell's frame loop leaves.
     bool shouldQuit = false;

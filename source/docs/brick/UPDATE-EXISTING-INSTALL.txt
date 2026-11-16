@@ -20,7 +20,7 @@ UPDATE
 3. Select the EXISTING trackwerk application folder, which contains
    its native executable and data folder. New installations and symlinks are refused.
 4. macOS example, with the actual path to the extracted updater:
-   python3 "/path/to/update_brick.py" --target "/Volumes/SHARE/roms/ports/trackwerk"
+   python3 "/path/to/update_brick.py" --target "/media/YOUR_CARD/roms/ports/trackwerk"
    Windows example, adjusting the drive letter:
    py "C:\path\to\update_brick.py" --target "E:\roms\ports\trackwerk"
    On Linux, use python3 and the actual mounted application folder.
@@ -59,7 +59,7 @@ This private music-content pack is separate from the software/source-code releas
 
 ROLLBACK
 With the card in the computer:
-python3 update_brick.py --target "/Volumes/SHARE/roms/ports/trackwerk" --rollback <old-SHA256>
+python3 update_brick.py --target "/media/YOUR_CARD/roms/ports/trackwerk" --rollback <old-SHA256>
 Use the full hash printed by the updater. It verifies the backup and retains the
 current executable as another backup. Added presets and all music data remain.
 Without Python, keep a verified old executable and replace only

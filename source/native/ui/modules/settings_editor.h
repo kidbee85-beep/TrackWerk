@@ -47,6 +47,8 @@ struct SettingsValues {
     bool buttonVibroEnabled = true;
     int  vibroPower         = 64;
     bool autosaveResumeAuto = false;
+    // The First beat tutorial was finished once (ui/first_beat.h). Written only when true.
+    bool firstBeatDone = false;
 
     // How the pad's face buttons are printed: 0 AUTO, 1 XBOX, 2 NINTENDO (ui::AbxyLayout).
     int  abxyIndex          = 0;
@@ -90,6 +92,13 @@ struct SettingsValues {
     // Ordered factory preset IDs for the Granular Favorites bank, independent of the current song.
     std::vector<int> sampleGranularFavorites;
 
+    // The sound browser (Studio PRESET picker, 1.2): starred and recently used factory sounds, keyed
+    // by their path below Presets/Instruments/PocketStudio_MegaPack, and the level the browser
+    // previews at (percent; the preview only, never an instrument, track or master).
+    std::vector<std::string> soundFavorites;
+    std::vector<std::string> soundRecent;
+    int soundPreviewLevel = 100;
+
     // NAV = POOL / SONG. POOL: B+LEFT/RIGHT scroll the chain and phrase pools; SONG: B+D-pad walks
     // the arrangement. ⚠️ This default reaches existing installs.
     bool navSongRelative = true;
@@ -120,6 +129,8 @@ struct SettingsValues {
     // ⚠️ ALL is safe only because a CC is claimed, not reserved: one driving no mapping routes as
     // before.
     int         midiControlChannel = songcore::MIDI_CTL_CH_ALL;
+    // MIDI TEST's channel, 0-15 (shown 01-16): the receiver must listen there. Written when not 1.
+    int         midiTestChannel = 0;
     // A live key: 1 = MONO on the SONG cursor's track, 2..8 = POLY over that many tracks from it.
     int         midiInVoices = 4;
     // OFF plays every live key at full strength.

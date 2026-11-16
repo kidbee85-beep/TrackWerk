@@ -68,6 +68,10 @@ void InputDispatcher::confirm_accept() {
             start_new_project();
             break;
 
+        case ConfirmDialogState::Kind::FIRST_BEAT:   // the unsaved work is let go, as with NEW
+            begin_first_beat();
+            break;
+
         case ConfirmDialogState::Kind::CHANGE_TYPE:
             // The direction comes back out of the dialog, so A+LEFT still steps backwards after a yes.
             toggle_instrument_type(argv);

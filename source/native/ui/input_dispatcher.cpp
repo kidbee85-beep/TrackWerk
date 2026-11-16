@@ -105,6 +105,8 @@ void InputDispatcher::set_now(long long now_ms) {
     }
     run_due_sample_preview_restore();
     run_due_autosave();
+    run_due_midi_test_off();
+    if (midiTestOffAtMs_ != 0 && s_.currentScreen != ScreenType::MIDI) cancel_midi_test();   // screen left
     run_midi_hotplug();                 // before the dismiss, so its message is seen this frame
     run_due_status_dismiss();
     run_instrument_entry_push();

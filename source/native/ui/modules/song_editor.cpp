@@ -83,6 +83,10 @@ void SongEditorModule::draw_row(Canvas& c, int x, int y, int row_index, int abso
         // A track making no sound draws dim, so SOLO dims the other seven for free.
         const Argb value_color = track_audible(s.project, trackId) ? t.textValue : t.textEmpty;
 
+        // Each chain number keeps its own colour, so a repeat of the same chain reads at a glance.
+        if (chainId >= 0)
+            draw_ref_chip(c, trackColumns[trackId] - 5, dataRowY + 2, 2 * CHAR_W + 8, ROW_HEIGHT - 4,
+                          ref_color(t, chainId));
         cells.cell(chainId == -1 ? "--" : hex2(chainId), trackColumns[trackId], isCursor, isSelected,
                    /*is_empty=*/chainId == -1, value_color);
 

@@ -83,6 +83,7 @@ void InputDispatcher::refresh_midi_devices() {
 void InputDispatcher::close_midi_out() {
     // ⚠️ Panic first: set_out panics only on a pointer change, so notes on this port would hang.
     host_.midi_out().panic();
+    midiTestOffAtMs_ = 0;   // the panic ended a sounding TEST note
     s_.midiOut->close();
     s_.midiOutOpenName.clear();
 }

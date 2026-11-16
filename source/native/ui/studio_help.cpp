@@ -107,6 +107,7 @@ void release_momentary_inputs(AppState& s,songcore::SongcoreHost& host,AudioEngi
     s.sourceSampler.quickClipArmed=false;
     s.sourceSampler.collectionArmed=false;
     s.sourceSampler.aUsed=false;
+    source_sampler_disarm(s.sourceSampler);   // "A again replaces" never survives help (radio plays on)
 }
 void release_help_button(Button button, AppState& s, AudioEngine& engine) {
     if(button==Button::A){
@@ -130,7 +131,12 @@ StudioHelpContent studio_help_quick_content(const AppState& s) {
                 "B  Return to Sample Granular"}};
         }
         if (studio_synth_picker_open(s)) {
-            return {s.studioSynthPicker.mode==StudioSynthPickerMode::Model?"Synth models":"Synth presets",
+            if (s.studioSynthPicker.mode==StudioSynthPickerMode::Preset)
+                return {"Sounds", {"Left / Right  MODEL, FAV, RECENT, categories    Up / Down  Sounds",
+                    "Hold L  Listen (slot unchanged)    A + Left / Right  Preview level",
+                    "A  Use in this slot, A again keeps it    B  Undo and close",
+                    "R  Star a factory sound    A + Up / Down  Page"}};
+            return {"Synth models",
                 {"D-pad  Browse families and sounds", "Hold L  Audition as you browse",
                  "A  Choose the highlighted item    B  Return to Synth"}};
         }
@@ -171,6 +177,10 @@ StudioHelpContent studio_help_quick_content(const AppState& s) {
         "Write fills an empty Phrase. On PHRASE, Select + Up undoes it."}};
     case 7: {
         const auto& source=s.sourceSampler;
+        if(source.choiceList)
+            return {source.choiceList==1?"Sources / Provider":"Sources / Genre", {"Up / Down  Choose",
+                "A  Take it    B or Left  Keep the old one", "Unavailable providers cannot be chosen here",
+                "Left / Right on the row still changes it at once"}};
         if(source.collectionOpen)
             return {"Sources / Browse", {"L / R  Change provider",
                 source.collectionProvider>=3?"Up / Down  Choose a radio genre":"Left / Right  Choose a group    Up / Down  Choose a shelf",
@@ -186,9 +196,15 @@ StudioHelpContent studio_help_quick_content(const AppState& s) {
         if(source.live)
             return {"Sources / Live radio", {"Up / Down  Choose a control",
                 "Left / Right on Record live  Set the take length", "A on Record live  Start or finish a take"}};
-        return {"Sources / Archive and radio", {"A on Browse sources  Choose provider and genre",
+        if(source.downloading)
+            return {"Sources / Still downloading", {"LOADED shows what has arrived; it plays already",
+                "Seek, IN / OUT and Render reach the loaded part only", "Pause keeps loading    Stop ends the download, keeps the part",
+                "OUT past the loaded part is refused, never cut short"}};
+        return {"Sources / Archive and radio", {"FIND > LISTEN > MARK > USE  Where you are; any row, any time",
+            "A on Provider / Genre  A list: A takes, B keeps",
             "A on a result  Open its tracks. A plays the selected track.",
-            "A on Quick clip  Mark an excerpt from the playhead", "A on Render selection  Open the WAV in the Sample Editor"}};
+            "A on Quick clip  Mark an excerpt from the playhead",
+            "Target slot  In use? Open sample editor asks, A again replaces"}};
     }
     }
     return {"Studio", {"B + Select  Choose a section", "B + Left / Right  Move between tabs",
@@ -220,7 +236,7 @@ StudioHelpContent studio_help_content(const AppState& s,int topic,int page) {
     }
     if(page==0){
         switch(topic){
-        case 0:v={"Choose a target slot. Press A on SYNTH MODEL to browse families.","Choose a model to open its presets, or use PRESET for the current model.","In either browser, hold L and move to audition before choosing.","APPLY puts a draft into the slot. LIVE edits reach the linked slot.","On the bottom row, Right selects A/B. Press A to store sound A.","Edit the working sound B. Press A on A/B to swap while listening.","L + R + Start captures a WAV. With transport stopped, it holds the root."};break;
+        case 0:v={"Choose a target slot. Press A on SYNTH MODEL to browse families.","PRESET: the model's presets, then Right for factory sounds by category.","Hold L to listen, A uses, B undoes. R stars a sound for FAV.","APPLY puts a draft into the slot. LIVE edits reach the linked slot.","On the bottom row, Right selects A/B. Press A to store sound A.","Edit the working sound B. Press A on A/B to swap while listening.","L + R + Start captures a WAV. With transport stopped, it holds the root."};break;
         case 1:v={"FX Rack adds character to the mix. Choose a factory preset, then press A.","Adjust MODULE, MIX, COLOR, TEXTURE and FEEDBACK while listening.","The selected module determines how Color and Texture shape the effect.","ACTIVE switches the Studio processing path. Compare at a similar level.","USER SLOT plus SAVE CUSTOM / LOAD CUSTOM keeps your own FX settings.","The preset library also offers categorized effect starting points."};break;
         case 2:v={"Balance instruments and tracks before raising the master output.","Choose a master preset with A, then refine dynamics and tone.","Threshold and ratio control compression; attack and release shape its motion.","Output gain raises the result; peak ceiling limits final peaks.","Stereo width and high pass change the image and low-frequency content.","Save a custom slot and the project. Listen to an exported mix too."};break;
         case 3:v={"Eight banks contain 64 momentary effects; the visible grid has 4 x 2 pads.","Hold A to perform a pad. Release A to restore the mix.","L + R + Start starts/stops LIVE RESAMPLE from the main tracker or Studio.","This records internal output, including live synth edits and Punch.","In Punch: B + Down chooses Free or 1 / 2 / 4 / 8 bars (60-second cap).","Stop playback, then B + Up imports the take into a free slot for slicing."};break;
@@ -228,10 +244,10 @@ StudioHelpContent studio_help_content(const AppState& s,int topic,int page) {
         case 5:v={"Assign loaded samples or synths to the Drumlab lanes.","Choose EUCLIDEAN under Style for a separate cycle on each lane.","PERIOD sets the cycle. HITS are spread evenly. ROTATE moves them later.","GENERATE refreshes unlocked lanes. A on SLOT opens Step Edit.","In Step Edit, A toggles a hit and A + Down previews the loop.","APPLY twice appends it to the song in free chains and phrases.","Lane locks protect triggers, velocities and timing."};break;
         case 8:v={"Pick a style and preset. Tonic transposes the complete set.","Move to Chord Slot, then Left / Right to choose a chord.","Hold A to hear it, L to lock it, or edit Root, Shape and Voicing.","Generate changes unlocked slots. Loop plays the full phrase.","From an empty Phrase, Write twice inserts normal CHD / ARC steps.","Samples, SoundFonts and external MIDI support this workflow."};break;
         case 6:v={"Appearance belongs to app Settings, separate from musical Studio tabs.","Press A on Design collection to browse 40 complete scene presets.","A + arrows changes the selected appearance value immediately.","Typeface reaches the grid, Studio, browser and Sample Editor.","B returns to Settings. Theme Colors opens detailed color editing.","Motion OFF stops the Scene animations; the playing row stays marked."};break;
-        case 7:v={"A on Browse sources opens the browser. L/R changes provider.","Archive shelves: Left/Right group, Up/Down shelf, A opens.","Radio genres: Up/Down shows stations, A opens the list.","Files: mark IN/OUT or set a Quick clip from the playhead.",
+        case 7:v={"FIND, LISTEN, MARK, USE show where you are; nothing is locked.","Provider / Genre: A opens a list, A takes it, B keeps the old one.","Browse sources: L/R provider, Left/Right group, Up/Down shelf or genre.","Files: mark IN/OUT or set a Quick clip from the playhead.",
             s.sourceSampler.liveHistoryAvailable?"Rewind with Left/Right. A returns live. Save last makes a WAV.":"Record live: Left/Right picks 10 to 60 s. A starts a take.",
-            "Render + Edit opens the saved excerpt in the Sample Editor.","Source and License opens the original page and its reuse terms.",
-            "License filter hides NC, ND and unknown terms. EXPORT writes the credits."};break;
+            "Render + Edit opens the saved excerpt in the Sample Editor.","An occupied Target slot is replaced only after asking: A again.",
+            "MP3 plays while it downloads: LOADED marks what can be used.","License filter hides NC, ND and unknown terms. EXPORT writes the credits."};break;
         }
     }else if(page==1){
         if(topic==0)v={"D-pad moves between target, model, preset, controls and Apply.","A + arrows edits. A + Down on Model opens Sample Granular.","R + Left / Right changes page. Hold L to audition the root.","On A/B, A + Up stores the current sound as a new reference A.","L + R + Start starts or stops resampling. B + Down sets length.","Stop playback, then B + Up loads the take into a free slot.","B + Select opens Studio sections. B + Left / Right steps between tabs.","Start controls playback. B returns to the tracker."};

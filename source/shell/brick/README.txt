@@ -58,7 +58,7 @@ first app window opens. It requires Python 3 only; no Android SDK or build tools
 Run it after copying has finished, while the card is still in the computer.
 
 macOS example:
-python3 "/Volumes/SHARE/roms/ports/trackwerk/tools/prepare_presets.py"
+python3 "/media/YOUR_CARD/roms/ports/trackwerk/tools/prepare_presets.py"
 
 Windows example (replace E: with the actual SHARE drive):
 py "E:\roms\ports\trackwerk\tools\prepare_presets.py"

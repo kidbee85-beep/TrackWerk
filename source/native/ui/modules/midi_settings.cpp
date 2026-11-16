@@ -130,7 +130,7 @@ void MidiModule::draw(Canvas& c, int x, int y, const MidiState& s) const {
         row_of(MidiRow::MAPPING, "MAPPING", n > 0 ? "A: " + dec2(n) + " MAPPED" : "A: NONE YET");
     }
     row_of(MidiRow::PANIC, "PANIC", "A: ALL NOTES OFF");
-    row_of(MidiRow::TEST,  "TEST",  "A: C-4 CH 1");
+    row_of(MidiRow::TEST,  "TEST",  "A: C-4 CH " + dec2(clamp(s.settings.midiTestChannel, 0, 15) + 1));
 
     // ── Status: PANIC and TEST succeed silently, so the press says it happened (or NO PORT) ──────
     if (!s.statusText.empty()) {
@@ -141,6 +141,28 @@ void MidiModule::draw(Canvas& c, int x, int y, const MidiState& s) const {
 
     // Debug: the device buffer's length and the callback's average and worst share of it over the
     // last second. At 100 % the device runs dry.
+    // ── A connection check: on OUTPUT, PANIC and TEST one line says what the receiver needs ───────
+    if (!s.caps.debug) {
+        const std::string ch = dec2(clamp(s.settings.midiTestChannel, 0, 15) + 1);
+        std::string hint;
+        switch (static_cast<MidiRow>(s.cursorRow)) {
+            case MidiRow::OUTPUT:
+                hint = "Pick the device. A handheld needs USB host mode (an OTG adapter).";
+                break;
+            case MidiRow::TEST:
+                hint = "Receiver must listen on CH " + ch + ". In a song: TYPE EXTERNAL, CHAN " + ch + ".";
+                break;
+            case MidiRow::PANIC:
+                hint = "Sends all notes off on every channel, for a note that sticks.";
+                break;
+            default:
+                break;
+        }
+        if (!hint.empty()) {
+            const int hintY = firstRowY + midi_row_offset_y(MidiRow::TEST, ROW_HEIGHT) + ROW_HEIGHT * 3;
+            c.draw_label(Canvas::clip_label(hint, WIDTH - 2 * NAME_X, 12), labelX, hintY + 2, t.textParam, 12);
+        }
+    }
     if (s.caps.debug) {
         const int lineY = firstRowY + midi_row_offset_y(MidiRow::TEST, ROW_HEIGHT) + ROW_HEIGHT * 3;
         c.draw_text(audio_load_text(s.audioLoad), labelX, lineY + TEXT_PADDING, t.textParam,
@@ -195,8 +217,11 @@ CursorContext MidiModule::cursor_context(const MidiState& s) const {
         // The action rows: plain A is the dispatcher's.
         case MidiRow::MAPPING:
         case MidiRow::PANIC:
-        case MidiRow::TEST:
             return cc::read_only();
+
+        // A sends the note; A+D-PAD picks its channel 01..16.
+        case MidiRow::TEST:
+            return cc::enum_cycle(clamp(s.settings.midiTestChannel, 0, 15), 16);
     }
     return cc::none();
 }
@@ -290,9 +315,13 @@ MidiInputResult MidiModule::handle_input(songcore::Project& project, SettingsVal
             r.projectModified             = true;
             break;
 
+        // A settings value (the cable), so the song stays clean.
+        case MidiRow::TEST:
+            if (isSet) settings.midiTestChannel = clamp(action.value, 0, 15);
+            break;
+
         case MidiRow::MAPPING:
         case MidiRow::PANIC:
-        case MidiRow::TEST:
             break;
     }
 

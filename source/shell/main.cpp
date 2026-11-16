@@ -26,6 +26,7 @@
 #include "midi/midi-out.h"         // picks the platform's IMidiOut
 #include "sdl/sdl-audio-engine.h"
 #include "windows/audio-outputs-win.h"  // SETTINGS > AUDIO OUT; empty off Windows
+#include "sdl/linux-audio-outputs.h"     // SETTINGS > AUDIO OUT on Linux; empty elsewhere
 #ifdef PT_NATIVE_STUDIO_SERVICES
 #ifndef PT_MIYOO_PLUS_ARCHIVE
 #include "linux/capture-router.h"
@@ -213,7 +214,23 @@ int main(int argc, char** argv) {
     cfg.caps = ui::PlatformCaps::sdl(/*debug_build=*/true);
 #endif
 
-    // SETTINGS > AUDIO OUT: the switch delegates to the system output or an ASIO driver.
+    // SETTINGS > AUDIO OUT: the switch delegates to the system output or an ASIO driver (Windows), or
+    // to the built-in route or a USB audio card (Linux: USB-C DAC / headphones / interface).
+#if defined(__linux__) && !defined(__ANDROID__)
+    // Only where SDL plays through ALSA (Brick / KNULLI, AmberELEC, ArkOS, R36S, plain Linux): there a
+    // USB card is an ALSA card it can open. Miyoo's mmiyoo driver and the Pulse / PipeWire servers
+    // ignore AUDIODEV (a server routes USB itself), so a USB row there would only pretend.
+    std::unique_ptr<ptshell::LinuxAudioOutputs> linuxOutputs;
+    if (const char* driver = SDL_GetCurrentAudioDriver(); driver && std::string(driver) == "alsa") {
+        linuxOutputs = std::make_unique<ptshell::LinuxAudioOutputs>(audio);
+        cfg.audio             = linuxOutputs.get();
+        cfg.audioOutputs      = linuxOutputs.get();
+        cfg.caps.audioOutputs = true;
+    } else {
+        std::printf("audio:   AUDIO OUT stays with the system (SDL driver %s routes outputs itself)\n",
+                    driver ? driver : "none");
+    }
+#endif
 #ifdef _WIN32
     ptshell::WindowsAudioOutputs audioOutputs(engine.get(), audio);
     cfg.audio             = &audioOutputs;

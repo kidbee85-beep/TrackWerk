@@ -160,6 +160,7 @@ add_executable(pockettracker-sdl
         windows/asio-audio-engine.cpp   # the ASIO output (SETTINGS > AUDIO OUT)
         windows/audio-outputs-win.cpp   # the switch between the system output and ASIO
         sdl/sdl-audio-engine.cpp
+        sdl/linux-audio-outputs.cpp     # SETTINGS > AUDIO OUT on Linux: built-in or USB; empty elsewhere
         sdl/sdl-input.cpp
         sdl/sdl-touch.cpp
         sdl/sdl-video.cpp
@@ -190,6 +191,12 @@ if(UNIX AND NOT ANDROID AND NOT PT_MIYOO_OFFLINE)
         target_include_directories(ptlinux-sources-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
         target_link_libraries(ptlinux-sources-check PRIVATE pt-ui ${CMAKE_DL_LIBS} Threads::Threads)
         target_compile_options(ptlinux-sources-check PRIVATE -UNDEBUG)
+        # Progressive MP3 (1.2, Sources part B), against a server that holds each file:
+        #   python3 tests/studio/linux_sources_progressive_fixture.py <build>/ptlinux-progressive-check <new directory>
+        add_executable(ptlinux-progressive-check ../tests/studio/linux_sources_progressive.cpp linux/source-sampler.cpp)
+        target_include_directories(ptlinux-progressive-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+        target_link_libraries(ptlinux-progressive-check PRIVATE pt-ui ${CMAKE_DL_LIBS} Threads::Threads)
+        target_compile_options(ptlinux-progressive-check PRIVATE -UNDEBUG)
     endif()
 endif()
 

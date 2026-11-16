@@ -7,6 +7,9 @@
 #include "ui/source_sampler.h"
 #include "ui/sample_granular_ui.h"
 
+#include "songcore/render.h"   // project_file_name
+#include "ui/navigation.h"      // go_to_screen
+
 #include <algorithm>
 #include <set>
 #include <string>
@@ -65,6 +68,9 @@ void InputDispatcher::reset_editing_context() {
 }
 
 void InputDispatcher::start_new_project() {
+    // Another project: a running First beat ends (begin_first_beat starts its own afterwards).
+    s_.firstBeat = FirstBeat{};
+    cancel_midi_test();   // no test note outlives the project it was sent from
     host_.new_project();
 
     // A blank document: clean and pathless, or the next NEW or EXIT asks about unsaved work.
@@ -81,12 +87,78 @@ void InputDispatcher::start_new_project() {
     set_status(s_, "NEW PROJECT", true);
 }
 
+// A project name no saved project has, or "" when FIRSTBEAT … FIRSTBEAT9999 are all taken: SAVE writes
+// Projects/<name>.ptp and would replace an existing file silently.
+static std::string free_first_beat_name(FileSystem& fs) {
+    const auto taken = [&fs](const std::string& n) {
+        return fs.file_exists(fs.projects_directory() + "/" + songcore::project_file_name(n) + ".ptp");
+    };
+    if (!taken("FIRSTBEAT")) return "FIRSTBEAT";
+    for (int n = 2; n <= 9999; ++n)
+        if (!taken("FIRSTBEAT" + std::to_string(n))) return "FIRSTBEAT" + std::to_string(n);
+    return "";
+}
+
+void InputDispatcher::toggle_first_beat() {
+    on_help_dismiss();
+    if (s_.firstBeat.active) {
+        s_.firstBeat = FirstBeat{};
+        set_status(s_, "FIRST BEAT CLOSED", true);
+        return;
+    }
+    // Refused before the confirm, so a NO is never needed to keep a recording.
+    if (const char* why = first_beat_blocked(s_)) {
+        set_status(s_, why, false);
+        first_beat_tell_blocked(s_, why);   // also in the Sample Editor's own line
+        return;
+    }
+    if (free_first_beat_name(fs_).empty()) {
+        set_status(s_, "FIRST BEAT: NO FREE PROJECT NAME", false);
+        return;
+    }
+    if (s_.project_dirty()) s_.confirm.open(ConfirmDialogState::Kind::FIRST_BEAT);
+    else begin_first_beat();
+}
+
+void InputDispatcher::begin_first_beat() {
+    // Asked again: the confirm may have stood open while something started.
+    if (const char* why = first_beat_blocked(s_)) {
+        set_status(s_, why, false);
+        first_beat_tell_blocked(s_, why);   // also in the Sample Editor's own line
+        return;
+    }
+    const std::string name = free_first_beat_name(fs_);
+    if (name.empty()) {
+        set_status(s_, "FIRST BEAT: NO FREE PROJECT NAME", false);
+        return;
+    }
+    start_new_project();
+    host_.edit_project().name = name;   // a fresh project's name; it stays clean until the first edit
+    // It begins where a song begins: on SONG, with the Studio and every dialog put away.
+    s_.studioOpen = false;
+    s_.studioHelp = false;
+    on_help_dismiss();
+    go_to_screen(s_, {ScreenType::SONG, 0});
+    s_.firstBeat = FirstBeat{};
+    s_.firstBeat.active = true;
+    s_.firstBeat.projectName = name;
+    first_beat_snapshot(s_);
+    set_status(s_, "FIRST BEAT: " + name, true);
+}
+
 /** A .ptp just replaced the document. Leave the browser, and forget everything about the last one. */
 void InputDispatcher::load_project_done(const std::string& path) {
     // Clean, with nothing to recover. ⚠️ Autosave recovery is the one load that is neither.
     s_.projectVersion      = 0;
     s_.savedProjectVersion = 0;
     s_.projectPath         = path;
+    ++s_.projectLoads;
+    cancel_midi_test();
+    // A running First beat stays only when its own saved file came back (its RELOAD step); any
+    // other project ends it, so the card never guides a stranger's song.
+    if (s_.firstBeat.active &&
+        path != fs_.projects_directory() + "/" + songcore::project_file_name(s_.firstBeat.projectName) + ".ptp")
+        s_.firstBeat = FirstBeat{};
 
     autosavePending_ = false;   // …or it fires 3 s from now and re-creates the file this just deleted
     autosave_clear(fs_);

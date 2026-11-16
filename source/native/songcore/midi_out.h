@@ -68,6 +68,7 @@ constexpr uint8_t MIDI_NOTE_OFF = 0x80, MIDI_NOTE_ON = 0x90, MIDI_CC = 0xB0,
                   MIDI_PROGRAM  = 0xC0, MIDI_PITCH_BEND = 0xE0;
 
 constexpr uint8_t MIDI_CC_BANK_MSB = 0, MIDI_CC_BANK_LSB = 32, MIDI_CC_ALL_NOTES_OFF = 123;
+constexpr uint8_t MIDI_CC_SUSTAIN = 64;
 
 // RPN 0, the bend range: the RPN's number goes to 101/100, its value to 6/38.
 constexpr uint8_t MIDI_CC_RPN_MSB = 101, MIDI_CC_RPN_LSB = 100, MIDI_CC_DATA_MSB = 6, MIDI_CC_DATA_LSB = 38;
@@ -228,6 +229,70 @@ class ExternalConsumer : public IMidiConsumer {
         panic_locked();
     }
 
+    // One message to the port now, under the same lock as the pump, and remembered like any sent note
+    // so a later panic ends it. Not the TEST note (test_note_on): a note sent here on the test's key
+    // takes that key over like a song note. False without an open port or when the port reports
+    // itself broken after the write.
+    bool send_direct(const uint8_t* bytes, int len) {
+        std::lock_guard<std::mutex> lk(mu_);
+        if (!out_ || !out_->is_open() || len < 1 || len > 3) return false;
+        MidiMessage m;
+        m.frame = MidiMessage::UNSCHEDULED;
+        for (int i = 0; i < len; ++i) m.bytes[i] = bytes[i];
+        m.len = static_cast<uint8_t>(len);
+        emit(m, MidiMessage::UNSCHEDULED);
+        return !out_->broken();
+    }
+
+    // MIDI TEST's note, owned here so its end can never land on a note it does not own. Sent now under
+    // the pump's lock and tracked like any sent note. A test still sounding ends first. False without an
+    // open port or when the port reports itself broken after the write.
+    // ⚠️ The owed off is forgotten by every panic (STOP, play start, port swap, PANIC: they end the
+    // note themselves) and by the song sending that key on that channel, so a late
+    // `end_test_note` never ends a note the song plays (Codex, MIDI-LEBENSZYKLUS-VORPRUEFUNG).
+    bool test_note_on(uint8_t channel, uint8_t key, uint8_t velocity) {
+        std::lock_guard<std::mutex> lk(mu_);
+        end_test_note_locked();
+        if (!out_ || !out_->is_open()) return false;
+        const uint8_t ch = channel & 0x0F, k = key & 0x7F;
+        send_now(MIDI_NOTE_ON | ch, k, velocity & 0x7F);   // owed is false here, so emit leaves it
+        testNote_ = {true, ch, k};
+        return !out_->broken();
+    }
+    // The test note's off, if it is still owed — idempotent, never a panic, the song is left alone.
+    // True when an off went out.
+    bool end_test_note() {
+        std::lock_guard<std::mutex> lk(mu_);
+        return end_test_note_locked();
+    }
+    // Forget the owed off without sending it (the port now leads to another device).
+    void drop_test_note() {
+        std::lock_guard<std::mutex> lk(mu_);
+        testNote_.owed = false;
+    }
+    bool test_note_owed() const {
+        std::lock_guard<std::mutex> lk(mu_);
+        return testNote_.owed;
+    }
+
+    // The manual PANIC (MIDI screen): `panic()`, then on all sixteen channels, used or not, Sustain off
+    // (CC 64 0) and All Notes Off (CC 123) — for a note this app never tracked (another sender, a
+    // device's own sequencer, a held pedal). Not All Sound Off (CC 120): it would also cut reverb
+    // tails, and STOP keeps its narrower panic. Returns the messages that reached an open port that is
+    // not broken afterwards; 0 means nothing was sent.
+    int panic_all_channels() {
+        std::lock_guard<std::mutex> lk(mu_);
+        panic_locked();
+        if (!out_ || !out_->is_open()) return 0;
+        int sent = 0;
+        for (int c = 0; c < 16; ++c) {
+            send_now(MIDI_CC | static_cast<uint8_t>(c), MIDI_CC_SUSTAIN, 0);
+            send_now(MIDI_CC | static_cast<uint8_t>(c), MIDI_CC_ALL_NOTES_OFF, 0);
+            sent += 2;
+        }
+        return out_->broken() ? 0 : sent;
+    }
+
     // A LIVE launch re-schedules `track` from `frame`: what its events from there queued is withdrawn
     // and the track goes back to the note and wheel it had there, so the old pattern's lookahead does
     // not play beside the new one. ⚠️ What is already on the wire stays.
@@ -310,6 +375,7 @@ class ExternalConsumer : public IMidiConsumer {
     }
 
     void panic_locked() {
+        testNote_.owed = false;   // its off goes out below with the other sounding notes
         // ⚠️ The Stop first: it stops the device's own sequencer at the same instant we end our notes.
         if (clock_.stop()) send_now_1(MIDI_RT_STOP);
         // ⚠️ From what the device RECEIVED, not from `active_`: that runs a lookahead early, so it can
@@ -889,6 +955,10 @@ class ExternalConsumer : public IMidiConsumer {
             if (rangeOut_[ch] != m.bendRange) send_range(m, nowFrame);
         }
         const bool sent = out_ && out_->is_open();
+        if (testNote_.owed && !sendingTest_ && m.len == 3 && ch == testNote_.channel &&
+            m.bytes[1] == testNote_.key &&
+            ((m.bytes[0] & 0xF0) == MIDI_NOTE_ON || (m.bytes[0] & 0xF0) == MIDI_NOTE_OFF))
+            testNote_.owed = false;   // the key is the song's now: the test's late off must not end it
         if (sent) out_->send(m.bytes, m.len);
         if (isBend) wheelOut_[ch] = value;
         if (sent) track_sounding(m);
@@ -920,6 +990,16 @@ class ExternalConsumer : public IMidiConsumer {
             emit(m, nowFrame);
         }
         rangeOut_[bend.bytes[0] & 0x0F] = bend.bendRange;
+    }
+
+    bool end_test_note_locked() {
+        if (!testNote_.owed) return false;
+        testNote_.owed = false;
+        if (!out_ || !out_->is_open() || !soundingOut_[testNote_.channel][testNote_.key]) return false;
+        sendingTest_ = true;
+        send_now(MIDI_NOTE_OFF | testNote_.channel, testNote_.key, 0);
+        sendingTest_ = false;
+        return true;
     }
 
     void forget_channel_state() {
@@ -958,6 +1038,9 @@ class ExternalConsumer : public IMidiConsumer {
     static constexpr int VOL_UNTOUCHED = -1, VOL_UNKNOWN = -2;
     int  volOut_[16] = {0};
     int  rangeOut_[16] = {0};   // the BEND it was last told, 0 = not yet this take
+    struct TestNote { bool owed = false; uint8_t channel = 0, key = 60; };
+    TestNote testNote_;          // MIDI TEST's note while its off is owed
+    bool     sendingTest_ = false;
     std::bitset<128> soundingOut_[16];   // the notes each channel holds — what a panic ends
 
     Wheel   wheel_[TrackInstruments::LANES];

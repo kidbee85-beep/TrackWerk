@@ -72,6 +72,9 @@ void InstrumentPoolModule::draw_row(Canvas& c, int x, int rowY, int slot, const 
 
     const auto on_col = [&](int col) { return selected && s.cursorColumn == col; };
 
+    // A slot with a sound shows its colour beside the number, the same one PHRASE marks it with.
+    if (!songcore::instrument_is_free(ins))
+        c.fill_rect(x + ID_X - 8, rowY + 4, 3, ROW_HEIGHT - 8, with_alpha(inst_color(t, slot), .9f));
     // The slot number lights across the selected row.
     c.draw_text(hex2(slot), x + ID_X, textY, selected ? cursor_mark_ink(t) : t.textParam, CHAR_SPACING,
                 FONT_SCALE);

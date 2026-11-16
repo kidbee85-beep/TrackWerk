@@ -365,14 +365,51 @@ void synth_page(Canvas& c,const AppState& s){
  scope(c,371,386,240,20,s.waveform,WAVEFORM_SIZE,t);
 }
 
+// The sound browser's rows for `tab`, read-only: FAV / RECENT from settings, a category as scanned.
+// (A category is not copied: ALL holds 2048 entries.)
+const std::vector<SoundEntry>& browser_rows(const AppState& s,SoundTab tab){
+ static std::vector<SoundEntry> listed;
+ listed.clear();
+ if(tab==SoundTab::FAV||tab==SoundTab::RECENT){
+  for(const auto& key:tab==SoundTab::FAV?s.settings.soundFavorites:s.settings.soundRecent)
+   if(sound_key_valid(key))listed.push_back(sound_entry_from_key(key));
+ }else if(sound_tab_is_category(tab)&&s.soundLibrary.scanned[static_cast<size_t>(tab)])
+  return s.soundLibrary.entries[static_cast<size_t>(tab)];
+ return listed;
+}
+
+void sound_tabs(Canvas& c,const AppState& s,const Theme& t){
+ // Each tab as wide as its name (the Studio font is proportional); the free width spreads evenly,
+ // so all twelve read in full across the 608 px card.
+ const auto current=s.studioSynthPicker.tab;
+ constexpr int x0=16,span=608,y=150,h=21,size=11;
+ int widths[kSoundTabCount],used=0;
+ for(int i=0;i<kSoundTabCount;++i){widths[i]=Canvas::label_width(sound_tab_name(static_cast<SoundTab>(i)),size)+10;used+=widths[i];}
+ const int extra=std::max(0,(span-used)/kSoundTabCount);
+ int x=x0;
+ for(int i=0;i<kSoundTabCount;++i){
+  const auto tab=static_cast<SoundTab>(i);
+  const bool focus=tab==current;
+  const int w=widths[i]+extra;
+  if(focus)c.panel_rect(x+1,y,w-2,h,mix(t.rowEvery4th,t.rowCursor,.18f),t.rowCursor,4);
+  c.draw_label(sound_tab_name(tab),x+(w-widths[i])/2+5,y+5,focus?t.rowCursor:(i==0?t.textValue:t.textParam),size);
+  x+=w;
+  // MODEL | FAV RECENT | ALL + categories: a hairline after MODEL and after RECENT.
+  if(i==0||i==2)c.fill_rect(x-1,y+3,1,h-6,with_alpha(t.textParam,.35f));
+ }
+}
+
 void synth_picker_page(Canvas& c,const AppState& s){
  const auto t=synth_theme(s);
  const auto& picker=s.studioSynthPicker;
  const bool model=picker.mode==StudioSynthPickerMode::Model;
  const bool live=studio_synth_live(s);
+ // A message (a use, a star, the preview level) takes the hint line, as on the Studio's pages.
+ const bool focusHint=s.studioMessage.empty();
+ const bool factoryTab=!model&&picker.tab!=SoundTab::MODEL;
  studio_card(c,16,100,608,44,t);
- label(c,model?"SYNTH MODEL":"PRESET",29,112,t.textValue,180,18);
- if(!model)label(c,studio::model_name(s.studioModel),165,115,t.textParam,285,14);
+ label(c,model?"SYNTH MODEL":factoryTab?"SOUNDS":"PRESET",29,112,t.textValue,180,18);
+ if(!model)label(c,factoryTab?"Factory instrument presets":studio::model_name(s.studioModel),165,115,t.textParam,285,14);
  const std::string target="Slot "+songcore::hex2(s.currentInstrument)+(live?" / LIVE":" / DRAFT");
  label(c,target,481,116,t.rowCursor,128,12);
  if(model){
@@ -416,23 +453,66 @@ void synth_picker_page(Canvas& c,const AppState& s){
    label(c,position,modelX+20,390,t.textParam,111);
    synth_diagram(c,highlighted,modelX+324,384,t.rowCursor);
   }
-  label(c,"Left / Right: Family    Up / Down: Model    R: Sample Granular",22,435,t.textParam,596);
+  if(focusHint)label(c,"Left / Right: Family    Up / Down: Model    R: Sample Granular",22,435,t.textParam,596);
  }else{
-  const int count=studio::variation_count();
-  const int columnSize=(count+1)/2;
-  for(int i=0;i<count;++i){
-   const int x=16+(i/columnSize)*309,y=153+(i%columnSize)*33;
-   const bool focus=i==picker.item;
-   studio_card(c,x,y,299,28,t,focus);
-   label(c,studio_synth_preset_label(s.studioModel,i),x+15,y+5,focus?t.rowCursor:t.textValue,206,14);
-   if(!s.studioSynthCustom&&i==s.studioVariation)label(c,"CURRENT",x+225,y+7,t.textParam,64,12);
+  sound_tabs(c,s,t);
+  if(picker.tab==SoundTab::MODEL){
+   // The current model's sixteen presets, as before; Up / Down walk them in order.
+   const int count=studio::variation_count();
+   const int columnSize=(count+1)/2;
+   for(int i=0;i<count;++i){
+    const int x=16+(i/columnSize)*309,y=178+(i%columnSize)*29;
+    const bool focus=i==picker.item;
+    studio_card(c,x,y,299,26,t,focus);
+    label(c,studio_synth_preset_label(s.studioModel,i),x+15,y+5,focus?t.rowCursor:t.textValue,206,14);
+    if(!s.studioSynthCustom&&i==s.studioVariation)label(c,"CURRENT",x+225,y+7,t.textParam,64,12);
+   }
+   if(focusHint)label(c,"Left / Right: Tab    Up / Down: Preset    Right: Factory sounds",22,435,t.textParam,596);
+  }else{
+   const auto& rows=browser_rows(s,picker.tab);
+   studio_card(c,16,176,608,240,t);
+   constexpr int visible=8,rowH=27,top=182;
+   const int count=static_cast<int>(rows.size());
+   const int row=std::clamp(picker.rows[static_cast<size_t>(picker.tab)],0,std::max(0,count-1));
+   if(count==0){
+    const char* empty=picker.tab==SoundTab::FAV?"No stars yet. R on a sound stars it.":
+                      picker.tab==SoundTab::RECENT?"Nothing used yet. A on a sound uses it.":
+                      !s.soundLibrary.found?"Factory sounds not found. INSTRUMENT > LOAD opens .pti files.":
+                      "No sounds in this tab.";
+    label(c,empty,34,top+8,t.textParam,570,14);
+   }
+   const int first=std::clamp(row-visible/2,0,std::max(0,count-visible));
+   for(int i=first;i<std::min(count,first+visible);++i){
+    const auto& e=rows[static_cast<size_t>(i)];
+    const int y=top+(i-first)*rowH;
+    const bool focus=i==row;
+    const bool used=e.key==picker.usedKey;
+    if(focus){c.panel_rect(22,y,596,rowH-2,mix(t.rowEvery4th,t.rowCursor,.15f),t.rowCursor,4);c.mark_cursor(22,y,596,rowH-2);}
+    if(sound_is_favorite(s.settings.soundFavorites,e.key))label(c,"*",32,y+5,t.meterHigh,12,14);
+    label(c,e.family,48,y+5,focus?t.rowCursor:t.textValue,230,14);
+    label(c,e.variant,288,y+5,focus?t.rowCursor:t.textValue,190,14);
+    label(c,used?"IN SLOT":e.group,488,y+7,used?t.rowCursor:t.textParam,124,12);
+   }
+   c.mark_scroll(200+static_cast<int>(picker.tab),22,top,596,visible*rowH,first*rowH);
+   const std::string position=count?std::to_string(row+1)+" / "+std::to_string(count):"0 / 0";
+   label(c,position,30,top+visible*rowH+4,t.textParam,120,12);
+   const int ceiling=picker.previewCeiling;
+   const bool capped=ceiling>0&&s.settings.soundPreviewLevel>ceiling;
+   label(c,"Preview "+std::to_string(s.settings.soundPreviewLevel)+" %"+(capped?" (max "+std::to_string(ceiling)+" %)":""),
+         capped?400:470,top+visible*rowH+4,t.textParam,capped?210:140,12);
+   if(focusHint)label(c,"Up / Down: Sound   A + Up / Down: Page   R: Star   A + Left / Right: Preview level",22,435,t.textParam,596);
   }
-  label(c,"D-pad: Preset",22,435,t.textParam,596);
  }
  c.fill_rect(18,424,606,1,with_alpha(t.textParam,.2f));
+ if(!focusHint)label(c,s.studioMessage,22,435,t.rowCursor,596);
  const bool granularChoice=model&&picker.group==0;
- label(c,granularChoice?"A: Open editor    B: Back    Select: Help":model?"Hold L: Audition    A: Presets    B: Back":"Hold L: Audition    A: Choose    B: Back    Select: Help",
-       22,458,t.textValue,438);
+ const char* keys=granularChoice?"A: Open editor    B: Back    Select: Help":
+                  model?"Hold L: Audition    A: Presets    B: Back":
+                  picker.confirmReplace?"A: Replace    B: Keep the slot":
+                  factoryTab&&!picker.usedKey.empty()?(picker.original?"Hold L: Listen    A: Use / Keep    B: Undo":"Hold L: Listen    A: Use / Keep    B: Close"):
+                  factoryTab?"Hold L: Listen    A: Use    B: Back    Select: Help":
+                  "Hold L: Audition    A: Choose    B: Back    Select: Help";
+ label(c,keys,22,458,t.textValue,438);
  if(picker.previewSounding){
   c.draw_label("OUT",465,456,t.textParam,12);
   scope(c,499,451,117,20,s.waveform,WAVEFORM_SIZE,t);
@@ -593,7 +673,7 @@ void draw_studio(Canvas& c,const AppState& s){
  else if(s.studioTab==4)input_page(c,s);
  else if(s.studioTab==5){drumlab_draw(c,s.drumLab,t,*s.project);return;}
  else if(s.studioTab==6)style_page(c,s);
- else if(s.studioTab==7){source_sampler_draw(c,s.sourceSampler,t,*s.project);return;}
+ else if(s.studioTab==7){source_sampler_draw(c,s.sourceSampler,t,*s.project,s.currentInstrument);return;}
  else if(s.studioTab==8){harmony_draw(c,s);return;}
  // Drumlab draws its own grid between the shared heading and footer.
  c.fill_rect(18,424,606,1,with_alpha(t.textParam,.2f));

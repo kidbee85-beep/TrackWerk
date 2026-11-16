@@ -64,10 +64,12 @@ void TrackerLayout::draw(Canvas& c, const AppState& s) {
     }
     apply_glide(c, s);
     apply_selector_glide(c, s);
+    draw_first_beat(c, s);   // the tutorial card, under help
 
     if (s.project) {
         if (s.helpFull) helpOverlay_.draw(c, help_topic(s), s.theme);
         else if (s.helpOpen) helpPanel_.draw(c, help_topic(s), s.theme);
+        if (s.helpFull || s.helpOpen) draw_first_beat_help_strip(c, s);   // START: First beat
     }
     draw_loading_strip(c, s.loading, s.theme);
     draw_live_resample_indicator(c,s);
@@ -582,8 +584,15 @@ void TrackerLayout::draw_status_line(Canvas& c, const AppState& s, int scopeY) c
     if (draw_chord_hint(c, s, scopeY)) return;
     if (s.statusMessage.empty()) {
         statusShown_.clear();   // the same message later enters again
-        if (s.settings.helpMode != static_cast<int>(HelpMode::OFF))
+        if (s.settings.helpMode != static_cast<int>(HelpMode::OFF)) {
             c.draw_label("SELECT HELP", SIDE_SPACER + 10, scopeY + 10, s.theme.textParam, 12);
+            // A newcomer on an empty song learns that a guided start exists, until it was finished
+            // once (firstBeatDone). Never while it runs, never with help switched OFF.
+            if (first_beat_invite(s))
+                c.draw_label("NEW HERE?  SELECT, THEN START: FIRST BEAT",
+                             SIDE_SPACER + 10 + Canvas::label_width("SELECT HELP", 12) + 18, scopeY + 10,
+                             s.theme.rowCursor, 12);
+        }
         return;
     }
 
@@ -723,7 +732,17 @@ void TrackerLayout::draw_track_rail(Canvas& c, const AppState& s, int x, int y, 
         const Argb row = empty ? (mixed ? panel : darken(t.rowEvery4th, .8f)) : t.rowEvery4th;
 
         c.fill_rect(x + 4, textY - 2, width - 8, ROW_HEIGHT - 2, row);
-        if (!empty) c.fill_rect(x + 4, textY - 2, 2, ROW_HEIGHT - 2, t.vizWave);
+        if (!empty) {
+            // While playing, the edge wears the colour of the instrument the track is playing.
+            Argb edge = t.vizWave;
+            const TrackPlayhead& now = s.playheads[i];
+            if (s.isPlaying && now.phraseId >= 0 && now.phraseId < static_cast<int>(p.phrases.size()) && now.step >= 0 &&
+                now.step < static_cast<int>(p.phrases[static_cast<size_t>(now.phraseId)].steps.size())) {
+                const auto& st = p.phrases[static_cast<size_t>(now.phraseId)].steps[static_cast<size_t>(now.step)];
+                if (songcore::step_has_note(st) && st.instrument >= 0) edge = inst_color(t, st.instrument);
+            }
+            c.fill_rect(x + 4, textY - 2, 2, ROW_HEIGHT - 2, edge);   // 2 px, clear of the track number
+        }
         // A trigger LED: each step that plays a note on this track flashes its row for 220 ms.
         {
             constexpr uint64_t kPulseMs = 220;

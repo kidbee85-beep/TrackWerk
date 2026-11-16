@@ -486,6 +486,7 @@ add_library(pt-ui STATIC
         ui/live_resample.cpp
         ui/studio_help.cpp
         ui/studio_synth.cpp
+        ui/sound_browser.cpp
         ui/fm_library.cpp
         ui/sample_granular_ui.cpp
         ui/sample_granular_view.cpp
@@ -498,6 +499,7 @@ add_library(pt-ui STATIC
         ui/source_sampler.cpp
         ui/source_credits.cpp
         ui/demo_fx.cpp
+        ui/first_beat.cpp
         ui/canvas.cpp
         ui/clipboard.cpp
         ui/input_dispatcher.cpp
@@ -782,6 +784,24 @@ if(PT_STUDIO_CHECK)
  add_executable(ptbutton-conflicts-check ../tests/studio/button_conflicts.cpp)
  target_link_libraries(ptbutton-conflicts-check PRIVATE pt-ui)
  target_compile_options(ptbutton-conflicts-check PRIVATE -UNDEBUG)
+ # The First beat tutorial played through with real buttons (ui/first_beat.h).
+ add_executable(ptfirst-beat-check ../tests/studio/first_beat.cpp)
+ target_link_libraries(ptfirst-beat-check PRIVATE pt-ui)
+ target_compile_options(ptfirst-beat-check PRIVATE -UNDEBUG)
+ # The MIDI connection check: TEST channel, reasons, receiver hint (TrackWerk 1.2).
+ add_executable(ptmidi-test-check ../tests/studio/midi_test.cpp)
+ target_link_libraries(ptmidi-test-check PRIVATE pt-ui)
+ target_compile_options(ptmidi-test-check PRIVATE -UNDEBUG)
+ add_executable(ptusb-audio-diagnosis-check ../tests/studio/usb_audio_diagnosis.cpp)
+ target_link_libraries(ptusb-audio-diagnosis-check PRIVATE pt-ui)
+ target_compile_options(ptusb-audio-diagnosis-check PRIVATE -UNDEBUG)
+ add_executable(ptsources-ux-check ../tests/studio/sources_ux.cpp)
+ target_link_libraries(ptsources-ux-check PRIVATE pt-ui)
+ target_compile_options(ptsources-ux-check PRIVATE -UNDEBUG)
+ add_executable(ptsound-browser-check ../tests/studio/sound_browser.cpp)
+ target_link_libraries(ptsound-browser-check PRIVATE pt-ui)
+ target_compile_options(ptsound-browser-check PRIVATE -UNDEBUG)
+ target_compile_definitions(ptsound-browser-check PRIVATE PT_TREE="${CMAKE_CURRENT_SOURCE_DIR}/..")
  add_executable(ptsource-integration-check ../tests/studio/source_integration.cpp)
  target_link_libraries(ptsource-integration-check PRIVATE pt-ui)
  add_executable(ptsource-query-check ../tests/studio/source_query.cpp)
