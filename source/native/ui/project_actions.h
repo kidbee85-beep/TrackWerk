@@ -26,6 +26,18 @@ std::string unique_render_path(FileSystem& fs, const std::string& dir, const std
 // Writes `<Projects>/<name>.ptp` and marks the document clean.
 ActionResult save_project(songcore::SongcoreHost& host, FileSystem& fs, AppState& s);
 
+// Where SAVE writes: `<Projects>/<project_file_name(name)>.ptp`.
+std::string project_save_path(const songcore::SongcoreHost& host, FileSystem& fs);
+
+// True when SAVE would replace a file this document did not come from (another project with the same
+// file name: two UNTITLED, "MY SONG" and "MY_SONG", or names that differ in case on FAT/Windows/macOS).
+// ⚠️ A re-save of the loaded or last-saved file is never asked about.
+bool save_replaces_other(const songcore::SongcoreHost& host, FileSystem& fs, const AppState& s);
+
+// `name` with "_2", "_3" … (kept within the NAME row's 20 characters) whose project file is free; ""
+// when none up to 999.
+std::string free_project_name(FileSystem& fs, const std::string& name);
+
 // ─── COLLECT: the song and every file it plays, copied into one folder under Songs/ ──────────────
 
 // The folder COLLECT writes: the project's file name.

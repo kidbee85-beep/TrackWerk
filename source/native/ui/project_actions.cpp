@@ -6,7 +6,9 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "common/byte_source.h"   // pt_fopen / pt_remove / pt_rename
@@ -44,9 +46,12 @@ std::string unique_render_path(FileSystem& fs, const std::string& dir, const std
 
 // ─── SAVE ────────────────────────────────────────────────────────────────────────────────────────
 
+std::string project_save_path(const songcore::SongcoreHost& host, FileSystem& fs) {
+    return fs.projects_directory() + "/" + songcore::project_file_name(host.project().name) + ".ptp";
+}
+
 ActionResult save_project(songcore::SongcoreHost& host, FileSystem& fs, AppState& s) {
-    const std::string path =
-        fs.projects_directory() + "/" + songcore::project_file_name(host.project().name) + ".ptp";
+    const std::string path = project_save_path(host, fs);
 
     if (!write_project(host, fs, path)) return ActionResult{false, "SAVE FAILED"};
 
@@ -84,6 +89,60 @@ std::string comparable_path(std::string p) {
         c = (c == '\\') ? '/' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return p;
 }
+
+// One slash kind, case kept: two spellings that may still be different files.
+std::string slashed_path(std::string p) {
+    for (char& c : p) if (c == '\\') c = '/';
+    return p;
+}
+
+// Do two paths name ONE file? The same spelling does. Spellings that differ only in case are asked
+// of the filesystem: "Kick.wav" and "kick.wav" are one file on FAT, macOS and Windows, two on Linux.
+// A path it cannot answer for (a SAF document, a vanished file) counts as a different file — the
+// cautious answer: at worst one more copy or one more question, never two files merged into one.
+// Spellings that differ beyond case are different without a filesystem call: COLLECT compares every
+// pair, and a stat per pair on a slow card is not worth catching a symlink (one extra copy).
+bool same_file(const std::string& a, const std::string& b) {
+    if (slashed_path(a) == slashed_path(b)) return true;
+    if (comparable_path(a) != comparable_path(b)) return false;
+    std::error_code ec;
+    const bool same = std::filesystem::equivalent(std::filesystem::path(a), std::filesystem::path(b), ec);
+    return !ec && same;
+}
+
+// Is `path` inside the folder `dir` (given with a trailing '/')? By spelling, then — where only the
+// case differs — by asking the filesystem whether the folder part is the same folder.
+bool inside_folder(const std::string& path, const std::string& dir) {
+    const std::string p = slashed_path(path), d = slashed_path(dir);
+    if (p.size() <= d.size()) return false;
+    if (p.compare(0, d.size(), d) == 0) return true;
+    if (comparable_path(p.substr(0, d.size())) != comparable_path(d)) return false;
+    return same_file(p.substr(0, d.size() - 1), d.substr(0, d.size() - 1));
+}
+
+}  // namespace
+
+bool save_replaces_other(const songcore::SongcoreHost& host, FileSystem& fs, const AppState& s) {
+    const std::string path = project_save_path(host, fs);
+    if (!fs.file_exists(path)) return false;
+    // ⚠️ Identity, not folded spelling: on Linux "Projects/Song.ptp" (this document) and a separate
+    // "Projects/SONG.ptp" are two songs, and renaming this one to SONG must ask.
+    return s.projectPath.empty() || !same_file(s.projectPath, path);
+}
+
+std::string free_project_name(FileSystem& fs, const std::string& name) {
+    constexpr size_t NAME_MAX_CHARS = 20;   // the NAME row's columns
+    for (int n = 2; n <= 999; ++n) {
+        const std::string suffix = "_" + std::to_string(n);
+        const std::string base   = name.substr(0, NAME_MAX_CHARS - suffix.size());
+        const std::string candidate = base + suffix;
+        if (!fs.file_exists(fs.projects_directory() + "/" + songcore::project_file_name(candidate) + ".ptp"))
+            return candidate;
+    }
+    return std::string();
+}
+
+namespace {
 
 // Bytes in the file, or 0 when it cannot be measured (it then adds nothing to the bar).
 int64_t media_file_bytes(const std::string& path) {
@@ -141,7 +200,7 @@ ActionResult collect_project(const songcore::SongcoreHost& host, FileSystem& fs,
     const std::string songSub = std::string(songcore::SONGS_FOLDER) + "/" + folder;
     const std::string songDir = fs.make_app_folder(songSub);
     if (songDir.empty()) return ActionResult{false, "COLLECT FAILED"};
-    const std::string songDirKey = comparable_path(songDir + "/");
+    const std::string songDirSlash = songDir + "/";
 
     songcore::Project copy = host.project();
 
@@ -166,6 +225,14 @@ ActionResult collect_project(const songcore::SongcoreHost& host, FileSystem& fs,
     std::vector<Copy> copies;
     int64_t totalBytes = 0;
     int     missing    = 0;
+
+    // Pass 1: where each path's file is, and which names in the song folder are already IN USE — a
+    // file the song plays from its own folder (it was opened from there, or collected before) is the
+    // copy itself. Its name is reserved before any other file is placed, whatever the instrument
+    // order, or a namesake from elsewhere would be copied over it (R1).
+    struct Found { std::string* stored; std::string source; bool inTarget; };
+    std::vector<Found> found;
+    std::vector<std::string> reserved;   // song-folder-relative names in use
     for (std::string* stored : paths) {
         if(stored->rfind("/@mutable/",0)==0) continue; // built-in DSP: no media to copy
         const std::string source = songcore::resolve_media_path(*stored, host.media_roots());
@@ -173,28 +240,52 @@ ActionResult collect_project(const songcore::SongcoreHost& host, FileSystem& fs,
             ++missing;   // keeps its old path: the file may turn up where it was
             continue;
         }
+        const bool inTarget = inside_folder(source, songDirSlash);
+        if (inTarget) reserved.push_back(slashed_path(source).substr(songDirSlash.size()));
+        found.push_back(Found{stored, source, inTarget});
+    }
 
-        // ⚠️ Already in this folder (the song was opened from here): it IS the copy. Replacing it
-        // would delete the source before reading it.
-        const std::string sourceKey = comparable_path(source);
-        if (sourceKey.rfind(songDirKey, 0) == 0) {
-            *stored = source.substr(songDirKey.size());
+    // A target name is taken by a reserved file or an earlier copy — compared folded, so the
+    // collected folder also works on a FAT card or Windows, where Kick.wav and kick.wav collide.
+    const auto rel_taken = [&copies, &reserved](const std::string& r) {
+        const std::string key = comparable_path(r);
+        const auto same = [&key](const std::string& other) { return comparable_path(other) == key; };
+        return std::any_of(reserved.begin(), reserved.end(), same) ||
+               std::any_of(copies.begin(), copies.end(), [&same](const Copy& c) { return same(c.rel); });
+    };
+
+    // Pass 2: one copy per SOURCE FILE, by its real identity (same_file): the same file named twice
+    // is copied once; two different files are never merged, even when their names differ only in
+    // case (R2) or map to one place ("Songs/A/Samples/kick.wav", "Songs/B/Samples/kick.wav"). A name
+    // already taken gets "_2", "_3" … (E7).
+    for (const Found& f : found) {
+        if (f.inTarget) {
+            // ⚠️ Already in this folder: it IS the copy. Replacing it would delete the source before
+            // reading it.
+            *f.stored = slashed_path(f.source).substr(songDirSlash.size());
             continue;
         }
-
-        const std::string rel = songcore::collected_media_path(*stored);
         auto it = std::find_if(copies.begin(), copies.end(),
-                               [&rel](const Copy& c) { return c.rel == rel; });
+                               [&f](const Copy& c) { return same_file(c.source, f.source); });
         if (it == copies.end()) {
+            std::string rel = songcore::collected_media_path(*f.stored);
+            if (rel_taken(rel)) {
+                const size_t slash = rel.find_last_of('/');
+                const size_t dot   = rel.find_last_of('.');
+                const bool   hasExt = dot != std::string::npos && (slash == std::string::npos || dot > slash);
+                const std::string stem = hasExt ? rel.substr(0, dot) : rel;
+                const std::string ext  = hasExt ? rel.substr(dot) : std::string();
+                for (int n = 2; rel_taken(rel); ++n) rel = stem + "_" + std::to_string(n) + ext;
+            }
             Copy c;
-            c.source = source;
+            c.source = f.source;
             c.rel    = rel;
-            c.bytes  = media_file_bytes(source);
+            c.bytes  = media_file_bytes(f.source);
             totalBytes += c.bytes;
             copies.push_back(std::move(c));
             it = copies.end() - 1;
         }
-        it->users.push_back(stored);
+        it->users.push_back(f.stored);
     }
 
     // Reported only when the whole percent changes: each report is a repaint.

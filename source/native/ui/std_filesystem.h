@@ -81,6 +81,10 @@ std::string path_sanitize(const std::string& name, bool allow_dot);
 
 std::string to_lower(std::string s);
 
+// Is `path` `ancestor` itself or somewhere below it? Lexical, either slash, ASCII case folded — a
+// FAT card or Windows does not tell "Kit" from "kit".
+bool path_is_within(const std::string& path, const std::string& ancestor);
+
 // TRACKWERK_HOME is preferred; the older environment spelling remains compatible.
 // Otherwise use Documents/TrackWerk (Windows/macOS) or the XDG TrackWerk folder (Linux).
 // A single previous default home is renamed without overwriting a current destination.

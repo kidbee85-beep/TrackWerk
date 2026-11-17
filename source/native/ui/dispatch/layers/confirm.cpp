@@ -16,7 +16,7 @@ GestureResult InputDispatcher::confirm_layer(Gesture g) {
         case Gesture::B: confirm_cancel(); break;
         case Gesture::DPAD_LEFT:
         case Gesture::DPAD_RIGHT:
-            if (s_.confirm.kind == ConfirmDialogState::Kind::COLLECT_EXISTS) {
+            if (s_.confirm.is_choice()) {
                 const int step = (g == Gesture::DPAD_LEFT) ? -1 : 1;
                 s_.confirm.arg = std::clamp(s_.confirm.arg + step, ConfirmDialogState::COLLECT_REPLACE,
                                             ConfirmDialogState::COLLECT_CANCEL);
@@ -64,6 +64,10 @@ void InputDispatcher::confirm_accept() {
             break;
         }
 
+        case ConfirmDialogState::Kind::LOAD_PROJECT:   // the work is let go once a file is chosen
+            open_project_loader();
+            break;
+
         case ConfirmDialogState::Kind::NEW_PROJECT:
             start_new_project();
             break;
@@ -97,6 +101,18 @@ void InputDispatcher::confirm_accept() {
                 collect_song(collect_free_folder_name(fs_, folder));
             break;
         }
+
+        case ConfirmDialogState::Kind::SAVE_EXISTS:
+            if (argv == ConfirmDialogState::COLLECT_REPLACE) {
+                save_now();
+            } else if (argv == ConfirmDialogState::COLLECT_NEW_COPY) {
+                // The file name is the project's name: the copy takes a free one (NAME_2 …).
+                const std::string name = free_project_name(fs_, host_.project().name);
+                if (name.empty()) { set_status(s_, "NO FREE PROJECT NAME", false); break; }
+                host_.edit_project().name = name;
+                save_now();
+            }
+            break;
 
         case ConfirmDialogState::Kind::NONE:
             break;

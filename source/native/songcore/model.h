@@ -130,7 +130,9 @@ inline bool note_is_pitch(const Note& n) { return n.pitch >= 0; }
 // ─── Note ↔ MIDI ↔ display ──────────────────────────────────────────────────────────────────────
 inline int note_to_midi(const Note& n) {
     if (n.pitch < 0) return -1;
-    return (n.octave + 1) * 12 + n.pitch;  // C-4 = 60 (standard MIDI)
+    // Compute wide before validating corrupt/imported octave values. B-9 (131) is authored.
+    const int64_t midi = (int64_t(n.octave) + 1) * 12 + n.pitch;
+    return n.pitch <= 11 && midi >= 0 && midi <= 131 ? static_cast<int>(midi) : -1;
 }
 inline Note note_from_midi(int midi) {
     if (midi < 0 || midi > 127) return Note::EMPTY();

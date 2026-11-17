@@ -1518,8 +1518,8 @@ Navigate here: **R+UP** from SONG or CHAIN.
 
 | Row | Action |
 |---|---|
-| SAVE | Save project to `.ptp` file (press A to confirm). |
-| LOAD | Open file browser to load a project. |
+| SAVE | Save the project as `Projects/ProjectName.ptp`. Saving the project you loaded or saved before writes at once. If that file belongs to another project (two projects with the same name), choose REPLACE, NEW COPY (`ProjectName_2`) or CANCEL; the cursor starts on CANCEL. |
+| LOAD | Open file browser to load a project. With unsaved changes, **LOAD PROJECT?** asks first: A opens the browser, B keeps your work. |
 | COLLECT | Copy the song and every sample and SoundFont it plays into `<home>/Songs/ProjectName/`. Move or share that folder and the song opens anywhere. If the folder is already there, choose REPLACE, NEW COPY (`ProjectName_2`) or CANCEL. |
 | EXPORT — MIX | Open the RENDER panel, set to a stereo WAV (offline, faster than real-time). |
 | EXPORT — STEMS | Open the RENDER panel, set to one stereo WAV stem per active track, plus reverb and delay send returns. |

@@ -105,7 +105,11 @@ void InputDispatcher::qwerty_apply() {
 
         case QwertyContext::INSTRUMENT_SAVE: {
             const std::string name = text.empty() ? "PRESET" : text;
-            const std::string path = k.contextExtra + "/" + name + ".pti";
+            // The FILE name sanitised as every other preset's (theme, scale, groove, reverb, delay): the
+            // keyboard offers / . : ? — "../X" left the Presets folder, "A/B" made a folder, "?" or ":"
+            // failed on a FAT card. The status keeps the typed name.
+            const std::string safe = safe_file_name(name);
+            const std::string path = k.contextExtra + "/" + (safe.empty() ? std::string("PRESET") : safe) + ".pti";
             if (save_instrument_preset(host_, fs_, s_.currentInstrument, path)) {
                 set_status(s_, "SAVED: " + name, true);
             } else {

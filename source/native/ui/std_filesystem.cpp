@@ -1,6 +1,7 @@
 #include "ui/std_filesystem.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -93,6 +94,17 @@ std::string path_sanitize(const std::string& name, bool allow_dot) {
         out.push_back(ok ? c : '_');
     }
     return out;
+}
+
+bool path_is_within(const std::string& path, const std::string& ancestor) {
+    const auto norm = [](std::string p) {
+        for (char& c : p) c = (c == '\\') ? '/' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        while (p.size() > 1 && p.back() == '/') p.pop_back();
+        return p;
+    };
+    const std::string p = norm(path), a = norm(ancestor);
+    if (a.empty()) return false;
+    return p == a || (p.size() > a.size() && p.compare(0, a.size(), a) == 0 && p[a.size()] == '/');
 }
 
 std::string to_lower(std::string s) {
@@ -252,13 +264,29 @@ bool StdFileSystem::rename_file(const std::string& path, const std::string& new_
     std::string final_name = safe;
     if (!ext.empty()) {
         const std::string suffix = "." + ext;
+        // Any case: "Snare.wav" for a .WAV keeps its own spelling, never "Snare.wav.WAV".
         const bool has_suffix = safe.size() > suffix.size() &&
-                                safe.compare(safe.size() - suffix.size(), suffix.size(), suffix) == 0;
+                                to_lower(safe.substr(safe.size() - suffix.size())) == to_lower(suffix);
         if (!has_suffix) final_name = safe + suffix;
     }
 
     const fs::path target = fs::path(path).parent_path() / final_name;
-    if (fs::exists(target, ec)) return false;   // never overwrite
+    if (target.filename() == fs::path(path).filename()) return true;   // nothing to do
+    if (fs::exists(target, ec)) {
+        // A case-insensitive volume (FAT card, Windows, macOS) finds the file itself under its new
+        // spelling: "song" → "SONG". Through a free temporary name, as the volume will not rename a
+        // file onto itself. Anything else there is another file: never overwrite.
+        ec.clear();
+        if (!fs::equivalent(path, target, ec) || ec) return false;
+        const fs::path step = fs::path(path).parent_path() / (final_name + ".renaming");
+        if (fs::exists(step, ec)) return false;
+        ec.clear();
+        fs::rename(path, step, ec);
+        if (ec) return false;
+        fs::rename(step, target, ec);
+        if (ec) { std::error_code back; fs::rename(step, path, back); return false; }
+        return true;
+    }
 
     ec.clear();
     fs::rename(path, target, ec);
@@ -279,6 +307,7 @@ std::string StdFileSystem::create_folder(const std::string& parent, const std::s
 }
 
 bool StdFileSystem::move_file(const std::string& from, const std::string& to) {
+    if (path_is_within(to, from)) return false;   // into itself: the copy fallback would never end
     std::error_code ec;
     fs::create_directories(fs::path(to).parent_path(), ec);
 
@@ -297,6 +326,7 @@ bool StdFileSystem::move_file(const std::string& from, const std::string& to) {
 }
 
 bool StdFileSystem::copy_file(const std::string& from, const std::string& to) {
+    if (path_is_within(to, from)) return false;   // into itself: the recursive copy would never end
     std::error_code ec;
     fs::create_directories(fs::path(to).parent_path(), ec);
 

@@ -750,6 +750,11 @@ class InputDispatcher {
 
     // NEW, with the engine sync a fresh project needs.
     void start_new_project();
+    // PROJECT → LOAD's browser. ⚠️ Through the LOAD_PROJECT confirm when dirty: the load that follows
+    // replaces the work and deletes its autosave, so it would be gone without a trace.
+    void open_project_loader();
+    // SAVE itself, once any question is answered.
+    void save_now();
     // First beat's own new project under a free name (FIRSTBEAT, FIRSTBEAT2 …), so SAVE never overwrites.
     void begin_first_beat();
 
