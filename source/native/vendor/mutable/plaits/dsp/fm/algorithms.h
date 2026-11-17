@@ -195,6 +195,7 @@ class Algorithms {
   DISALLOW_COPY_AND_ASSIGN(Algorithms);
 };
 
+#ifndef _MSC_VER  // TrackWerk: MSVC reads these as definitions without initializers (C2737); algorithms.cc defines them
 /* static */
 template<> const uint8_t Algorithms<4>::opcodes_[][4];  // From DX100
 
@@ -206,6 +207,7 @@ template<> const uint8_t Algorithms<6>::opcodes_[][6];  // From DX7
 
 /* static */
 template<> const Algorithms<6>::RendererSpecs Algorithms<6>::renderers_[];
+#endif
 
 }  // namespace fm
 

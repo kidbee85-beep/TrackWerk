@@ -16,6 +16,7 @@ set_target_properties(pt-kissfft PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(pt-kissfft PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/kissfft)
 if(MSVC)
     target_compile_options(pt-kissfft PRIVATE /W0)   # vendored
+    target_compile_definitions(pt-kissfft PRIVATE _USE_MATH_DEFINES)   # M_PI; the engine's define does not reach this target
 else()
     target_compile_options(pt-kissfft PRIVATE -w)    # vendored
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm")

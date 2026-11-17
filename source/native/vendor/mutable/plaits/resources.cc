@@ -4030,6 +4030,9 @@ const int16_t* const lookup_table_i16_table[] = {
 
 
 const int32_t* const lookup_table_i32_table[] = {
+#ifdef _MSC_VER
+  NULL,  // TrackWerk: MSVC rejects zero-size arrays (C2466); the table is unused
+#endif
 };
 
 const int8_t lut_lpc_excitation_pulse[] = {

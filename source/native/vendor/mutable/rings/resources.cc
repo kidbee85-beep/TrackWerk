@@ -37,11 +37,17 @@ namespace rings {
 
 
 const int16_t* lookup_table_int16_table[] = {
+#ifdef _MSC_VER
+  NULL,  // TrackWerk: MSVC rejects zero-size arrays (C2466); the table is unused
+#endif
 };
 
 
 
 const uint32_t* lookup_table_uint32_table[] = {
+#ifdef _MSC_VER
+  NULL,  // TrackWerk: MSVC rejects zero-size arrays (C2466); the table is unused
+#endif
 };
 
 const float lut_sine[] = {
