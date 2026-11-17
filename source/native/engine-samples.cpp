@@ -4,6 +4,7 @@
 #include "vendor/tsf/tsf.h"    // tsf_get_fontsamplecount, for the memory count
 #include "audio-decoders.h"
 #include "common/byte_source.h"       // pt_fopen
+#include "common/riff_bounds.h"
 #include "common/platform_memory.h"
 #include <memory>
 #include <new>   // load_budget_bytes
@@ -103,6 +104,8 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     }
 
     // Walk the chunks — JUNK/bext before fmt shift everything.
+    long fileEnd = -1;
+    if (!pt::seekable_file_end(f, fileEnd)) { fclose(f); return 0; }
     int audioFormat = 0, channels = 0, sampleRate = 0, bitsPerSample = 0;
     bool haveFmt = false;
     long dataOffset = -1;
@@ -111,7 +114,15 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     while (fread(ch, 1, 8, f) == 8) {
         uint32_t chunkSize = (uint32_t)ch[4] | ((uint32_t)ch[5] << 8) |
                              ((uint32_t)ch[6] << 16) | ((uint32_t)ch[7] << 24);
+        long next = -1;
+        // A truncated data body is still playable up to EOF, as before. All other
+        // chunk walks must remain inside the file, including their odd pad byte.
+        if (std::memcmp(ch, "data", 4) != 0 &&
+            !pt::riff_body_end(ftell(f), chunkSize, fileEnd, next)) {
+            fclose(f); return 0;
+        }
         if (std::memcmp(ch, "fmt ", 4) == 0) {
+            if (chunkSize < 16) { fclose(f); return 0; }
             uint8_t fmt[40] = {0};
             uint32_t toRead = chunkSize < sizeof(fmt) ? chunkSize : (uint32_t)sizeof(fmt);
             if (fread(fmt, 1, toRead, f) != toRead) break;
@@ -124,19 +135,18 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
             if (audioFormat == 0xFFFE && toRead >= 26)
                 audioFormat = (int)(fmt[24] | (fmt[25] << 8));
             haveFmt = true;
-            long skip = (long)chunkSize - (long)toRead + (long)(chunkSize & 1);
-            if (skip > 0) fseek(f, skip, SEEK_CUR);
+            if (fseek(f, next, SEEK_SET) != 0) { fclose(f); return 0; }
         } else if (std::memcmp(ch, "data", 4) == 0) {
             dataOffset = ftell(f);
             dataSize = chunkSize;
             break;
         } else {
-            fseek(f, (long)chunkSize + (long)(chunkSize & 1), SEEK_CUR);  // skip, pad to even
+            if (fseek(f, next, SEEK_SET) != 0) { fclose(f); return 0; }
         }
     }
 
     if (!haveFmt || dataOffset < 0 || channels < 1 || channels > 2 ||
-        bitsPerSample == 0 || sampleRate == 0) {
+        bitsPerSample == 0 || sampleRate <= 0) {
         LOGE("loadSampleFromWavFile: bad header (fmt=%d ch=%d bits=%d rate=%d) %s",
              audioFormat, channels, bitsPerSample, sampleRate, path);
         fclose(f);
@@ -154,12 +164,10 @@ int AudioEngine::loadSampleFromWavFile(int id, const char* path) {
     int bytesPerFrame  = bytesPerSample * channels;
 
     // A bogus chunk size cannot over-read.
-    fseek(f, 0, SEEK_END);
-    long fileEnd = ftell(f);
-    fseek(f, dataOffset, SEEK_SET);
+    if (fseek(f, dataOffset, SEEK_SET) != 0) { fclose(f); return 0; }
     long avail = fileEnd - dataOffset;
     if (avail < 0) avail = 0;
-    if ((long)dataSize > avail) dataSize = (uint32_t)avail;
+    if (uint64_t(dataSize) > uint64_t(avail)) dataSize = static_cast<uint32_t>(avail);
 
     int totalFrames = (int)(dataSize / (uint32_t)bytesPerFrame);
     if (totalFrames < 1) { fclose(f); return 0; }

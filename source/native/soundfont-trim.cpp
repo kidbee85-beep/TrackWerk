@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "common/byte_source.h"
+#include "common/riff_bounds.h"
 
 namespace pt {
 namespace {
@@ -86,26 +87,33 @@ bool read_hydra(FILE* f, Hydra& h) {
     uint8_t hdr[12];
     if (std::fread(hdr, 1, 12, f) != 12) return false;
     if (!fourcc_is(hdr, "RIFF") || !fourcc_is(hdr + 8, "sfbk")) return false;
+    long fileEnd = -1;
+    if (!seekable_file_end(f, fileEnd)) return false;
 
     for (;;) {
         uint8_t ch[8];
         if (std::fread(ch, 1, 8, f) != 8) break;   // clean end of file
         const uint32_t size = rd_u32(ch + 4);
+        const long body = std::ftell(f);
+        long chunkEnd = -1;
+        if (!riff_body_end(body, size, fileEnd, chunkEnd)) return false;
 
         if (!fourcc_is(ch, "LIST")) {
-            if (std::fseek(f, static_cast<long>(size + (size & 1)), SEEK_CUR) != 0) break;
+            if (std::fseek(f, chunkEnd, SEEK_SET) != 0) return false;
             continue;
         }
+        if (size < 4) return false;
         uint8_t listType[4];
         if (std::fread(listType, 1, 4, f) != 4) break;
-        const long listEnd = std::ftell(f) + static_cast<long>(size) - 4;
+        const long listEnd = body + static_cast<long>(size);  // already bounded before narrowing
 
         if (fourcc_is(listType, "pdta")) {
-            while (std::ftell(f) + 8 <= listEnd) {
+            while (std::ftell(f) >= 0 && listEnd - std::ftell(f) >= 8) {
                 uint8_t sub[8];
                 if (std::fread(sub, 1, 8, f) != 8) break;
                 const uint32_t subSize = rd_u32(sub + 4);
-                const long     next    = std::ftell(f) + static_cast<long>(subSize + (subSize & 1));
+                long next = -1;
+                if (!riff_body_end(std::ftell(f), subSize, listEnd, next)) return false;
 
                 std::vector<uint8_t> raw;
                 auto slurp = [&](int recSize) -> int {
@@ -156,23 +164,25 @@ bool read_hydra(FILE* f, Hydra& h) {
                         r.sampleLink = rd_u16(p + 42); r.sampleType = rd_u16(p + 44);
                     });
                 }
-                if (std::fseek(f, next, SEEK_SET) != 0) break;
+                if (std::fseek(f, next, SEEK_SET) != 0) return false;
             }
         } else if (fourcc_is(listType, "sdta")) {
-            while (std::ftell(f) + 8 <= listEnd) {
+            while (std::ftell(f) >= 0 && listEnd - std::ftell(f) >= 8) {
                 uint8_t sub[8];
                 if (std::fread(sub, 1, 8, f) != 8) break;
                 const uint32_t subSize = rd_u32(sub + 4);
+                long next = -1;
+                if (!riff_body_end(std::ftell(f), subSize, listEnd, next)) return false;
                 // `smpo` (the whole font as one Ogg stream) cannot be trimmed: smplSize stays 0 and
                 // the caller loads the whole bank.
                 if (fourcc_is(sub, "smpl")) {
                     h.smplOffset = std::ftell(f);
                     h.smplSize   = subSize;
                 }
-                if (std::fseek(f, static_cast<long>(subSize + (subSize & 1)), SEEK_CUR) != 0) break;
+                if (std::fseek(f, next, SEEK_SET) != 0) return false;
             }
         }
-        if (std::fseek(f, listEnd, SEEK_SET) != 0) break;
+        if (std::fseek(f, chunkEnd, SEEK_SET) != 0) return false;
     }
     // What tsf accepts: all nine tables, and phdr/inst/shdr with a real record plus the terminal.
     return h.phdr.size() >= 2 && h.inst.size() >= 2 && h.shdr.size() >= 2 &&

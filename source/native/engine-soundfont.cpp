@@ -3,6 +3,7 @@
 #include "audio-engine.h"
 #include "vendor/tsf/tsf.h"    // declarations only
 #include "common/byte_source.h"       // pt_fopen
+#include "common/riff_bounds.h"
 #include "common/platform_memory.h"   // load_budget_bytes
 #include "common/load_progress.h"     // load_tick / load_cancelled
 #include <cstdio>
@@ -11,13 +12,19 @@
 #include <vector>
 
 namespace {
+struct SfFileStream { FILE* file; long end; };
 // tsf_load's stream over a pt_fopen'd FILE: `read` returns bytes, `skip` 1 or 0. Taking `void*`
 // keeps the function-pointer type exact.
 int sfStreamRead(void* f, void* ptr, unsigned int size) {
-    return (int)std::fread(ptr, 1, size, (FILE*)f);
+    auto& source = *static_cast<SfFileStream*>(f);
+    if (size > static_cast<unsigned>(INT_MAX)) return 0;
+    return static_cast<int>(std::fread(ptr, 1, size, source.file));
 }
 int sfStreamSkip(void* f, unsigned int count) {
-    return std::fseek((FILE*)f, (long)count, SEEK_CUR) == 0;
+    auto& source = *static_cast<SfFileStream*>(f);
+    long next = -1;
+    return pt::riff_body_end(std::ftell(source.file), count, source.end, next, false) &&
+           std::fseek(source.file, next, SEEK_SET) == 0;
 }
 }  // namespace
 
@@ -85,7 +92,14 @@ tsf* AudioEngine::parseSoundfont(const char* path, int bank, int preset, LoadFai
         *failure = LoadFailure::PARSE;
         return nullptr;
     }
-    tsf_stream sfStream = { sf, &sfStreamRead, &sfStreamSkip };
+    long fileEnd = -1;
+    if (!pt::seekable_file_end(sf, fileEnd)) {
+        std::fclose(sf);
+        *failure = LoadFailure::PARSE;
+        return nullptr;
+    }
+    SfFileStream source{sf, fileEnd};
+    tsf_stream sfStream = { &source, &sfStreamRead, &sfStreamSkip };
     // The memory guard's flag (soundfont-voice.cpp) tells "too big" from "not a soundfont".
     sf_memory_guard_reset();
     tsf* loaded = tsf_load(&sfStream);
