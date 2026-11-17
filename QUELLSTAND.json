@@ -1,8 +1,8 @@
 {
-  "commit": "b24ad7abe43f6784cb8ef34dee7661db0d02dade",
-  "tree": "a698c1831ade5253452117ea9630dd82c3ed9e81",
-  "version": "1.2.0",
-  "versionCode": 102000,
-  "files_sha256": "67355de91b948f0daabbf50bd4d7479c80d4fe299bd635ac2ccfb1f9401d9723",
-  "files": 8273
+  "commit": "d2e56aa87e62f6a1907e5fe39913180a2094e894",
+  "tree": "dda93efe58d17d4130302e836da60c3e8a7431bd",
+  "version": "1.2.1",
+  "versionCode": 102001,
+  "files_sha256": "ddbb0d3ca6a1853b871ec0c871734fa3e5f5f4008f8b5d6a7be0b3638f53c349",
+  "files": 8278
 }
