@@ -96,7 +96,10 @@ bool read_hydra(FILE* f, Hydra& h) {
         const uint32_t size = rd_u32(ch + 4);
         const long body = std::ftell(f);
         long chunkEnd = -1;
-        if (!riff_body_end(body, size, fileEnd, chunkEnd)) return false;
+        // Tolerate an unfinished tagging/download tail AFTER complete tables,
+        // as the old reader did. Never seek into it; the table check below still
+        // rejects an incomplete font (including a forged first chunk).
+        if (!riff_body_end(body, size, fileEnd, chunkEnd)) break;
 
         if (!fourcc_is(ch, "LIST")) {
             if (std::fseek(f, chunkEnd, SEEK_SET) != 0) return false;
