@@ -1,5 +1,7 @@
 name: Verify TrackWerk 1.2.1 Windows candidate
 on:
+  push:
+    branches: [fix/1.2.1-file-validation]
   workflow_dispatch:
 permissions:
   contents: read
