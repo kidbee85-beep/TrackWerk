@@ -198,7 +198,9 @@ if ($v.FileVersion -ne $version) {
 $icoBytes = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'windows\TrackWerk.ico'))
 $e128     = 6 + 16 * 5                                        # the 128x128 directory entry
 $off128   = [BitConverter]::ToUInt32($icoBytes, $e128 + 12)
-$slice    = [System.Text.Encoding]::GetEncoding(28591).GetString($icoBytes, $off128 + 20040, 64)
+$len128   = [BitConverter]::ToUInt32($icoBytes, $e128 + 8)
+# Mid-frame, by the frame's own size: the frames are PNG-compressed now, so a fixed DIB offset ran off the end.
+$slice    = [System.Text.Encoding]::GetEncoding(28591).GetString($icoBytes, $off128 + [int]($len128 / 2), 64)
 if (-not $text.Contains($slice)) {
     throw ("the exe does not contain the pixels of shell/windows/TrackWerk.ico - the icon " +
            "resource is missing or is not ours (check the .rc and that enable_language(RC) ran)")

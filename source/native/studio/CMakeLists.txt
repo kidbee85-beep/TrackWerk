@@ -13,7 +13,13 @@ set_target_properties(pt-mutable PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(pt-mutable PUBLIC pt-kissfft)
 target_include_directories(pt-mutable PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ${MI_ROOT})
 target_compile_definitions(pt-mutable PRIVATE TEST=1)
+if(MSVC)
+    # Same intent as the GCC/Clang line below, in cl.exe spelling.
+    target_compile_options(pt-mutable PRIVATE /fp:precise /W0 "/FI${CMAKE_CURRENT_SOURCE_DIR}/msvc_compat.h")
+    target_compile_definitions(pt-mutable PRIVATE _USE_MATH_DEFINES)
+else()
 # Keep NaN handling and denormal protection effective; no unsafe reassociation.
 target_compile_options(pt-mutable PRIVATE -O2 -fno-fast-math -ffp-contract=off -Wno-narrowing -Wno-unused-local-typedef)
 # Plaits' TEST helpers call printf; do not depend on an incidental libc++ include.
 target_compile_options(pt-mutable PRIVATE -include cstdio)
+endif()
