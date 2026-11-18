@@ -33,6 +33,7 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 | Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.2.0 |
 | Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
 | Powkiddy RGB20S | AmberELEC | Games-card package, preserving projects and settings |
+| Anbernic R36 Ultra | dArkOSRE (Debian 13 arm64) | Official arm64 .deb plus a Ports launcher; controls verified on hardware |
 | Linux desktop | Debian 13 .deb / SDL 2.32.4+ | ARM64 and x86-64; final desktop UI acceptance remains open |
 | Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 102000; same app ID and signer as 1.0 |
 
