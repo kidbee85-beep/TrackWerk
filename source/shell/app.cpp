@@ -630,7 +630,7 @@ class FrameLoop {
 
     // L1+R1 held: opens AUDIO DRIVERS. The hold keeps a plain L+R (CANCEL) untouched, and any other
     // press during the hold cancels it, so L+R+A / L+R+START keep their own meanings.
-    static constexpr Uint64 SHOULDER_CHORD_HOLD_MS = 250;
+    static constexpr Uint64 SHOULDER_CHORD_HOLD_MS = 1000;   // long enough that a slow L+R (CANCEL) is never taken for it
     Uint64 shoulderChordAt        = 0;
     bool   shoulderChordFired     = false;
     bool   shoulderChordSuppressed = false;

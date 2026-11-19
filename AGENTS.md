@@ -7,7 +7,7 @@ works, and what the hardware will not do without an OS-side change.
 
 Target device: Anbernic R36 Ultra, RK3326, aarch64, Debian 13 (trixie), kernel 4.4.189, 896 MB RAM,
 720×720 screen, SDL2 2.32.10, exFAT `/roms` card.
-SSH access used during development: `ark@192.168.1.20` (password `ark`).
+The device was reached over SSH on the local network during development (address and login are not recorded here).
 
 ---
 
@@ -31,7 +31,8 @@ the live output without leaving the screen.
   row. This keeps one switch path, and success or failure is reported in the overlay footer.
 - The list is refreshed every frame from `AudioOutputSelector::names()`; the row playing now is
   marked `*` and `NOW`, independent of the cursor.
-- The chord needs a ~250 ms hold. A plain `L + R` still fires CANCEL on release. Any third press
+- The chord needs a one-second hold (`SHOULDER_CHORD_HOLD_MS` in `source/shell/app.cpp`), so a slow
+  but deliberate `L + R` (leave selection, clear the clip buffer) is never taken for it. A plain `L + R` still fires CANCEL on release. Any third press
   during the hold (`L+R+A`, `L+R+START`, …) cancels the opening, so no existing combo is stolen.
 - The overlay is ignored over the splash, attract mode and show mode, and it does not open under an
   existing modal layer. It is hidden when `caps.audioOutputs` is false (no switchable output).
@@ -42,8 +43,8 @@ pick a USB output with `A`, confirm the footer says `PLAYING: <name>` and that a
 (headphones / DAC). Then pick the built-in output again. Repeat inside Studio (RECORD tab) and with
 a project playing.
 
-**Verified on the R36 Ultra.** A short `L + R` still fires CANCEL; holding both shoulders for ~500 ms
-opens the overlay and logs `audio: AUDIO DRIVERS overlay (L1+R1)`. `UP/DOWN` move, `A` writes the
+**Verified on the R36 Ultra.** A short `L + R` still fires CANCEL; holding both shoulders for ~500 ms (the hold time at that
+test; it is one second now) opens the overlay and logs `audio: AUDIO DRIVERS overlay (L1+R1)`. `UP/DOWN` move, `A` writes the
 selection and the shell switches the output, `B` closes, and a second hold reopens it.
 
 ---
@@ -142,8 +143,8 @@ binary's runtime dependencies.
 Deploy for a hardware test:
 
 ```bash
-sshpass -p ark scp ~/pr/build-r36/pockettracker-sdl ark@192.168.1.20:/tmp/trackwerk.bin
-sshpass -p ark ssh ark@192.168.1.20 \
+scp ~/pr/build-r36/pockettracker-sdl <user>@<device-address>:/tmp/trackwerk.bin
+ssh <user>@<device-address> \
   'sudo install -m 755 /tmp/trackwerk.bin /usr/lib/trackwerk/trackwerk.bin'
 ```
 
