@@ -15,6 +15,10 @@
 #define NOMINMAX
 #include <windows.h>
 #include <shlobj.h>
+#else
+#include <cerrno>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -214,12 +218,80 @@ bool StdFileSystem::write_file(const std::string& path, const std::string& conte
     return write_bytes(path, content.data(), content.size());
 }
 
+#if !defined(_WIN32)
+namespace {
+// The temp file's bytes written AND forced to the medium before the rename puts it in place. Without
+// the sync a rename can reach a card first (FAT and exFAT keep no order, ext4 only a heuristic): a
+// power cut, or a card pulled right after SAVE, then leaves the new name on an empty or short file.
+// Only a real write failure (EIO, a full card or quota) fails the save; a filesystem that cannot sync
+// at all (EINVAL, ENOTSUP) must not turn every save into a failure.
+bool write_synced(const std::string& path, const void* data, size_t len, bool sync) {
+    const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
+    if (fd < 0) return false;
+    const char* p = static_cast<const char*>(data);
+    size_t left = len;
+    while (left > 0) {
+        const ssize_t n = ::write(fd, p, left);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            ::close(fd);
+            return false;
+        }
+        p += n;
+        left -= static_cast<size_t>(n);
+    }
+    bool ok = true;
+#if defined(__APPLE__) && defined(F_FULLFSYNC)
+    if (sync && ::fcntl(fd, F_FULLFSYNC) != 0)   // the drive's own cache too; fall back to fsync below
+#else
+    if (sync)
+#endif
+    {
+        int r;
+        do { r = ::fsync(fd); } while (r < 0 && errno == EINTR);
+        if (r < 0 && (errno == EIO || errno == ENOSPC
+#ifdef EDQUOT
+                      || errno == EDQUOT
+#endif
+                      )) ok = false;
+    }
+    if (::close(fd) != 0) ok = false;
+    return ok;
+}
+// Best effort: the rename itself reaches the medium. Errors are ignored (not every filesystem can).
+void sync_directory(const std::string& file) {
+    const fs::path parent = fs::path(file).parent_path();
+    const int fd = ::open((parent.empty() ? fs::path(".") : parent).c_str(), O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return;
+    int r;
+    do { r = ::fsync(fd); } while (r < 0 && errno == EINTR);
+    ::close(fd);
+}
+}  // namespace
+#endif
+
+bool StdFileSystem::write_file_relaxed(const std::string& path, const std::string& content) {
+    return write_bytes_impl(path, content.data(), content.size(), /*sync=*/false);
+}
+
 bool StdFileSystem::write_bytes(const std::string& path, const void* data, size_t len) {
+    return write_bytes_impl(path, data, len, /*sync=*/true);
+}
+
+bool StdFileSystem::write_bytes_impl(const std::string& path, const void* data, size_t len, bool sync) {
+    (void)sync;   // Windows keeps its flush-and-close write
     std::error_code ec;
     fs::create_directories(fs::path(path).parent_path(), ec);
 
     // Through `<path>.tmp` and a rename, so power loss mid-save leaves the old file whole.
     const std::string tmp = path + ".tmp";
+#if !defined(_WIN32)
+    if (!write_synced(tmp, data, len, sync)) {
+        std::error_code ignored;
+        fs::remove(tmp, ignored);
+        return false;
+    }
+#else
     {
         std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
         if (!f) return false;
@@ -234,6 +306,7 @@ bool StdFileSystem::write_bytes(const std::string& path, const void* data, size_
             return false;
         }
     }
+#endif
 
     fs::rename(tmp, path, ec);
     if (ec) {
@@ -244,6 +317,9 @@ bool StdFileSystem::write_bytes(const std::string& path, const void* data, size_
         fs::remove(tmp, ignored);
         if (ec) return false;
     }
+#if !defined(_WIN32)
+    if (sync) sync_directory(path);
+#endif
     return true;
 }
 

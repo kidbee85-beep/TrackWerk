@@ -8,6 +8,7 @@
 //   E5 a case-only rename works, and an extension in another case is not doubled
 //   E6 an instrument preset's FILE name is sanitised like every other preset's
 //   E7 COLLECT keeps two different files of one name apart (kick.wav, kick_2.wav)
+//   S1 the synced write (temp, fsync, rename) is correct, replaces cleanly and fails without a trace
 // usage: ptfile-safety-check <new run directory>
 #include "audio-engine.h"
 #include "songcore/host.h"
@@ -25,6 +26,9 @@
 #include <cstring>
 #include <functional>
 #include <vector>
+#if !defined(_WIN32)
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -482,6 +486,44 @@ void collect_keeps_namesakes(const fs::path& root) {
     }
 }
 
+// The write behind SAVE, settings and the autosave: temp file, fsync, rename, directory sync. A power cut
+// cannot be staged here; what can be checked is that the result is exact and that a failure leaves the
+// old file whole and no temp behind.
+void write_cases(const fs::path& root) {
+    const fs::path dir = root / "s1";
+    StdFileSystem sfs(dir.string());
+    const auto read = [&](const std::string& path) {
+        std::string text;
+        assert(sfs.read_file(path, text));
+        return text;
+    };
+    const std::string a = (dir / "sub/a.ptp").generic_string();   // the parent folder does not exist yet
+    assert(sfs.write_file(a, "one") && read(a) == "one");
+    assert(sfs.write_file(a, "2") && read(a) == "2");             // shorter: no tail of the old content
+    assert(sfs.write_file(a, "") && fs::exists(a) && fs::file_size(a) == 0);
+    std::string big(3 << 20, 'x');
+    for (size_t i = 0; i < big.size(); i += 4099) big[i] = static_cast<char>('a' + i % 26);
+    assert(sfs.write_file(a, big) && read(a) == big);
+    assert(sfs.write_bytes(a, big.data(), big.size() / 2) && read(a) == big.substr(0, big.size() / 2));
+    assert(sfs.write_file_relaxed(a, "relaxed") && read(a) == "relaxed");
+    assert(!fs::exists(a + ".tmp"));
+
+    // The target is a folder: the rename cannot succeed. False, the folder intact, no temp.
+    const std::string folder = (dir / "folder.ptp").generic_string();
+    fs::create_directories(folder + "/keep");
+    assert(!sfs.write_file(folder, "x") && fs::is_directory(folder + "/keep") && !fs::exists(folder + ".tmp"));
+
+#if !defined(_WIN32)
+    // A folder that refuses new files: false for both writes, the old file whole, no temp.
+    if (geteuid() != 0) {
+        fs::permissions(dir / "sub", fs::perms::owner_read | fs::perms::owner_exec);
+        const bool durable = sfs.write_file(a, "lost"), relaxed = sfs.write_file_relaxed(a, "lost");
+        fs::permissions(dir / "sub", fs::perms::owner_all);
+        assert(!durable && !relaxed && read(a) == "relaxed" && !fs::exists(a + ".tmp"));
+    }
+#endif
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -497,6 +539,7 @@ int main(int argc, char** argv) {
     fast_a_after_a_move(root);
     preset_file_names(root);
     collect_keeps_namesakes(root);
+    write_cases(root);
     std::cout << "FILE_SAFETY_PASS: load asks, save never replaces unasked, no paste into itself, "
-                 "rename case, fast A after a move, preset file names, collect namesakes\n";
+                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes\n";
 }

@@ -55,6 +55,7 @@ class StdFileSystem : public FileSystem {
     // ── Writing ─────────────────────────────────────────────────────────────────────────────────
     bool write_file(const std::string& path, const std::string& content) override;
     bool write_bytes(const std::string& path, const void* data, size_t len) override;
+    bool write_file_relaxed(const std::string& path, const std::string& content) override;
     bool delete_path(const std::string& path) override;
     bool rename_file(const std::string& path, const std::string& new_base_name) override;
     std::string create_folder(const std::string& parent, const std::string& folder_name) override;
@@ -64,6 +65,7 @@ class StdFileSystem : public FileSystem {
 
   private:
     std::string ensure_dir(const char* sub);
+    bool write_bytes_impl(const std::string& path, const void* data, size_t len, bool sync);
 
     std::string root_;         // the user's media tree and config.json
     std::string privateRoot_;  // the app's own files
