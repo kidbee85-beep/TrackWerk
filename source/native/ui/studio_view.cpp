@@ -128,6 +128,113 @@ const char* gravity_description(int model){
  default:return "Independent drops trigger tuned impacts";
  }
 }
+// The frog stage (Studio > Synth > the XY page of FROG VOICE and SING FROG): a neon side view in the manner of an
+// anatomy drawing. The dot of the pad is a firefly; the frog's mouth opens with X (Mouth), air bubbles rise with
+// Y (Breath), the tongue reaches for the firefly, the throat sac swells with the voice, ripples spread on the
+// pond. With scene motion off it is a still picture. Readouts: the three formants the Mouth and Throat settings
+// give an "ah", and what the jaw, lips and tongue are doing.
+void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
+ const Theme& t=s.theme;
+ const bool sing=s.studioModel==studio::kSingFrogModel;
+ const bool moving=s.settings.sceneMotion;
+ const float T=moving?float(s.animationMs%600000)/1000.f:0.f;
+ const float mouth=std::clamp(s.studioHarmonics,0,255)/255.f,second=std::clamp(s.studioTimbre,0,255)/255.f,third=std::clamp(s.studioMorph,0,255)/255.f;
+ const Argb line=t.rowCursor,dim=with_alpha(t.rowCursor,.42f);
+ const Argb green=0xFF67E58Cu,orange=0xFFFF9B5Eu,pink=0xFFFF7FC6u,gold=0xFFFFE27Au,water=0xFF58B8E8u;
+ c.panel_rect(x,y,w,h,mix(t.rowEvery4th,t.background,.55f),with_alpha(t.rowCursor,.55f),5);
+ const int wy=y+h-17;   // the water line
+ const auto ellipse=[&](float cx,float cy,float rx,float ry,Argb col,float from=0.f,float to=6.2831853f){
+  const int n=26;float px=cx+rx*std::cos(from),py=cy+ry*std::sin(from);
+  for(int i=1;i<=n;++i){const float a=from+(to-from)*float(i)/n;const float nx=cx+rx*std::cos(a),ny=cy+ry*std::sin(a);
+   c.line(int(std::lround(px)),int(std::lround(py)),int(std::lround(nx)),int(std::lround(ny)),col);px=nx;py=ny;}
+ };
+ const auto fill=[&](float cx,float cy,float rx,float ry,Argb col){
+  for(int dy=-int(ry);dy<=int(ry);++dy){const float f=1.f-float(dy*dy)/(ry*ry);if(f<0)continue;const int half=int(std::lround(rx*std::sqrt(f)));c.fill_rect(int(cx)-half,int(cy)+dy,2*half+1,1,col);}
+ };
+ // the pond: a line with a travelling wave, and two ripples spreading from the lily pad
+ for(int px=x+4;px<x+w-4;px+=2){
+  const int wob=int(std::lround(1.2f*std::sin(float(px)*.11f+T*2.f)));
+  c.fill_rect(px,wy+3+wob,2,1,with_alpha(water,.55f));
+  if(px%6==0)c.fill_rect(px,wy+8+int(std::lround(std::sin(float(px)*.17f-T*1.6f))),2,1,with_alpha(water,.28f));
+ }
+ const float padX=x+w*.30f;
+ for(int ring=0;ring<2;++ring){
+  const float ph=moving?std::fmod(T*.45f+ring*.5f,1.f):.35f+ring*.3f;
+  ellipse(padX+10,wy+7,26+ph*70,2+ph*5,with_alpha(water,.5f*(1.f-ph)),0.f,6.2831853f);
+ }
+ // lily pad
+ fill(padX+4,wy+1,54,4,with_alpha(green,.20f));ellipse(padX+4,wy+1,54,4,with_alpha(green,.85f));
+ c.line(int(padX+4),wy+1,int(padX+58),wy-1,with_alpha(green,.85f));   // the notch
+ // the frog, facing right: body, folded hind leg, head (everything scaled by S)
+ constexpr float S=1.4f;
+ const float bx=padX,by=wy-15*S,hx=bx+43*S,hy=by-5*S;
+ const float beat=moving?(.5f-.5f*std::cos(6.2831853f*T*(sing?3.f:.5f*std::exp2(5.f*mouth)))):.45f;
+ const float activity=sing?(.35f+.65f*beat):beat;
+ fill(bx,by,45*S,19*S,with_alpha(line,.10f));ellipse(bx,by,45*S,19*S,line);
+ for(int dot=0;dot<7;++dot)c.fill_rect(int(bx+(-30+dot*9)*S),int(by+(-12+((dot*5)%7))*S),2,2,dim);   // spots on the back
+ c.line(int(bx-28*S),int(by+8*S),int(bx-50*S),int(wy-1),line);c.line(int(bx-50*S),int(wy-1),int(bx-22*S),int(wy),line);c.line(int(bx-22*S),int(wy),int(bx-10*S),int(by+16*S),dim);
+ fill(hx,hy,23*S,13*S,with_alpha(line,.10f));ellipse(hx,hy,23*S,13*S,line);
+ // the eye on top, the pupil looking at the firefly
+ const float dotX=x+10+mouth*(w-20),dotY=y+8+(1.f-second)*float(wy-y-26);
+ const float ex=hx+3*S,ey=hy-13*S;
+ ellipse(ex,ey,7*S,7*S,line);fill(ex,ey,5*S,5*S,with_alpha(green,.30f));
+ const float lookX=std::clamp((dotX-ex)/60.f,-1.f,1.f),lookY=std::clamp((dotY-ey)/40.f,-1.f,1.f);
+ const bool blink=moving&&std::fmod(T,3.7f)>3.55f;
+ if(blink)c.line(int(ex-6*S),int(ey),int(ex+6*S),int(ey),line);
+ else{fill(ex+lookX*3,ey+lookY*3,3,3,0xFF0A0F14u);c.fill_rect(int(ex+lookX*3)-1,int(ey+lookY*3)-1,1,1,0xFFFFFFFFu);}
+ // the mouth: the upper jaw is fixed, the lower jaw opens with X; lips in pink
+ const float open=(1.f+mouth*(sing?13.f:6.f)*(sing?1.f:.5f+.5f*beat))*S;
+ const float cornerX=hx-8*S,cornerY=hy+5*S,noseX=hx+22*S,noseY=hy+1*S;
+ c.line(int(cornerX),int(cornerY),int(noseX),int(noseY),pink);c.line(int(cornerX),int(cornerY)+1,int(noseX),int(noseY)+1,with_alpha(pink,.6f));
+ c.line(int(cornerX),int(cornerY),int(noseX-2*S),int(noseY+4*S+open),orange);
+ c.line(int(noseX-2*S),int(noseY+4*S+open),int(noseX-9*S),int(noseY+4*S+open*.6f),orange);
+ c.fill_rect(int(noseX)-4,int(noseY)-3,2,2,dim);   // nostril
+ // the tongue reaches towards the firefly as far as the mouth is open
+ if(open>3.f*S){
+  const float tipX=hx+6*S+std::min(open*1.6f,noseX-hx+14*S),tipY=hy+4*S+open*.45f+(moving?1.5f*std::sin(T*9.f):0.f);
+  float lx=cornerX+2,ly=cornerY+2;
+  for(int i=1;i<=8;++i){const float u=float(i)/8.f;const float nx=cornerX+2+(tipX-cornerX-2)*u,ny=cornerY+2+(tipY-cornerY-2)*u+std::sin(u*3.14159f)*2.f;
+   c.line(int(lx),int(ly),int(nx),int(ny),green);c.line(int(lx),int(ly)+1,int(nx),int(ny)+1,with_alpha(green,.7f));c.line(int(lx),int(ly)+2,int(nx),int(ny)+2,with_alpha(green,.45f));lx=nx;ly=ny;}
+ }
+ // the throat sac
+ const float sacR=(3.f+activity*(sing?9.f:11.f))*S;
+ const float sacY=hy+10*S+open*.5f;
+ fill(hx-1,sacY+sacR*.5f,sacR*1.3f,sacR,with_alpha(pink,.22f+.25f*activity));ellipse(hx-1,sacY+sacR*.5f,sacR*1.3f,sacR,with_alpha(pink,.55f+.35f*activity));
+ // bubbles rise from the mouth with the breath
+ if(second>.12f){
+  const int n=1+int(second*6.f);
+  for(int i=0;i<n;++i){
+   const float ph=moving?std::fmod(T*.7f+float(i)*.37f,1.f):float(i)/float(n);
+   const float bxp=noseX+4+ph*34+3.f*std::sin(T*3.f+float(i)),byp=noseY+6*S-ph*36;
+   if(byp<y+6)continue;
+   const int r=1+i%3;c.stroke_rect(int(bxp)-r,int(byp)-r,2*r+1,2*r+1,with_alpha(water,.9f*(1.f-ph)));
+  }
+ }
+ // the firefly (the pad's dot): a glowing point with a pulse and small wings
+ const float flick=moving?.5f+.5f*std::sin(T*7.f):.8f;
+ c.stroke_rect(int(dotX)-5,int(dotY)-5,11,11,with_alpha(gold,.20f+.25f*flick));
+ c.fill_rect(int(dotX)-2,int(dotY)-2,5,5,with_alpha(gold,.9f));
+ c.line(int(dotX)-1,int(dotY)-3,int(dotX)-5,int(dotY)-6-int(flick*2),with_alpha(gold,.7f));
+ c.line(int(dotX)+1,int(dotY)-3,int(dotX)+5,int(dotY)-6-int(flick*2),with_alpha(gold,.7f));
+ // readouts: the three formants the sound gives an ah, and the jaw, lips and tongue
+ const float throat=.7f*std::exp2(third)*(1.f/.95f);
+ const float jaw=.8f+.5f*mouth;
+ const int f1=int(std::lround(700.f*jaw*throat)),f2=int(std::lround(1300.f*throat)),f3=int(std::lround(2500.f*throat));
+ char text[40];
+ std::snprintf(text,sizeof(text),"F1 %d",f1);label(c,text,x+8,y+5,orange,56,11);
+ std::snprintf(text,sizeof(text),"F2 %d",f2);label(c,text,x+68,y+5,orange,56,11);
+ std::snprintf(text,sizeof(text),"F3 %d",f3);label(c,text,x+128,y+5,orange,56,11);
+ std::snprintf(text,sizeof(text),"JAW %.1f cm",.2f+open*.12f);label(c,text,x+w-96,y+22,orange,90,11);
+ std::snprintf(text,sizeof(text),"LIPS %.1f cm",.3f+mouth*1.1f);label(c,text,x+w-96,y+36,pink,90,11);
+ std::snprintf(text,sizeof(text),"TONGUE %.1f",open>3.f?std::min(1.f,open/14.f):0.f);label(c,text,x+w-96,y+50,green,90,11);
+ if(sing){
+  const std::string& words=s.studioDraft.lyric.empty()?std::string("ribbit ribbit quack la la"):s.studioDraft.lyric;
+  label(c,words.size()>20?words.substr(0,19)+"~":words,x+w-96,y+h-26,gold,92,11);
+ }else{
+  std::snprintf(text,sizeof(text),"CROAK %.1f/s",.5f*std::exp2(5.f*mouth));label(c,text,x+w-96,y+h-26,gold,92,11);
+ }
+ label(c,"HOLD L + D-PAD",x+8,y+h-14,with_alpha(t.textParam,.8f),110,10);
+}
 // `live`: the AppState for diagrams that draw the sound's own settings and move (DUB SIREN); null elsewhere.
 void synth_diagram(Canvas& c,int model,int x,int y,Argb color,const AppState* live=nullptr){
  if(model==studio::kFmSysexModel){
@@ -381,7 +488,8 @@ void synth_page(Canvas& c,const AppState& s){
  label(c,"R + Left / Right: Pages",455,229,t.textParam,168);
  const int controls=std::clamp(studio_synth_control_count(s),1,4);
  const bool xyPage=studio_synth_xy_page(s);
- const int cellWidth=xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
+ const bool frogPage=xyPage&&(s.studioModel==studio::kFrogVoiceModel||s.studioModel==studio::kSingFrogModel);
+ const int cellWidth=frogPage?100:xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
  studio_card(c,16,248,608,105,t);
  for(int i=0;i<controls;++i){
   const int x=16+i*cellWidth;
@@ -405,6 +513,8 @@ void synth_page(Canvas& c,const AppState& s){
  if(xyPage){
   // The pad: X is the first macro, Y the second (up is more). The dot glides to each new position; with
   // scene motion on a ring breathes around it. Hold L and press the D-pad to move it.
+  if(frogPage)frog_stage(c,s,224,254,392,92);
+  else{
   const int px=398,py=254,pw=218,ph=92,inner=8;
   c.panel_rect(px,py,pw,ph,mix(t.rowEvery4th,t.background,.5f),with_alpha(t.rowCursor,.55f),5);
   for(int g=1;g<4;++g){c.fill_rect(px+inner+g*(pw-2*inner)/4,py+inner,1,ph-2*inner,with_alpha(t.textParam,.18f));c.fill_rect(px+inner,py+inner+g*(ph-2*inner)/4,pw-2*inner,1,with_alpha(t.textParam,.18f));}
@@ -415,6 +525,7 @@ void synth_page(Canvas& c,const AppState& s){
   if(s.settings.sceneMotion){const int phase=int((s.animationMs/90)%6);c.stroke_rect(dx-4-phase,dy-4-phase,9+2*phase,9+2*phase,with_alpha(t.rowCursor,.5f-.08f*phase));}
   c.fill_rect(dx-2,dy-2,5,5,t.rowCursor);
   label(c,"HOLD L + D-PAD",px+10,py+ph-20,with_alpha(t.textParam,.8f),pw-20,10);
+  }
  }
 
  const bool focus=s.studioRow==studio_synth_apply_row(s);
