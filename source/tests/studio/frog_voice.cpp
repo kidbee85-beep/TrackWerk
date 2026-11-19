@@ -111,7 +111,7 @@ double centroid(const std::vector<double>& p) {
 
 int main() {
     assert(kFrogVoiceModel == kDubSirenModel + 1 && is_vintage_model(kFrogVoiceModel));
-    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 126);
+    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 128);
     assert(std::string(model_name(kFrogVoiceModel)) == "FROG VOICE" && !synth_needs_strike(kFrogVoiceModel));
     assert(macro_count(kFrogVoiceModel) == 3 && std::string(macro_name(kFrogVoiceModel, 0)) == "Croak" &&
            std::string(macro_name(kFrogVoiceModel, 1)) == "Throat" && std::string(macro_name(kFrogVoiceModel, 2)) == "Dip");

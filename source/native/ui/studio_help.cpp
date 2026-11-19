@@ -26,6 +26,26 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="bank")return "Bank: three built-in banks, then the .syx files of the SysEx folder (DX7 format).";
         if(name=="voice")return "Voice picks one of the bank's 32 voices. The song keeps a copy of it.";
     }
+    // ACID BOX and REESE BASS: the two bass engines.
+    if(model==studio::kAcidBoxModel){
+        if(name=="cutoff")return "Cutoff is where the filter starts. The envelope sweeps up from here.";
+        if(name=="resonance")return "Resonance makes the filter squelch. High values ring and whistle.";
+        if(name=="env mod")return "Env mod is how far each note sweeps the filter. Zero is a plain bass.";
+        if(name=="wave")return "Wave: saw is bright and buzzy, square is hollow and round.";
+        if(name=="decay")return "Decay is how fast the sweep falls back after each note.";
+        if(name=="accent")return "Accent makes the note louder and its sweep wider. Pair it with steps.";
+        if(name=="squash")return "Squash saturates the sound before the filter. More means more bite.";
+        if(name=="sub")return "Sub adds a soft sine an octave below to fill out the bottom.";
+    }
+    if(model==studio::kReeseBassModel){
+        if(name=="detune")return "Detune spreads the saws apart. The wider, the slower the beating.";
+        if(name=="cutoff")return "Cutoff sets how dark the bass is. Low values give a growl.";
+        if(name=="movement")return "Movement makes the filter and the detune breathe with the drift.";
+        if(name=="voices")return "Voices: two saws for a tight sound, three for a thick one.";
+        if(name=="sub")return "Sub adds a sine an octave below. Keep it up for a heavy floor.";
+        if(name=="squash")return "Squash saturates the saws before the filter for grit.";
+        if(name=="drift speed")return "Drift speed is how fast the movement turns, from slow tides to wobble.";
+    }
     // SING FROG: the singer. Each line stays within the help width and uses no apostrophes.
     if(model==studio::kSingFrogModel){
         if(name=="mouth")return "Mouth opens the jaw: more of the first formant, a rounder ah.";

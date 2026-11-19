@@ -83,7 +83,7 @@ SingFrog::Settings plain(int voice = 1) {
 int main() {
     // Registration.
     assert(kSingFrogModel == kFrogVoiceModel + 1 && is_vintage_model(kSingFrogModel));
-    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 126);
+    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 128);
     assert(std::string(model_name(kSingFrogModel)) == "SING FROG" && !synth_needs_strike(kSingFrogModel));
     assert(macro_count(kSingFrogModel) == 3 && std::string(macro_name(kSingFrogModel, 0)) == "Mouth" &&
            std::string(macro_name(kSingFrogModel, 1)) == "Breath" && std::string(macro_name(kSingFrogModel, 2)) == "Throat");

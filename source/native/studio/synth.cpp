@@ -11,6 +11,7 @@
 #include "dub_siren.h"
 #include "frog_voice.h"
 #include "sing_frog.h"
+#include "bass_synths.h"
 #include "fm_sysex_voice.h"
 #include "plaits/resources.h"
 #include <algorithm>
@@ -61,7 +62,7 @@ const char* additionalNames[] = {
  "S OCTAVE ORBIT", "S GRAVITY BOUNCE", "S ORBIT BELLS", "S GRAVITY RAIN",
  "SP ADDITIVE", "SP FREEZE", "SP MORPH",
  "FORMANT CHOIR",
- "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN", "FROG VOICE", "SING FROG"
+ "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN", "FROG VOICE", "SING FROG", "ACID BOX", "REESE BASS"
 };
 static_assert(sizeof(additionalNames) / sizeof(*additionalNames) == additionalModels);
 static_assert(kGravityFirstModel + kGravityModelCount == kSpectralFirstModel);
@@ -314,7 +315,46 @@ constexpr std::array<int, 6> kSingFrogSounds[16] = {
     {{  32,  90,  70, 100, 170,   0}}, {{  32, 200,  60,  95, 120,   0}},
 };
 
+// ACID BOX: A cutoff, B resonance, C env mod (bass_synths.h).
+constexpr NamedPreset kAcidBoxPresets[16] = {
+    {"Basic Line",    { 70, 150, 120}}, {"Squelch",       { 60, 210, 170}},
+    {"Rubber",        { 90, 110, 140}}, {"Wobble Acid",   { 80, 190, 200}},
+    {"Deep Acid",     { 40, 130, 110}}, {"Hard Accent",   {100, 170, 230}},
+    {"Sweep Up",      { 30, 200, 255}}, {"Dusty Box",     { 75, 120,  80}},
+    {"Liquid",        { 85, 160, 150}}, {"Screamer",      {120, 240, 190}},
+    {"Short Tick",    { 95, 140, 180}}, {"Long Slide",    { 55, 180, 210}},
+    {"Rave Stab",     {110, 200, 220}}, {"Mellow",        { 65,  90,  90}},
+    {"Night Drive",   { 50, 170, 160}}, {"Chrome",        {130, 150, 200}},
+};
+// Each sound's own settings (rows 2…6, 0..255): wave (value/64), decay, accent, squash, sub.
+constexpr std::array<int, 5> kAcidBoxSounds[16] = {
+    {{ 32, 100,  60,  90,   0}}, {{ 32,  80, 180, 140,   0}}, {{ 96, 120,  60,  70,  60}}, {{ 32, 160, 120, 120,   0}},
+    {{ 96, 140,  40,  60, 120}}, {{ 32,  60, 255, 170,   0}}, {{ 32, 180, 140, 110,   0}}, {{ 96,  90,  80, 100,  40}},
+    {{ 32, 130, 100,  80,   0}}, {{ 32,  50, 220, 200,   0}}, {{ 96,  20, 150, 110,   0}}, {{ 32, 220, 120, 100,   0}},
+    {{ 96,  40, 200, 150,   0}}, {{ 96, 150,  40,  50,  80}}, {{ 32, 170, 110,  90,  30}}, {{ 32,  70, 170, 160,   0}},
+};
+// REESE BASS: A detune, B cutoff, C movement (bass_synths.h).
+constexpr NamedPreset kReeseBassPresets[16] = {
+    {"Neuro Growl",   {160, 120, 180}}, {"Dark Rolling",  {110,  80, 120}},
+    {"Detuned Sub",   {200,  60,  60}}, {"Wide Mono",     {230, 140,  80}},
+    {"Moving Wall",   {140, 110, 230}}, {"Tight Reese",   { 90, 130,  40}},
+    {"Phase Rider",   {180, 100, 200}}, {"Fat Saw",       {210, 150,  60}},
+    {"Hollow Reese",  {120,  70, 160}}, {"Wobble Slow",   {150,  90, 255}},
+    {"Rumble",        {100,  50,  90}}, {"Cavern",        {170,  60, 140}},
+    {"Rusty",         {190, 170, 110}}, {"Steel Bass",    {130, 190,  50}},
+    {"Slow Tide",     {145,  85, 210}}, {"Heavy Weather", {220, 100, 150}},
+};
+// Each sound's own settings (rows 2…6, 0..255): voices (value/128 + 2), sub, resonance, squash, drift speed.
+constexpr std::array<int, 5> kReeseBassSounds[16] = {
+    {{192, 128,  70, 140, 120}}, {{192, 170,  40,  90,  60}}, {{ 64, 200,  20,  60,  40}}, {{192, 110,  50, 100,  90}},
+    {{192, 140,  90, 120, 130}}, {{ 64, 140,  60, 110,  50}}, {{192, 100, 110, 100, 150}}, {{192, 160,  30, 160,  70}},
+    {{ 64,  90, 120,  80,  80}}, {{192, 150, 100, 130, 100}}, {{192, 220,  30, 120,  30}}, {{192, 120,  80,  70,  50}},
+    {{192, 100,  60, 180, 110}}, {{ 64, 130, 140, 150,  90}}, {{192, 150,  60,  90,  40}}, {{192, 180,  50, 170, 100}},
+};
+
 const NamedPreset* named_preset(int model, int variation) {
+    if (model == kAcidBoxModel && variation >= 0 && variation < 16) return &kAcidBoxPresets[variation];
+    if (model == kReeseBassModel && variation >= 0 && variation < 16) return &kReeseBassPresets[variation];
     if (model == kSingFrogModel && variation >= 0 && variation < 16) return &kSingFrogPresets[variation];
     if (model == kFrogVoiceModel && variation >= 0 && variation < 16) return &kFrogVoicePresets[variation];
     if (model == kDubSirenModel && variation >= 0 && variation < 16) return &kDubSirenPresets[variation];
@@ -431,7 +471,9 @@ const char* macro_name(int model,int index){
   {"Brightness","Envelope","Velocity"},             // FM SYSEX
   {"LFO rate","LFO depth","Sweep"},                 // DUB SIREN
   {"Croak","Throat","Dip"},                         // FROG VOICE
-  {"Mouth","Breath","Throat"}                       // SING FROG
+  {"Mouth","Breath","Throat"},                      // SING FROG
+  {"Cutoff","Resonance","Env mod"},                 // ACID BOX
+  {"Detune","Cutoff","Movement"}                    // REESE BASS
  };
  if(model<24)return plaits[model][index];
  if(model<24+braidsCount){
@@ -503,6 +545,7 @@ int synth_param_count(int model){
  if(model==kDubSirenModel)return 9;
  if(model==kFrogVoiceModel)return 8;
  if(model==kSingFrogModel)return 9;
+ if(model==kAcidBoxModel||model==kReeseBassModel)return 7;
  if(model==kFmSysexModel)return 4;
  if(is_spectral_model(model))return 6;
  if(model<24)return plaits_lpg(model)?4:2;if(model<72)return 3;if(model<78)return model==76?4:3;
@@ -523,6 +566,8 @@ const char* synth_param_name(int model,int index){
  if(model==kFormantChoirModel){static const char* choir[]={"Output tone","Drive","Voice","Singers","Vibrato","Vibrato rate"};return choir[index];}
  if(model==kSidChipModel){static const char* sid[]={"Output tone","Drive","Wave","Chip","Filter","Resonance","PWM","Arp speed"};return sid[index];}
  if(model==kFmSysexModel){static const char* fm[]={"Output tone","Drive","Bank","Voice"};return fm[index];}
+ if(model==kAcidBoxModel){static const char* acid[]={"Output tone","Drive","Wave","Decay","Accent","Squash","Sub"};return acid[index];}
+ if(model==kReeseBassModel){static const char* reese[]={"Output tone","Drive","Voices","Sub","Resonance","Squash","Drift speed"};return reese[index];}
  if(model==kSingFrogModel){static const char* sing[]={"Output tone","Drive","Lyrics","Voice","Croak","Vibrato","Glide","Coda","Syllable"};return sing[index];}
  if(model==kFrogVoiceModel){static const char* frog[]={"Output tone","Drive","Species","Pulses","Croak depth","Throat","Chirp","Bubble"};return frog[index];}
  if(model==kDubSirenModel){static const char* dub[]={"Output tone","Drive","Wave","LFO shape","Cutoff","Resonance","Sweep time","Fine tune","Ping"};return dub[index];}
@@ -552,6 +597,10 @@ int synth_param_default(int model,int index){
  // DUB SIREN: tone, drive, sine, triangle LFO, filter open, a little resonance, ~1.5 s sweep, in tune, no ping
  // FROG VOICE: tone, drive, tree frog, two pulses, deep croak, throat centred, a little chirp and bubble
  // SING FROG: tone, drive, frog voice, some croak, a little vibrato, medium glide, coda after ~0.55 s, next syllable
+ // ACID BOX: tone, drive, saw, a medium decay, a little accent, some squash, no sub
+ if(model==kAcidBoxModel){static constexpr int acid[]={255,0,32,100,40,90,0};return acid[index];}
+ // REESE BASS: tone, drive, three voices, half sub, a little resonance, some squash, a slow drift
+ if(model==kReeseBassModel){static constexpr int reese[]={255,0,192,128,40,90,80};return reese[index];}
  if(model==kSingFrogModel){static constexpr int sing[]={255,0,0,32,128,77,85,120,0};return sing[index];}
  if(model==kFrogVoiceModel){static constexpr int frog[]={255,0,32,64,204,128,77,51};return frog[index];}
  if(model==kDubSirenModel){static constexpr int dub[]={255,0,32,16,255,51,128,128,0};return dub[index];}
@@ -602,6 +651,8 @@ int synth_param_adjust(int model,int index,int value,int direction,bool coarse){
  // DCO POLY HPF: one press, one position
  if(model==kDcoPolyModel&&index==8)return std::clamp(value/64+sign,0,DcoPoly::kHpfCount-1)*64+32;
  // DUB SIREN wave and LFO shape: one press, one step
+ if(model==kAcidBoxModel&&index==2)return std::clamp(value/64+sign,0,AcidBox::kWaveCount-1)*64+32;
+ if(model==kReeseBassModel&&index==2)return std::clamp(value/128+sign,0,1)*128+64;
  if(model==kSingFrogModel&&index==kSingVoiceParam)return std::clamp(value/64+sign,0,SingFrog::kVoiceCount-1)*64+32;
  if(model==kSingFrogModel&&index==kSingSyllableParam)return std::clamp(value/5+sign*(coarse?4:1),0,sing::kMaxSyllables)*5;
  if(model==kSingFrogModel&&index==kSingLyricParam)return value;
@@ -646,6 +697,10 @@ std::string synth_param_value(int model,int index,int value){
  else if(model==kFmSysexModel&&index==kFmBankParam&&fm_bank_index(value)<kFmFactoryBanks)std::snprintf(text,sizeof(text),"Built-in %c",'A'+fm_bank_index(value));
  else if(model==kFmSysexModel&&index==kFmBankParam)std::snprintf(text,sizeof(text),"Bank %d",fm_bank_index(value)-kFmFactoryBanks+1);
  else if(model==kFmSysexModel&&index==kFmVoiceParam)std::snprintf(text,sizeof(text),"Voice %d",fm_voice_index(value)+1);
+ else if(model==kAcidBoxModel&&index==2)std::snprintf(text,sizeof(text),"%s",AcidBox::kWaveNames[std::min(value/64,AcidBox::kWaveCount-1)]);
+ else if(model==kAcidBoxModel&&index==3)std::snprintf(text,sizeof(text),"%.2f s",AcidBox::decay_seconds(value/255.f));
+ else if(model==kReeseBassModel&&index==2)std::snprintf(text,sizeof(text),"%d voices",value>=128?3:2);
+ else if(model==kReeseBassModel&&index==6)std::snprintf(text,sizeof(text),"%.2f Hz",ReeseBass::drift_hz(value/255.f));
  else if(model==kSingFrogModel&&index==kSingVoiceParam)std::snprintf(text,sizeof(text),"%s",SingFrog::kVoiceNames[std::min(value/64,SingFrog::kVoiceCount-1)]);
  else if(model==kSingFrogModel&&index==5)std::snprintf(text,sizeof(text),"%.0f cents",45.f*value/255.f);
  else if(model==kSingFrogModel&&index==6)std::snprintf(text,sizeof(text),"%.0f ms",SingFrog::glide_ms(value/255.f));
@@ -677,7 +732,7 @@ int uri_code(const char* p){
 }
 struct Synth::State {
  plaits::Voice plaits{}; braids::MacroOscillator braids{};
- rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FrogVoice frog; SingFrog singer; FmSysexVoice fm;
+ rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FrogVoice frog; SingFrog singer; AcidBox acid; ReeseBass reese; FmSysexVoice fm;
  uint8_t lyric[sing::kPackedSize]{},defaultLyric[sing::kPackedSize]{}; bool lyricSet=false; uint32_t noteIndex=0;
  fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet=false;
  alignas(8) char memory[65536]{};
@@ -811,6 +866,28 @@ struct Synth::State {
     fm.set_voice(builtIn);
    }
    fm.render(out,24,hz,a,b,c);size=24;
+  }else if(model==kAcidBoxModel){
+   if(strike)acid.start();
+   const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
+   const auto ap=[&](int index){
+    if(params[index]>=0)return params[index];
+    if(named)return kAcidBoxSounds[var][size_t(index-2)];
+    return synth_param_default(model,index);
+   };
+   AcidBox::Settings set;
+   set.wave=std::clamp(ap(2)/64,0,AcidBox::kWaveCount-1);set.decay=ap(3)/255.f;set.accent=ap(4)/255.f;set.drive=ap(5)/255.f;set.sub=ap(6)/255.f;
+   acid.render(out,24,hz,a,b,c,set);size=24;
+  }else if(model==kReeseBassModel){
+   if(strike)reese.start();
+   const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
+   const auto rp=[&](int index){
+    if(params[index]>=0)return params[index];
+    if(named)return kReeseBassSounds[var][size_t(index-2)];
+    return synth_param_default(model,index);
+   };
+   ReeseBass::Settings set;
+   set.voices=rp(2)>=128?3:2;set.sub=rp(3)/255.f;set.resonance=rp(4)/255.f;set.drive=rp(5)/255.f;set.drift=rp(6)/255.f;
+   reese.render(out,24,hz,a,b,c,set);size=24;
   }else if(model==kSingFrogModel){
    const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
    const auto sp=[&](int index){

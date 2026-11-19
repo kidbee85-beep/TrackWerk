@@ -58,13 +58,15 @@ inline constexpr bool is_voice_model(int model) {
 // The Vintage family (Studio > Synth > Vintage): 120 SID CHIP (sid_chip.h), 121 DCO POLY (dco_poly.h),
 // 122 FM SYSEX (fm_sysex_voice.h), 123 DUB SIREN (dub_siren.h).
 inline constexpr int kVintageFirstModel = kVoiceFirstModel + kVoiceModelCount;
-inline constexpr int kVintageModelCount = 6;
+inline constexpr int kVintageModelCount = 8;
 inline constexpr int kSidChipModel = kVintageFirstModel;
 inline constexpr int kDcoPolyModel = kVintageFirstModel + 1;
 inline constexpr int kFmSysexModel = kVintageFirstModel + 2;
 inline constexpr int kDubSirenModel = kVintageFirstModel + 3;
 inline constexpr int kFrogVoiceModel = kVintageFirstModel + 4;   // 124 FROG VOICE (frog_voice.h)
 inline constexpr int kSingFrogModel = kVintageFirstModel + 5;    // 125 SING FROG (sing_frog.h): sings typed words
+inline constexpr int kAcidBoxModel = kVintageFirstModel + 6;     // 126 ACID BOX (bass_synths.h)
+inline constexpr int kReeseBassModel = kVintageFirstModel + 7;   // 127 REESE BASS (bass_synths.h)
 // SING FROG parameters: 2 Lyrics, 3 Voice, 4 Croak, 5 Vibrato, 6 Glide, 7 Coda, 8 Syllable (0 = next one per note)
 // (a row that opens the keyboard; the text itself belongs to the instrument, not to the parameters).
 inline constexpr int kSingLyricParam = 2;
