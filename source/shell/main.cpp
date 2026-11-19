@@ -196,6 +196,9 @@ int main(int argc, char** argv) {
 #ifndef PT_MIYOO_PLUS_ARCHIVE
     log_startup_phase("CaptureRouter construction begin");
     auto recorder = std::make_unique<ptshell::CaptureRouter>(appRoot);
+    // Input monitoring rides the already-open output; the recorder's ring is the only thing the
+    // audio callback touches.
+    audio.set_monitor_audio(&ptshell::CaptureRouter::monitor_hook, recorder.get());
     log_startup_phase("CaptureRouter construction ready");
 #endif
     log_startup_phase("SourceSampler construction begin");
@@ -327,6 +330,7 @@ int main(int argc, char** argv) {
     audio.set_external_audio(nullptr, nullptr);
     sources.reset();
 #ifndef PT_MIYOO_PLUS_ARCHIVE
+    audio.set_monitor_audio(nullptr, nullptr);
     recorder.reset();
 #endif
 #endif

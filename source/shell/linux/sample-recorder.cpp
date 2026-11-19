@@ -149,6 +149,104 @@ struct SdlSampleRecorder::Impl {
         if (inputWorker.joinable()) inputWorker.join();
         std::fprintf(stderr, "capture: shutdown discovery worker returned\n");
     }
+    // Monitoring: the capture worker is the only producer, the output callback the only consumer.
+    // No lock crosses that boundary, and the ring is allocated once. A chunk bigger than the ring
+    // keeps its newest half, so a device that hands over a backlog is heard now, not half a second ago.
+    struct Monitor {
+        static constexpr size_t CAPACITY = 4096;   // frames; ~85 ms at 48 kHz
+        static constexpr size_t MASK     = CAPACITY - 1;
+        std::vector<float> ring = std::vector<float>(CAPACITY * 2, 0.0f);
+        std::atomic<size_t> read{0}, write{0};
+        std::atomic<bool>   enabled{false}, flushRequested{false};
+        std::atomic<int>    rate{48000};
+
+        // Audio-thread state: linear interpolation between the last two frames when the capture and
+        // output rates differ. Reset on every flush/underrun.
+        double phase = 0.0;
+        float  curL = 0, curR = 0, nextL = 0, nextR = 0;
+        bool   primed = false;
+
+        bool pop(float& l, float& r) {
+            const size_t r0 = read.load(std::memory_order_relaxed);
+            if (r0 == write.load(std::memory_order_acquire)) return false;
+            const size_t slot = r0 & MASK;
+            l = ring[slot * 2];
+            r = ring[slot * 2 + 1];
+            read.store(r0 + 1, std::memory_order_release);
+            return true;
+        }
+
+        void push(const unsigned char* pcm, size_t frames, int channels, int captureRate) {
+            rate.store(captureRate, std::memory_order_relaxed);
+            if (!enabled.load(std::memory_order_relaxed)) {
+                write.store(read.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                return;
+            }
+            size_t first = 0;
+            if (frames > CAPACITY / 2) first = frames - CAPACITY / 2;
+            size_t w = write.load(std::memory_order_relaxed);
+            const size_t r = read.load(std::memory_order_acquire);
+            for (size_t i = first; i < frames; ++i) {
+                if (w - r >= CAPACITY) break;   // consumer stalled: drop the new frames, never block
+                const size_t frameBytes = static_cast<size_t>(channels) * 2;
+                const unsigned char* p = pcm + i * frameBytes;
+                auto sample = [](const unsigned char* q) {
+                    int value = q[0] | (static_cast<int>(q[1]) << 8);
+                    if (value >= 32768) value -= 65536;
+                    return static_cast<float>(value) / 32768.0f;
+                };
+                const float l = sample(p);
+                const float rr = channels >= 2 ? sample(p + 2) : l;
+                const size_t slot = w & MASK;
+                ring[slot * 2]     = l;
+                ring[slot * 2 + 1] = rr;
+                ++w;
+            }
+            write.store(w, std::memory_order_release);
+        }
+
+        void render(float* stereo, int frames, int outputRate) {
+            if (!enabled.load(std::memory_order_relaxed)) return;
+            if (flushRequested.exchange(false, std::memory_order_relaxed)) {
+                read.store(write.load(std::memory_order_acquire), std::memory_order_relaxed);
+                primed = false;
+                phase  = 0.0;
+            }
+            const int inRate = rate.load(std::memory_order_relaxed);
+            const double step = (inRate > 0 && outputRate > 0)
+                                    ? static_cast<double>(inRate) / outputRate
+                                    : 1.0;
+            for (int i = 0; i < frames; ++i) {
+                if (!primed) {
+                    if (!pop(curL, curR) || !pop(nextL, nextR)) {
+                        // Nothing to play yet. The next callback starts on fresh data.
+                        primed = false;
+                        phase  = 0.0;
+                        break;
+                    }
+                    primed = true;
+                    phase  = 0.0;
+                }
+                while (phase >= 1.0) {
+                    curL = nextL;
+                    curR = nextR;
+                    if (!pop(nextL, nextR)) {
+                        primed = false;
+                        phase  = 0.0;
+                        break;
+                    }
+                    phase -= 1.0;
+                }
+                if (!primed) break;
+                const float mixL = static_cast<float>(curL + (nextL - curL) * phase);
+                const float mixR = static_cast<float>(curR + (nextR - curR) * phase);
+                stereo[i * 2]     += mixL;
+                stereo[i * 2 + 1] += mixR;
+                phase += step;
+            }
+        }
+    } monitor;
+
     std::filesystem::path directory;
     std::mutex lifecycle, stateMutex, inputMutex, probeMutex;
     std::condition_variable inputWake;
@@ -315,7 +413,7 @@ struct SdlSampleRecorder::Impl {
         SDL_AudioDeviceID device = 0;
         std::unique_ptr<WavWriter> writer;
         std::string name;
-        std::string failure, finishMessage = "Recording ready; no input monitoring";
+        std::string failure, finishMessage = "Recording ready";
         try {
             if (!stopRequested.load()) {
                 std::error_code ec;
@@ -330,7 +428,8 @@ struct SdlSampleRecorder::Impl {
                 if (!found) throw std::runtime_error("Selected input is no longer connected; refresh inputs (USB requires OS support)");
                 SDL_AudioSpec want{}, got{};
                 want.freq = rate; want.format = AUDIO_S16LSB;
-                want.channels = static_cast<Uint8>(channels); want.samples = 1024;
+                // 512 frames ≈ 10.7 ms: the monitor should not add a second period of its own.
+                want.channels = static_cast<Uint8>(channels); want.samples = 512;
                 beginDriver("open", requestedId);
                 device = SDL_OpenAudioDevice(name.empty() ? nullptr : name.c_str(), SDL_TRUE, &want, &got, 0);
                 endDriver("open", requestedId);
@@ -358,6 +457,8 @@ struct SdlSampleRecorder::Impl {
                     const size_t aligned = gotBytes - gotBytes % frameBytes;
                     if (aligned) {
                         lastFramesAt = now;
+                        // Monitoring sees every captured frame, including those past the WAV limit.
+                        monitor.push(buffer.data(), aligned / frameBytes, channels, rate);
                         if (!writer) writer = std::make_unique<WavWriter>(directory, rate, channels);
                         const uint64_t left = static_cast<uint64_t>(rate) * kMaxSeconds - writer->frames;
                         const size_t used = static_cast<size_t>(std::min<uint64_t>(aligned, left * frameBytes));
@@ -372,7 +473,9 @@ struct SdlSampleRecorder::Impl {
                         }
                         update([&](Status& s) {
                             s.state = stopRequested.load() ? "stopping" : "recording";
-                            s.message = "Recording PCM16; software monitoring off";
+                            s.message = monitor.enabled.load(std::memory_order_relaxed)
+                                            ? "Recording PCM16; monitoring on"
+                                            : "Recording PCM16";
                             s.path = writer->path; s.frames = writer->frames;
                             s.routedId = requestedId;
                             s.routedName = name.empty() ? "System default (route managed by SDL)" : name;
@@ -419,6 +522,10 @@ struct SdlSampleRecorder::Impl {
             endDriver("close", requestedId);
         }
         if (driverTimedOut.load() && failure.empty()) failure = "Input driver timed out; recording stopped and any valid partial take was kept";
+        // No monitor audio outlives its take: the next recording starts from a flushed ring.
+        monitor.enabled.store(false, std::memory_order_relaxed);
+        monitor.write.store(monitor.read.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        monitor.flushRequested.store(false, std::memory_order_relaxed);
         {
             // Publishing a completed take and allowing the next start are one
             // transition. A UI poll must not see READY then have start refused
@@ -465,7 +572,7 @@ bool SdlSampleRecorder::start(int id, int channels, int rate) {
     s.driverTimedOut.store(false);
     s.update([&](Status& status) {
         status = Status{}; status.state = "starting";
-        status.message = "Checking selected input in background; software monitoring off";
+        status.message = "Opening the selected input";
         status.rate = rate; status.channels = channels; status.requestedId = id;
     });
     s.running.store(true);
@@ -483,5 +590,23 @@ void SdlSampleRecorder::stop() {
             status.state = "stopping"; status.message = "Finishing WAV recording";
         }
     });
+}
+bool SdlSampleRecorder::set_monitor(bool on) {
+    auto& m = impl_->monitor;
+    const bool was = m.enabled.load(std::memory_order_relaxed);
+    if (was != on) std::fprintf(stderr, "capture: monitor %s\n", on ? "on" : "off");
+    if (on) {
+        m.flushRequested.store(true, std::memory_order_relaxed);
+        m.enabled.store(true, std::memory_order_relaxed);
+    } else {
+        m.enabled.store(false, std::memory_order_relaxed);
+        m.write.store(m.read.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        m.flushRequested.store(false, std::memory_order_relaxed);
+    }
+    return true;
+}
+void SdlSampleRecorder::render_monitor(float* stereo, int frames, int sampleRate) {
+    if (!impl_ || !stereo || frames <= 0) return;
+    impl_->monitor.render(stereo, frames, sampleRate);
 }
 } // namespace ptshell
