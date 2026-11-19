@@ -646,6 +646,35 @@ void studio_synth_xy_move(AppState& s,songcore::SongcoreHost& host,AudioEngine& 
  s.studioHarmonics=std::clamp(s.studioHarmonics+dx*step,0,255);s.studioTimbre=std::clamp(s.studioTimbre+dy*step,0,255);
  s.studioSynthCustom=true;publish(s,host,engine,false);
 }
+// Where the pad is drawn (studio_view.cpp keeps the same numbers): the plain pad, or the frog stage beside three cards
+// on the first page, or wide beside two on the last.
+static bool pad_rect(const AppState& s,int& x,int& y,int& w,int& h,bool& frog){
+ y=254;h=92;frog=studio_synth_frog_model(s);
+ if(frog&&s.studioSynthPage==0){x=304;w=312;}
+ else if(frog){x=224;w=392;}
+ else{x=398;w=218;}
+ return true;
+}
+bool studio_touch_canvas(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,int cx,int cy,int phase){
+ if(phase==2){const bool was=s.canvasTouchActive;s.canvasTouchActive=false;return was;}
+ if(!s.studioOpen||s.studioTab!=0||s.qwerty.isOpen||!studio_synth_xy_page(s)||studio_synth_picker_open(s)){s.canvasTouchActive=false;return false;}
+ int x,y,w,h;bool frog;pad_rect(s,x,y,w,h,frog);
+ if(phase==0){
+  if(cx<x||cx>=x+w||cy<y||cy>=y+h)return false;
+  s.canvasTouchActive=true;
+ }else if(!s.canvasTouchActive)return false;
+ float gx,gy;
+ if(frog){   // the firefly: x from x+10 over w-20; y from y+8 over h-43 (studio_view.cpp frog_stage)
+  gx=(cx-(x+10))/float(w-20);gy=1.f-(cy-(y+8))/float(h-43);
+ }else{      // the plain pad: an 8 px margin, up is more
+  gx=(cx-(x+8))/float(w-17);gy=1.f-(cy-(y+8))/float(h-17);
+ }
+ const int nx=std::clamp(int(std::lround(gx*255.f)),0,255),ny=std::clamp(int(std::lround(gy*255.f)),0,255);
+ if(nx==s.studioHarmonics&&ny==s.studioTimbre)return true;
+ studio_synth_sync_target(s);s.studioConfirm=false;
+ s.studioHarmonics=nx;s.studioTimbre=ny;s.studioSynthCustom=true;publish(s,host,engine,false);
+ return true;
+}
 void studio_synth_navigate(AppState& s,Button button){
  if(sample_granular_studio(s)){sample_granular_navigate(s,button);return;}
  const int count=studio_synth_control_count(s),apply=studio_synth_apply_row(s);

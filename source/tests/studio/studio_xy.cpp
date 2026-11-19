@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cstdio>
 #include <filesystem>
+#include <cstdlib>
 #include <fstream>
 #include <memory>
 
@@ -145,5 +146,31 @@ int main(int argc, char** argv) {
         studio_synth_edit(f.s, f.host, *f.engine, 5, +1, false, &f.sfs);
         assert(f.s.qwerty.isOpen && f.s.qwerty.context == QwertyContext::LYRIC_EDIT);
         std::printf("lyric templates ok\n");
+    }
+
+    // Touch: a finger on the pad sets the dot and drags it; the sound follows; lifting it ends the drag.
+    {
+        Rig t(dir / "touch");
+        t.s.studioSynthPage = studio_synth_page_count(t.s) - 1;
+        assert(studio_synth_xy_page(t.s));
+        assert(!studio_touch_canvas(t.s, t.host, *t.engine, 10, 10, 0));          // outside the pad: not ours
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 398 + 8, 254 + 8, 0));  // top-left corner of the area: x 0, y max
+        assert(t.s.studioHarmonics == 0 && t.s.studioTimbre == 255 && t.s.studioSynthCustom);
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 398 + 8 + 201, 254 + 8 + 75, 1));   // the far corner
+        assert(t.s.studioHarmonics == 255 && t.s.studioTimbre == 0);
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 5, 5, 1) && t.s.studioHarmonics == 0 && t.s.studioTimbre == 255);   // a drag may leave the pad
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 0, 0, 2) && !t.s.canvasTouchActive);
+        assert(!studio_touch_canvas(t.s, t.host, *t.engine, 300, 300, 1));        // a move without a down on the pad
+        // the frog stage on the first page
+        Rig f(dir / "touchfrog");
+        f.s.studioModel = studio::kSingFrogModel;
+        f.s.studioSynthPage = 0;
+        assert(studio_touch_canvas(f.s, f.host, *f.engine, 304 + 10 + 146, 254 + 8 + 24, 0));
+        assert(std::abs(f.s.studioHarmonics - 127) <= 2 && std::abs(f.s.studioTimbre - 127) <= 4);
+        studio_touch_canvas(f.s, f.host, *f.engine, 0, 0, 2);
+        // not on a page without the pad
+        f.s.studioSynthPage = 1;
+        assert(!studio_touch_canvas(f.s, f.host, *f.engine, 304 + 10, 254 + 8, 0));
+        std::printf("touch pad ok\n");
     }
 }

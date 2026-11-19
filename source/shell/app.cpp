@@ -1182,8 +1182,18 @@ void FrameLoop::handle_sdl_event(const SDL_Event& e, Uint64 now) {
         // Dev-only quit; it does not ask, and keeps the autosave. Only PROJECT > EXIT discards it.
         running = false;
     } else if (e.type == SDL_FINGERDOWN || e.type == SDL_FINGERUP || e.type == SDL_FINGERMOTION) {
-        // A virtual button feeds SdlInput's own press/release; a finger outside one is ignored.
-        screen.touch.handle_finger(e, input, now);
+        // A virtual button feeds SdlInput's own press/release; a finger that hits none may touch the XY pad
+        // (Studio > Synth): the dot follows the finger.
+        const bool onButton = screen.touch.handle_finger(e, input, now);
+        if (!onButton) {
+            int cx = 0, cy = 0;
+            const int phase = e.type == SDL_FINGERDOWN ? 0 : e.type == SDL_FINGERMOTION ? 1 : 2;
+            if (phase == 2 || screen.touch.canvas_point(e, cx, cy)) {
+                const auto oldProjectVersion = state.projectVersion;
+                if (ui::studio_touch_canvas(state, host, engineRef, cx, cy, phase) && state.projectVersion != oldProjectVersion)
+                    dispatch.arm_studio_autosave();
+            }
+        }
     } else {
         input.handle_event(e, now);
     }
