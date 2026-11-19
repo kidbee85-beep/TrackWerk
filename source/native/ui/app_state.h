@@ -21,6 +21,7 @@
 #include "ui/folder_config.h"
 #include "ui/fx_helper.h"
 #include "ui/map_picker.h"
+#include "ui/modules/audio_drivers.h"
 #include "ui/modules/confirm_dialog.h"
 #include "ui/modules/effects_editor.h"
 #include "ui/modules/eq_editor.h"
@@ -67,6 +68,8 @@ struct StudioSynthCompare {
 };
 
 struct AppState {
+    // The global AUDIO DRIVERS overlay (L1 + R1); the shell fills its list every frame.
+    AudioDriversState audioDrivers;
     CaptureBackend* captureBackend=nullptr;
     CaptureView capture;
     LiveResampleView resampleView;
@@ -467,7 +470,8 @@ inline bool stretch_editor_up(const AppState& s) {
 inline bool modal_backdrop_active(const AppState& s) {
     // A load is not here: its strip dims nothing.
     return s.qwerty.isOpen || s.confirm.is_open() || s.fxHelper.isOpen || s.mapPicker.isOpen ||
-           s.helpOpen || s.helpFull || s.renderDialog.isOpen || send_editor_drawn(s) || stretch_editor_up(s);
+           s.helpOpen || s.helpFull || s.renderDialog.isOpen || send_editor_drawn(s) ||
+           stretch_editor_up(s) || s.audioDrivers.isOpen;
 }
 
 // Does a full-screen module own the frame (no furniture)? ⚠️ `draw` and `has_falling_meters` both ask

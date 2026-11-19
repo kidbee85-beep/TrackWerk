@@ -117,7 +117,7 @@ void restore_appearance_context(AppState& s) {
 }
 const char* controls[]={"ACTIVE","MUTABLE EFFECT","WET / DRY","COLOR","TEXTURE","FEEDBACK","SATURATION","COMP THRESHOLD","COMP RATIO","ATTACK","RELEASE","STEREO WIDTH","OUTPUT GAIN","PEAK CEILING","HIGH PASS"};
 int masterKey(int row){static const int keys[]={studio::ENABLE,studio::DRIVE,studio::THRESHOLD,studio::RATIO,studio::ATTACK,studio::RELEASE,studio::WIDTH,studio::OUTPUT,studio::CEILING,studio::HIGH_PASS};return keys[std::clamp(row-1,0,9)];}
-int rows(int tab){return tab==0?7:tab==1?11:tab==2?15:tab==4?7:tab==5?20:tab==6?4:tab==7?source_sampler_row_count():2;}
+int rows(int tab){return tab==0?7:tab==1?11:tab==2?15:tab==4?8:tab==5?20:tab==6?4:tab==7?source_sampler_row_count():2;}
 void changed(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){++s.projectVersion;auto& p=host.edit_project();for(int i=0;i<studio::COUNT;++i)engine.setStudioControl(i,p.studioMaster[i]);engine.studioRack.tempo.store(p.tempo);}
 // FX and mastering have independent parameter groups. Loading one must not erase the other.
 void apply_preset(bool effect,const std::array<int,studio::COUNT>& source,songcore::Project& project){

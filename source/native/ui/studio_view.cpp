@@ -538,15 +538,18 @@ void input_page(Canvas& c,const AppState& s){
  const std::string names[]={!internal&&v.active()?"Source < internal":"Source  < / >",internal?"Length  < / >":"Channels  < / >",internal?"Format / master":"Sample rate  < / >","New take slot  < / >"};
  const std::string values[]={input,internal?lengths[std::clamp(rv.lengthIndex,0,4)]:v.channels==1?"Mono":"Stereo",internal?"Stereo / live engine rate":std::to_string(v.rate)+" Hz / 16 bit",v.targetInstrument<0?"Auto: first empty slot":songcore::hex2(v.targetInstrument)+(empty?" / empty":" / occupied - protected")};
  for(int i=0;i<4;++i)row(c,16,184+i*31,390,names[i],values[i],t,s.studioRow==i);
- studio_card(c,16,312,390,40,t,s.studioRow==4);
+ studio_card(c,16,312,390,34,t,s.studioRow==4);
  const std::string record=internal?(rv.saving?"SAVING TAKE...":rv.active?"A  STOP & SAVE RESAMPLE":rv.failed?"A  RETRY SAVING TAKE":"A  START RESAMPLE"):v.active()?"A  STOP & KEEP TAKE":"A  START RECORDING";
- label(c,record,31,323,s.studioRow==4?t.rowCursor:t.textValue,359,18);
- studio_card(c,16,358,390,35,t,s.studioRow==5);
+ label(c,record,31,320,s.studioRow==4?t.rowCursor:t.textValue,359,18);
+ studio_card(c,16,350,390,28,t,s.studioRow==5);
  const bool hasTake=internal?rv.frames>0&&!rv.active&&!rv.saving&&!rv.failed&&!rv.path.empty():!v.path.empty();
- label(c,hasTake?"A  USE TAKE > EDIT & SLICE":"USE TAKE  / record first",31,368,s.studioRow==5?t.rowCursor:t.textValue,359,16);
- studio_card(c,16,399,390,20,t,s.studioRow==6);
- label(c,"A  REFRESH MIC / USB INPUTS",31,402,s.studioRow==6?t.rowCursor:t.textParam,359,12);
- studio_card(c,416,184,208,235,t);
+ label(c,hasTake?"A  USE TAKE > EDIT & SLICE":"USE TAKE  / record first",31,357,s.studioRow==5?t.rowCursor:t.textValue,359,16);
+ studio_card(c,16,382,390,24,t,s.studioRow==6);
+ const std::string monitor=internal?"MONITOR  / external inputs only":std::string("A  MONITOR: ")+(v.monitor?"ON":"OFF");
+ label(c,monitor,31,388,s.studioRow==6?t.rowCursor:internal?t.textParam:t.textValue,359,14);
+ studio_card(c,16,410,390,20,t,s.studioRow==7);
+ label(c,"A  REFRESH MIC / USB INPUTS",31,413,s.studioRow==7?t.rowCursor:t.textParam,359,12);
+ studio_card(c,416,184,208,242,t);
  std::string status,detail;
  if(internal){
   c.draw_label("Internal output",430,196,t.textParam);

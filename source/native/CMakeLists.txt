@@ -506,6 +506,7 @@ add_library(pt-ui STATIC
         ui/dispatch/buttons.cpp
         ui/dispatch/chords.cpp
         ui/dispatch/route.cpp
+        ui/dispatch/layers/audio_drivers.cpp
         ui/dispatch/layers/confirm.cpp
         ui/dispatch/layers/eq.cpp
         ui/dispatch/layers/fx_helper.cpp
@@ -537,6 +538,7 @@ add_library(pt-ui STATIC
         ui/project_actions.cpp
         ui/modules/chain_editor.cpp
         ui/modules/confirm_dialog.cpp
+        ui/modules/audio_drivers.cpp
         ui/modules/effects_editor.cpp
         ui/modules/eq_editor.cpp
         ui/modules/file_browser.cpp
