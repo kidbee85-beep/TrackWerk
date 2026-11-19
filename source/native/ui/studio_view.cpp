@@ -585,11 +585,17 @@ void input_page(Canvas& c,const AppState& s){
  studio_card(c,16,350,390,28,t,s.studioRow==5);
  const bool hasTake=internal?rv.frames>0&&!rv.active&&!rv.saving&&!rv.failed&&!rv.path.empty():!v.path.empty();
  label(c,hasTake?"A  USE TAKE > EDIT & SLICE":"USE TAKE  / record first",31,357,s.studioRow==5?t.rowCursor:t.textValue,359,16);
- studio_card(c,16,382,390,24,t,s.studioRow==6);
- const std::string monitor=internal?"MONITOR  / external inputs only":std::string("A  MONITOR: ")+(v.monitor?"ON":"OFF");
- label(c,monitor,31,388,s.studioRow==6?t.rowCursor:internal?t.textParam:t.textValue,359,14);
- studio_card(c,16,410,390,20,t,s.studioRow==7);
- label(c,"A  REFRESH MIC / USB INPUTS",31,413,s.studioRow==7?t.rowCursor:t.textParam,359,12);
+ // MONITOR and REFRESH share the last band side by side: two full-size cells whose bottom edge meets the
+ // level card on the right, instead of two cramped strips.
+ {
+  const bool monitorFocus=s.studioRow==6,refreshFocus=s.studioRow==7;
+  studio_card(c,16,382,190,44,t,monitorFocus);
+  label(c,"A  MONITOR",28,389,monitorFocus?t.rowCursor:t.textParam,168,12);
+  label(c,internal?"external inputs only":(v.monitor?"ON":"OFF"),28,404,monitorFocus?t.rowCursor:internal?t.textParam:(v.monitor?t.meterHigh:t.textValue),168,internal?12:18);
+  studio_card(c,210,382,196,44,t,refreshFocus);
+  label(c,"A  REFRESH",222,389,refreshFocus?t.rowCursor:t.textParam,174,12);
+  label(c,"MIC / USB inputs",222,404,refreshFocus?t.rowCursor:t.textValue,174,16);
+ }
  studio_card(c,416,184,208,242,t);
  std::string status,detail;
  if(internal){
