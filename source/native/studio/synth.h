@@ -56,12 +56,13 @@ inline constexpr bool is_voice_model(int model) {
     return model >= kVoiceFirstModel && model < kVoiceFirstModel + kVoiceModelCount;
 }
 // The Vintage family (Studio > Synth > Vintage): 120 SID CHIP (sid_chip.h), 121 DCO POLY (dco_poly.h),
-// 122 FM SYSEX (fm_sysex_voice.h).
+// 122 FM SYSEX (fm_sysex_voice.h), 123 DUB SIREN (dub_siren.h).
 inline constexpr int kVintageFirstModel = kVoiceFirstModel + kVoiceModelCount;
-inline constexpr int kVintageModelCount = 3;
+inline constexpr int kVintageModelCount = 4;
 inline constexpr int kSidChipModel = kVintageFirstModel;
 inline constexpr int kDcoPolyModel = kVintageFirstModel + 1;
 inline constexpr int kFmSysexModel = kVintageFirstModel + 2;
+inline constexpr int kDubSirenModel = kVintageFirstModel + 3;
 // FM SYSEX parameters 2 and 3 pick a bank and a voice in it (banks 0…2 are Plaits' built-in ones).
 inline constexpr int kFmBankParam = 2;
 inline constexpr int kFmVoiceParam = 3;

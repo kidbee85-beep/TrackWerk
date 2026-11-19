@@ -24,6 +24,17 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="bank")return "Bank: three built-in banks, then the .syx files of the SysEx folder (DX7 format).";
         if(name=="voice")return "Voice picks one of the bank's 32 voices. The song keeps a copy of it.";
     }
+    // DUB SIREN: the wail. Every line stays within the help width and uses no apostrophes.
+    if(model==studio::kDubSirenModel){
+        if(name=="lfo rate")return "LFO rate sets how fast the pitch wails: a slow swell to a quick trill.";
+        if(name=="lfo depth")return "LFO depth sets how far the LFO bends the pitch, up to 1.5 octaves.";
+        if(name=="sweep")return "Sweep slides the pitch while held: down below the centre, up above.";
+        if(name=="wave")return "Wave picks sine, square, falling saw or triangle for the siren tone.";
+        if(name=="lfo shape")return "LFO shape: triangle, square, saws, warble, pulse, steps or random.";
+        if(name=="sweep time")return "Sweep time is how long the slide takes to reach its full octave.";
+        if(name=="fine tune")return "Fine tune detunes the siren by up to half a semitone either way.";
+        if(name=="ping")return "Ping adds a short sonar blip at the start of every note. Off at zero.";
+    }
     if(name=="attack")return "Attack sets the fade-in time after the note starts.";
     if(name=="decay")return "Decay sets the transition from the peak to sustain.";
     if(name=="sustain")return "Sustain is the level while the note remains held.";

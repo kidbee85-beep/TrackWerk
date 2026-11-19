@@ -8,6 +8,7 @@
 #include "formant_choir.h"
 #include "sid_chip.h"
 #include "dco_poly.h"
+#include "dub_siren.h"
 #include "fm_sysex_voice.h"
 #include "plaits/resources.h"
 #include <algorithm>
@@ -58,7 +59,7 @@ const char* additionalNames[] = {
  "S OCTAVE ORBIT", "S GRAVITY BOUNCE", "S ORBIT BELLS", "S GRAVITY RAIN",
  "SP ADDITIVE", "SP FREEZE", "SP MORPH",
  "FORMANT CHOIR",
- "SID CHIP", "DCO POLY", "FM SYSEX"
+ "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN"
 };
 static_assert(sizeof(additionalNames) / sizeof(*additionalNames) == additionalModels);
 static_assert(kGravityFirstModel + kGravityModelCount == kSpectralFirstModel);
@@ -239,7 +240,33 @@ constexpr std::array<int, 2> kFmSysexVoices[16] = {
     {{1, 19}}, {{1, 22}}, {{2, 5}}, {{2, 10}}, {{2, 13}}, {{2, 23}}, {{2, 29}}, {{0, 23}},
 };
 
+// DUB SIREN: A rate, B depth, C sweep (dub_siren.h). Eight sounds of the shape the siren is known for
+// and eight of our own; the names are neutral.
+constexpr NamedPreset kDubSirenPresets[16] = {
+    {"Sonar Ping",     { 40,  10, 128}}, {"Depth Charge",   { 70, 150,  30}},
+    {"Hull Creak",     { 25,  60, 110}}, {"Periscope",      {110,  90, 170}},
+    {"Ballast Drain",  { 60, 120,  10}}, {"Dive Alarm",     {170, 200, 128}},
+    {"Cold Current",   { 35,  45, 150}}, {"Trench Wail",    { 90, 230,  95}},
+    {"Kelp Warble",    {140, 110, 128}}, {"Pressure Siren", {120, 255, 190}},
+    {"Abyss Pulse",    {200, 170, 128}}, {"Surface Call",   { 55, 140, 235}},
+    {"Engine Room",    {230,  70, 128}}, {"Submerge",       { 45,  80,   0}},
+    {"Radar Sweep",    {150,  30, 255}}, {"Last Bubble",    {185, 215,  60}},
+};
+// Each sound's own voice settings (parameter rows 2…8, 0..255), used while a parameter stays at
+// Factory: wave (value/64), LFO shape (value/32), cutoff, resonance, sweep time, fine tune, ping.
+constexpr std::array<int, 7> kDubSirenSounds[16] = {
+    {{ 32,  16, 255,  40, 100, 128, 220}}, {{ 96,  48, 140,  90, 150, 128,   0}},
+    {{ 32,  80, 100, 120, 200, 124,   0}}, {{ 32, 112, 230,  30, 120, 128, 120}},
+    {{160,  16, 120, 100, 180, 128,   0}}, {{ 96,  16, 200, 140,  80, 128,   0}},
+    {{ 32,  80, 110,  60, 210, 128,  60}}, {{160, 144, 190, 130, 140, 132,   0}},
+    {{ 32, 144, 230,  50, 100, 128,   0}}, {{ 96, 208, 220,  90, 120, 128, 140}},
+    {{ 96, 240, 255,  50,  90, 128,   0}}, {{ 32,  16, 255,  30, 160, 128, 255}},
+    {{160,  48, 150, 150, 120, 128,   0}}, {{ 32,  16,  90, 110, 230, 128,   0}},
+    {{ 32, 208, 255,  60,  60, 128, 180}}, {{ 32, 176, 245,  70, 110, 128,  80}},
+};
+
 const NamedPreset* named_preset(int model, int variation) {
+    if (model == kDubSirenModel && variation >= 0 && variation < 16) return &kDubSirenPresets[variation];
     if (model == kFmSysexModel && variation >= 0 && variation < 16) return &kFmSysexPresets[variation];
     if (model == kDcoPolyModel && variation >= 0 && variation < 16) return &kDcoPolyPresets[variation];
     if (model == kSidChipModel && variation >= 0 && variation < 16) return &kSidChipPresets[variation];
@@ -350,7 +377,8 @@ const char* macro_name(int model,int index){
   {"Vowel","Ensemble","Breath"},                    // FORMANT CHOIR
   {"Colour","Arp","Cutoff"},                        // SID CHIP
   {"Cutoff","Resonance","Chorus"},                  // DCO POLY
-  {"Brightness","Envelope","Velocity"}              // FM SYSEX
+  {"Brightness","Envelope","Velocity"},             // FM SYSEX
+  {"LFO rate","LFO depth","Sweep"}                  // DUB SIREN
  };
  if(model<24)return plaits[model][index];
  if(model<24+braidsCount){
@@ -419,6 +447,7 @@ int synth_param_count(int model){
  if(is_voice_model(model))return 6;
  if(model==kSidChipModel)return 8;
  if(model==kDcoPolyModel)return 15;
+ if(model==kDubSirenModel)return 9;
  if(model==kFmSysexModel)return 4;
  if(is_spectral_model(model))return 6;
  if(model<24)return plaits_lpg(model)?4:2;if(model<72)return 3;if(model<78)return model==76?4:3;
@@ -439,6 +468,7 @@ const char* synth_param_name(int model,int index){
  if(model==kFormantChoirModel){static const char* choir[]={"Output tone","Drive","Voice","Singers","Vibrato","Vibrato rate"};return choir[index];}
  if(model==kSidChipModel){static const char* sid[]={"Output tone","Drive","Wave","Chip","Filter","Resonance","PWM","Arp speed"};return sid[index];}
  if(model==kFmSysexModel){static const char* fm[]={"Output tone","Drive","Bank","Voice"};return fm[index];}
+ if(model==kDubSirenModel){static const char* dub[]={"Output tone","Drive","Wave","LFO shape","Cutoff","Resonance","Sweep time","Fine tune","Ping"};return dub[index];}
  if(model==kDcoPolyModel){static const char* dco[]={"Output tone","Drive","Saw","Pulse","Pulse width","PWM","Sub","Noise","HPF","Env amount","Env decay","Env sustain","LFO rate","Vibrato","Key follow"};return dco[index];}
  if(is_spectral_model(model)){static const char* spectral[]={"Output tone","Drive","Partials","Even harmonics","Formant","Shimmer"};return spectral[index];}
  if(model<24)return plaits[plaits_lpg(model)?index:index+2];
@@ -462,6 +492,8 @@ int synth_param_default(int model,int index){
  // FM SYSEX: tone, drive, built-in bank A, voice 1 (shown when no sound's own voice applies)
  if(model==kFmSysexModel){static constexpr int fm[]={255,0,fm_index_value(0),fm_index_value(0)};return fm[index];}
  if(model==kDcoPolyModel){static constexpr int dco[]={255,0,255,0,0,0,0,0,1*64+32,64,128,128,120,0,128};return dco[index];}
+ // DUB SIREN: tone, drive, sine, triangle LFO, filter open, a little resonance, ~1.5 s sweep, in tune, no ping
+ if(model==kDubSirenModel){static constexpr int dub[]={255,0,32,16,255,51,128,128,0};return dub[index];}
  // SP ADDITIVE: tone, drive, partials (119 → 64), even harmonics, formant (off), shimmer
  if(is_spectral_model(model)){static constexpr int spectral[]={255,0,119,255,0,48};return spectral[index];}
  const int plaits[]={204,128,0,255},braids[]={255,255,255},rings[]={77,0,0,0},granular[]={128,128,128,0,255},original[]={255,0};
@@ -508,6 +540,9 @@ int synth_param_adjust(int model,int index,int value,int direction,bool coarse){
  if(model==kFmSysexModel&&index==kFmVoiceParam)return fm_index_value(std::clamp(fm_voice_index(value)+sign,0,fm_sysex::kVoicesPerBank-1));
  // DCO POLY HPF: one press, one position
  if(model==kDcoPolyModel&&index==8)return std::clamp(value/64+sign,0,DcoPoly::kHpfCount-1)*64+32;
+ // DUB SIREN wave and LFO shape: one press, one step
+ if(model==kDubSirenModel&&index==2)return std::clamp(value/64+sign,0,DubSiren::kWaveCount-1)*64+32;
+ if(model==kDubSirenModel&&index==3)return std::clamp(value/32+sign,0,DubSiren::kLfoCount-1)*32+16;
  return std::clamp(value+sign*(coarse?16:1),0,255);
 }
 namespace {
@@ -545,6 +580,11 @@ std::string synth_param_value(int model,int index,int value){
  else if(model==kFmSysexModel&&index==kFmBankParam&&fm_bank_index(value)<kFmFactoryBanks)std::snprintf(text,sizeof(text),"Built-in %c",'A'+fm_bank_index(value));
  else if(model==kFmSysexModel&&index==kFmBankParam)std::snprintf(text,sizeof(text),"Bank %d",fm_bank_index(value)-kFmFactoryBanks+1);
  else if(model==kFmSysexModel&&index==kFmVoiceParam)std::snprintf(text,sizeof(text),"Voice %d",fm_voice_index(value)+1);
+ else if(model==kDubSirenModel&&index==2)std::snprintf(text,sizeof(text),"%s",DubSiren::kWaveNames[std::min(value/64,DubSiren::kWaveCount-1)]);
+ else if(model==kDubSirenModel&&index==3)std::snprintf(text,sizeof(text),"%s",DubSiren::kLfoNames[std::min(value/32,DubSiren::kLfoCount-1)]);
+ else if(model==kDubSirenModel&&index==4)std::snprintf(text,sizeof(text),"%.0f Hz",DubSiren::cutoff_hz(value/255.f));
+ else if(model==kDubSirenModel&&index==6)std::snprintf(text,sizeof(text),"%.2f s",DubSiren::sweep_seconds(value/255.f));
+ else if(model==kDubSirenModel&&index==7)std::snprintf(text,sizeof(text),"%+.0f cents",(value-128)*50.f/128.f);
  else if(model==kDcoPolyModel&&index==8)std::snprintf(text,sizeof(text),"%s",DcoPoly::kHpfNames[value/64]);
  else if(model==kDcoPolyModel&&index==10)std::snprintf(text,sizeof(text),"%.2f s",dco_decay_seconds(value));
  else if(model==kDcoPolyModel&&index==12)std::snprintf(text,sizeof(text),"%.2f Hz",dco_lfo_hz(value));
@@ -563,7 +603,7 @@ int uri_code(const char* p){
 }
 struct Synth::State {
  plaits::Voice plaits{}; braids::MacroOscillator braids{};
- rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; FmSysexVoice fm;
+ rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FmSysexVoice fm;
  fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet=false;
  alignas(8) char memory[65536]{};
  uint16_t reverbR[32768]{},reverbE[32768]{};
@@ -696,6 +736,20 @@ struct Synth::State {
     fm.set_voice(builtIn);
    }
    fm.render(out,24,hz,a,b,c);size=24;
+  }else if(model==kDubSirenModel){
+   if(strike)dub.start();
+   // Settings at Factory: the sound's own (a custom macro patch uses the model defaults).
+   const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
+   const auto up=[&](int index){
+    if(params[index]>=0)return params[index];
+    if(named)return kDubSirenSounds[var][size_t(index-2)];
+    return synth_param_default(model,index);
+   };
+   DubSiren::Settings set;
+   set.wave=std::clamp(up(2)/64,0,DubSiren::kWaveCount-1);set.lfoShape=std::clamp(up(3)/32,0,DubSiren::kLfoCount-1);
+   set.cutoff=up(4)/255.f;set.resonance=up(5)/255.f;set.sweepSeconds=DubSiren::sweep_seconds(up(6)/255.f);
+   set.fineCents=(up(7)-128)*50.f/128.f;set.ping=up(8)/255.f;
+   dub.render(out,24,hz,a,b,c,set);size=24;
   }else if(model==kDcoPolyModel){
    if(strike)dco.start();
    // Settings at Factory: the sound's own (a custom macro patch uses the model defaults).

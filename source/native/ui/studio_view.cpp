@@ -150,6 +150,19 @@ void synth_diagram(Canvas& c,int model,int x,int y,Argb color){
   }
   return;
  }
+ if(model==studio::kDubSirenModel){
+  // DUB SIREN: the wail - a pitch curve swinging up and down while it drifts upward (LFO plus sweep).
+  const auto dim=with_alpha(color,.38f);
+  c.line(x,y+18,x+76,y+18,dim);
+  int previous=y+13;
+  for(int px=1;px<=76;++px){
+   const float t=float(px)/76.f;
+   const int py=y+13-int(5.f*std::sin(t*6.2831853f*3.f))-int(4.f*t);
+   c.line(x+px-1,previous,x+px,std::clamp(py,y,y+18),px<38?color:dim);
+   previous=std::clamp(py,y,y+18);
+  }
+  return;
+ }
  const int kind=model-studio::kGravityFirstModel;
  if(kind==1){
   const auto dim=with_alpha(color,.36f);

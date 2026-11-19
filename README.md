@@ -20,7 +20,7 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 
 - **40 complete Scenes / 10 families.** Terminal, BBS, DOS, raster and vector looks meet Daylight and Hardware. Choose among 54 palettes and independent typefaces. Cursor glide, soft scrolling and animated controls are optional; Motion can be disabled.
 - **Sampling with context.** Browse archive recordings on supported connected profiles, preview a source, set a range and open the exported result in the Sample Editor. Keep creator, source and licence information with your material.
-- **Studio synthesis.** 123 models with sixteen variation positions, including SID Chip, DCO Poly, FM SysEx banks, spectral and granular models. Load DX7 voice banks and save the selected FM voice with the song.
+- **Studio synthesis.** 124 models with sixteen variation positions, including SID Chip, DCO Poly, FM SysEx banks, the Dub Siren, spectral and granular models. Load DX7 voice banks and save the selected FM voice with the song.
 - **Ideas you can edit.** Drumlab suggests rhythms from your sounds. Harmony supplies 48 progression templates, locks and phrase output; its preview uses loaded samples, SoundFonts or external MIDI.
 - **Performance with a way home.** Eight Punch banks, internal mix recording, track mute/solo, effects, mastering, mix and stem export. Hold a momentary move, release it, then record the good accident.
 - **A proper handbook.** Illustrated English workflows, all forty Scenes, detailed tracker commands and practical installation/update instructions. The new two-minute update film uses native audio and English captions; the illustrated core handbook remains available.
