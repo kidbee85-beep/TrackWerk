@@ -1,5 +1,5 @@
 #pragma once
-// FROG VOICE — Vintage family (TrackWerk, Kid Bunka, GPL-3.0).
+// CROAKER — Vintage family (TrackWerk, Kid Bunka, GPL-3.0).
 //
 // A funny vocal synth: a frog croaking through a throat. A buzzing glottal source (band-limited saw)
 // feeds three resonant band-pass formants — the throat and mouth of the animal — while a croak

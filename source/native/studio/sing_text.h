@@ -1,5 +1,5 @@
 #pragma once
-// SING TEXT: typed words → sung syllables for SING FROG (sing_frog.h). Header-only, no allocation after
+// SING TEXT: typed words → sung syllables for FROGGY (sing_frog.h). Header-only, no allocation after
 // the call, fixed-size output, usable on the audio-adjacent threads (the UI thread calls it when the lyric
 // changes and the engine copies the packed result).
 //

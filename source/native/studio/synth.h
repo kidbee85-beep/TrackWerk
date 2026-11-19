@@ -63,11 +63,11 @@ inline constexpr int kSidChipModel = kVintageFirstModel;
 inline constexpr int kDcoPolyModel = kVintageFirstModel + 1;
 inline constexpr int kFmSysexModel = kVintageFirstModel + 2;
 inline constexpr int kDubSirenModel = kVintageFirstModel + 3;
-inline constexpr int kFrogVoiceModel = kVintageFirstModel + 4;   // 124 FROG VOICE (frog_voice.h)
-inline constexpr int kSingFrogModel = kVintageFirstModel + 5;    // 125 SING FROG (sing_frog.h): sings typed words
+inline constexpr int kFrogVoiceModel = kVintageFirstModel + 4;   // 124 CROAKER (frog_voice.h)
+inline constexpr int kSingFrogModel = kVintageFirstModel + 5;    // 125 FROGGY (sing_frog.h): sings typed words
 inline constexpr int kAcidBoxModel = kVintageFirstModel + 6;     // 126 ACID BOX (bass_synths.h)
 inline constexpr int kReeseBassModel = kVintageFirstModel + 7;   // 127 REESE BASS (bass_synths.h)
-// SING FROG parameters: 2 Lyrics, 3 Voice, 4 Croak, 5 Vibrato, 6 Glide, 7 Coda, 8 Syllable (0 = next one per note)
+// FROGGY parameters: 2 Lyrics, 3 Voice, 4 Croak, 5 Vibrato, 6 Glide, 7 Coda, 8 Syllable (0 = next one per note)
 // (a row that opens the keyboard; the text itself belongs to the instrument, not to the parameters).
 inline constexpr int kSingLyricParam = 2;
 inline constexpr int kSingVoiceParam = 3;
@@ -113,7 +113,7 @@ public:
  // FM SYSEX's voice (128 packed bytes, fm_sysex.h) or nullptr for the built-in banks. Audio thread;
  // copies the bytes, so the caller's buffer may change afterwards.
  void set_fm_voice(const uint8_t* packed);
- // SING FROG: the instrument's packed lyric (sing_text.h, 385 bytes, copied) or nullptr for the built-in one,
+ // FROGGY: the instrument's packed lyric (sing_text.h, 385 bytes, copied) or nullptr for the built-in one,
  // and the number of the note being started (the engine counts notes per instrument).
  void set_lyric(const uint8_t* packed);
  void set_note_index(uint32_t index);

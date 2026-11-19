@@ -1,6 +1,6 @@
 # Third-party notice: Chimera Vocal Synth
 
-SING FROG (source/native/studio/sing_text.h and sing_frog.h) uses material from Chimera Vocal Synth, https://github.com/jamesondh/chimera-vocal-synth (commit 0dc13f8):
+FROGGY (source/native/studio/sing_text.h and sing_frog.h) uses material from Chimera Vocal Synth, https://github.com/jamesondh/chimera-vocal-synth (commit 0dc13f8):
 
 - the compact letter-to-sound rule set (crates/chimera/src/phonetics/english.rs), ported to C++ in sing_text.h;
 - the idea and the vowel formant values (Hillenbrand, Getty, Clark and Wheeler, 1995, as listed in crates/chimera/src/phonetics/vowel_data.rs).

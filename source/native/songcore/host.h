@@ -302,7 +302,7 @@ class SongcoreHost {
     bool collapse_to_channel(int id, int mode) { return engine_ && engine_->collapseToChannel(id, mode); }
     // Only an already loaded Mutable sampler can be changed live; no media buffers or gate reset.
     // `fmVoice`: FM SYSEX's voice to store with the instrument (an empty optional clears it); nullptr
-    // leaves the instrument's voice as it is. `lyric`: SING FROG's words (an empty string clears them); nullptr
+    // leaves the instrument's voice as it is. `lyric`: FROGGY's words (an empty string clears them); nullptr
     // leaves them as they are.
     bool update_studio_synth(int id,const std::string& uri,const studio::SynthParams& params,
                              const std::optional<std::array<uint8_t,128>>* fmVoice=nullptr,

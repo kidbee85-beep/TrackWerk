@@ -62,7 +62,7 @@ const char* additionalNames[] = {
  "S OCTAVE ORBIT", "S GRAVITY BOUNCE", "S ORBIT BELLS", "S GRAVITY RAIN",
  "SP ADDITIVE", "SP FREEZE", "SP MORPH",
  "FORMANT CHOIR",
- "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN", "FROG VOICE", "SING FROG", "ACID BOX", "REESE BASS"
+ "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN", "CROAKER", "FROGGY", "ACID BOX", "REESE BASS"
 };
 static_assert(sizeof(additionalNames) / sizeof(*additionalNames) == additionalModels);
 static_assert(kGravityFirstModel + kGravityModelCount == kSpectralFirstModel);
@@ -268,7 +268,7 @@ constexpr std::array<int, 7> kDubSirenSounds[16] = {
     {{ 32, 208, 255,  60,  60, 128, 180}}, {{ 32, 176, 245,  70, 110, 128,  80}},
 };
 
-// FROG VOICE: A croak rate, B throat, C dip (frog_voice.h). Sixteen animals and ponds.
+// CROAKER: A croak rate, B throat, C dip (frog_voice.h). Sixteen animals and ponds.
 constexpr NamedPreset kFrogVoicePresets[16] = {
     {"Pond Starter",  { 70, 128,  60}}, {"Big Ribbit",    { 60,  60, 110}},
     {"Tiny Peep",     {120, 190,  20}}, {"Night Chorus",  { 95, 140,  70}},
@@ -292,7 +292,7 @@ constexpr std::array<int, 6> kFrogVoiceSounds[16] = {
     {{ 224, 192, 120, 200,  30,   0}}, {{  96, 192, 255,  60, 200, 110}},
 };
 
-// SING FROG: A mouth, B breath, C throat (sing_frog.h). Sixteen singers.
+// FROGGY: A mouth, B breath, C throat (sing_frog.h). Sixteen singers.
 constexpr NamedPreset kSingFrogPresets[16] = {
     {"Pond Choir",    {128,  20, 128}}, {"Lily Lead",     {150,  10, 150}},
     {"Deep Ribbit",   {110,  30,  60}}, {"Tadpole Pop",   {170,  40, 190}},
@@ -470,8 +470,8 @@ const char* macro_name(int model,int index){
   {"Cutoff","Resonance","Chorus"},                  // DCO POLY
   {"Brightness","Envelope","Velocity"},             // FM SYSEX
   {"LFO rate","LFO depth","Sweep"},                 // DUB SIREN
-  {"Croak","Throat","Dip"},                         // FROG VOICE
-  {"Mouth","Breath","Throat"},                      // SING FROG
+  {"Croak","Throat","Dip"},                         // CROAKER
+  {"Mouth","Breath","Throat"},                      // FROGGY
   {"Cutoff","Resonance","Env mod"},                 // ACID BOX
   {"Detune","Cutoff","Movement"}                    // REESE BASS
  };
@@ -595,8 +595,8 @@ int synth_param_default(int model,int index){
  if(model==kFmSysexModel){static constexpr int fm[]={255,0,fm_index_value(0),fm_index_value(0)};return fm[index];}
  if(model==kDcoPolyModel){static constexpr int dco[]={255,0,255,0,0,0,0,0,1*64+32,64,128,128,120,0,128};return dco[index];}
  // DUB SIREN: tone, drive, sine, triangle LFO, filter open, a little resonance, ~1.5 s sweep, in tune, no ping
- // FROG VOICE: tone, drive, tree frog, two pulses, deep croak, throat centred, a little chirp and bubble
- // SING FROG: tone, drive, frog voice, some croak, a little vibrato, medium glide, coda after ~0.55 s, next syllable
+ // CROAKER: tone, drive, tree frog, two pulses, deep croak, throat centred, a little chirp and bubble
+ // FROGGY: tone, drive, frog voice, some croak, a little vibrato, medium glide, coda after ~0.55 s, next syllable
  // ACID BOX: tone, drive, saw, a medium decay, a little accent, some squash, no sub
  if(model==kAcidBoxModel){static constexpr int acid[]={255,0,32,100,40,90,0};return acid[index];}
  // REESE BASS: tone, drive, three voices, half sub, a little resonance, some squash, a slow drift

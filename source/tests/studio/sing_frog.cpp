@@ -1,4 +1,4 @@
-// SING FROG (model 125, Studio > Synth > Vintage): the text front end (spelling to syllables), the voice (vowel
+// FROGGY (model 125, Studio > Synth > Vintage): the text front end (spelling to syllables), the voice (vowel
 // formants, consonants, coda), the lyric riding on the notes through studio::Synth, and the guard rails.
 #include "sing_frog.h"
 #include "kiss_fftr.h"
@@ -84,7 +84,7 @@ int main() {
     // Registration.
     assert(kSingFrogModel == kFrogVoiceModel + 1 && is_vintage_model(kSingFrogModel));
     assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 128);
-    assert(std::string(model_name(kSingFrogModel)) == "SING FROG" && !synth_needs_strike(kSingFrogModel));
+    assert(std::string(model_name(kSingFrogModel)) == "FROGGY" && !synth_needs_strike(kSingFrogModel));
     assert(macro_count(kSingFrogModel) == 3 && std::string(macro_name(kSingFrogModel, 0)) == "Mouth" &&
            std::string(macro_name(kSingFrogModel, 1)) == "Breath" && std::string(macro_name(kSingFrogModel, 2)) == "Throat");
     assert(synth_param_count(kSingFrogModel) == 9 && std::string(synth_param_name(kSingFrogModel, 2)) == "Lyrics" &&
@@ -94,7 +94,7 @@ int main() {
            synth_param_value(kSingFrogModel, 8, 10) == "No. 2");
     assert(synth_param_adjust(kSingFrogModel, 8, 0, 1, false) == 5 && synth_param_adjust(kSingFrogModel, 8, 0, -1, false) == 0 &&
            synth_param_adjust(kSingFrogModel, 3, 32, 1, false) == 96);
-    assert(preset_name(preset_code(kSingFrogModel, 0)) == "SING FROG / Pond Choir");
+    assert(preset_name(preset_code(kSingFrogModel, 0)) == "FROGGY / Pond Choir");
     for (int v = 0; v < 16; ++v) assert(valid_code(preset_code(kSingFrogModel, v)));
 
     // Text front end: words become syllables the way they are spelled.

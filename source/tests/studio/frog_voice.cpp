@@ -1,4 +1,4 @@
-// FROG VOICE (model 124, Studio > Synth > Vintage): measured through studio::Synth at 48 kHz. A frog
+// CROAKER (model 124, Studio > Synth > Vintage): measured through studio::Synth at 48 kHz. A frog
 // croaks: the croak envelope chops the tone into pulses at the croak rate, the species decide where the
 // formants sit, the throat moves them, and nothing runs away.
 #include "frog_voice.h"
@@ -112,7 +112,7 @@ double centroid(const std::vector<double>& p) {
 int main() {
     assert(kFrogVoiceModel == kDubSirenModel + 1 && is_vintage_model(kFrogVoiceModel));
     assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 128);
-    assert(std::string(model_name(kFrogVoiceModel)) == "FROG VOICE" && !synth_needs_strike(kFrogVoiceModel));
+    assert(std::string(model_name(kFrogVoiceModel)) == "CROAKER" && !synth_needs_strike(kFrogVoiceModel));
     assert(macro_count(kFrogVoiceModel) == 3 && std::string(macro_name(kFrogVoiceModel, 0)) == "Croak" &&
            std::string(macro_name(kFrogVoiceModel, 1)) == "Throat" && std::string(macro_name(kFrogVoiceModel, 2)) == "Dip");
     assert(synth_param_count(kFrogVoiceModel) == 8 && std::string(synth_param_name(kFrogVoiceModel, 2)) == "Species" &&
@@ -120,7 +120,7 @@ int main() {
     assert(synth_param_value(kFrogVoiceModel, 2, 32) == "Tree frog" && synth_param_value(kFrogVoiceModel, 2, 224) == "Peeper" &&
            synth_param_value(kFrogVoiceModel, 3, 0) == "1 pulse" && synth_param_value(kFrogVoiceModel, 3, 200) == "4 pulses");
     assert(synth_param_adjust(kFrogVoiceModel, 2, 32, 1, false) == 96 && synth_param_adjust(kFrogVoiceModel, 3, 224, 1, false) == 224);
-    assert(preset_name(preset_code(kFrogVoiceModel, 0)) == "FROG VOICE / Pond Starter");
+    assert(preset_name(preset_code(kFrogVoiceModel, 0)) == "CROAKER / Pond Starter");
     for (int v = 0; v < 16; ++v) assert(valid_code(preset_code(kFrogVoiceModel, v)));
     assert(uri_code(uri(preset_code(kFrogVoiceModel, 5)).c_str()) == preset_code(kFrogVoiceModel, 5));
 

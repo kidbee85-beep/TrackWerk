@@ -63,7 +63,7 @@ public:
     // play the built-in banks. Published with the slot's row, so a voice of the callback never pairs
     // it with another model's parameters.
     void setStudioFmVoice(int sampleId,const uint8_t* packed);
-    // SING FROG's words for this slot: packed into syllables here (an empty text clears them and the built-in
+    // FROGGY's words for this slot: packed into syllables here (an empty text clears them and the built-in
     // line sings). Published with the slot's row, like the FM voice.
     void setStudioLyricText(int sampleId,const std::string& text);
     // Audio thread: the slot's packed lyric (studio/sing_text.h) from the same synced row, or nullptr.
@@ -1006,7 +1006,7 @@ private:
         studio::fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet = false;
         uint8_t lyric[studio::sing::kPackedSize]{}; bool lyricSet = false;
     };
-    // Audio thread only: how many notes each instrument has started (SING FROG sings syllable n for note n).
+    // Audio thread only: how many notes each instrument has started (FROGGY sings syllable n for note n).
     uint32_t lyricNotes[256]{};
     StagedTable<StudioSynthRow, 256> studioSynthParams;
     struct GranularControl {

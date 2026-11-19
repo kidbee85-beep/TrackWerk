@@ -46,7 +46,7 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="squash")return "Squash saturates the saws before the filter for grit.";
         if(name=="drift speed")return "Drift speed is how fast the movement turns, from slow tides to wobble.";
     }
-    // SING FROG: the singer. Each line stays within the help width and uses no apostrophes.
+    // FROGGY: the singer. Each line stays within the help width and uses no apostrophes.
     if(model==studio::kSingFrogModel){
         if(name=="mouth")return "Mouth opens the jaw: more of the first formant, a rounder ah.";
         if(name=="breath")return "Breath adds a whisper of air to the voice, up to a full whisper.";
@@ -59,7 +59,7 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="syllable")return "Syllable: Auto sings the next one each note. A number pins one.";
         if(name=="lyrics")return "Lyrics: A+Right opens the keyboard. Spell it the way it sounds.";
     }
-    // FROG VOICE: the croaker.
+    // CROAKER: the croaker.
     if(model==studio::kFrogVoiceModel){
         if(name=="croak")return "Croak sets how fast the frog croaks, from slow ribbits to a rattle.";
         if(name=="throat")return "Throat sets the size of the throat: small and bright, or big and deep.";

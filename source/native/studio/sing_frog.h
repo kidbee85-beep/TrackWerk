@@ -1,5 +1,5 @@
 #pragma once
-// SING FROG — Vintage family (TrackWerk, Kid Bunka, GPL-3.0): a small singing voice that sings the words
+// FROGGY — Vintage family (TrackWerk, Kid Bunka, GPL-3.0): a small singing voice that sings the words
 // you type. Each note sings the next syllable of the instrument's lyric (sing_text.h).
 //
 // Light formant voice, sized for handhelds (about 60 flops a sample, one voice): a glottal flow pulse
