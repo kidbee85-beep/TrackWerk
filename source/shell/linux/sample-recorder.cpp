@@ -1,5 +1,7 @@
 #include "linux/sample-recorder.h"
 #include "linux/monitor-ring.h"
+#include "studio/pitch_track.h"
+#include "studio/mic_pitch.h"
 #include "linux/usb-audio-diagnosis.h"
 
 #include <SDL.h>
@@ -153,6 +155,8 @@ struct SdlSampleRecorder::Impl {
     // Monitoring: see monitor-ring.h (a lock-free ring from this worker to the output callback, with
     // drift following so a late chunk does not leave a gap).
     MonitorRing monitor;
+    studio::PitchTracker pitch;   // the pitch of what is heard, for FROGGY's Mic pitch source
+    std::vector<float> pitchScratch;
 
     std::filesystem::path directory;
     std::mutex lifecycle, stateMutex, inputMutex, probeMutex;
@@ -366,6 +370,17 @@ struct SdlSampleRecorder::Impl {
                         lastFramesAt = now;
                         // Monitoring sees every captured frame, including those past the WAV limit.
                         monitor.push(buffer.data(), aligned / frameBytes, channels, rate);
+                        {   // the first channel, as float, into the pitch tracker (cheap: one small window every 21 ms)
+                            const size_t frames = aligned / frameBytes;
+                            pitchScratch.resize(frames);
+                            for (size_t f = 0; f < frames; ++f) {
+                                int v = buffer[f * frameBytes] | (static_cast<int>(buffer[f * frameBytes + 1]) << 8);
+                                if (v >= 32768) v -= 65536;
+                                pitchScratch[f] = static_cast<float>(v) / 32768.f;
+                            }
+                            const auto heard = pitch.feed(pitchScratch.data(), frames, rate);
+                            if (heard.fresh) studio::mic_pitch_publish(heard.confidence > .7f ? heard.hz : 0.f);
+                        }
                         if (!writer) writer = std::make_unique<WavWriter>(directory, rate, channels);
                         const uint64_t left = static_cast<uint64_t>(rate) * kMaxSeconds - writer->frames;
                         const size_t used = static_cast<size_t>(std::min<uint64_t>(aligned, left * frameBytes));
@@ -432,6 +447,8 @@ struct SdlSampleRecorder::Impl {
         // No monitor audio outlives its take: the next recording starts from a flushed ring.
         monitor.disable();
         monitor.producer_reset();
+        studio::mic_pitch_publish(0.f);
+        pitch.reset();
         {
             // Publishing a completed take and allowing the next start are one
             // transition. A UI poll must not see READY then have start refused

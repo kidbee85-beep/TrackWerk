@@ -12,6 +12,7 @@
 #include "frog_voice.h"
 #include "sing_frog.h"
 #include "bass_synths.h"
+#include "mic_pitch.h"
 #include "fm_sysex_voice.h"
 #include "plaits/resources.h"
 #include <algorithm>
@@ -544,7 +545,7 @@ int synth_param_count(int model){
  if(model==kDcoPolyModel)return 15;
  if(model==kDubSirenModel)return 9;
  if(model==kFrogVoiceModel)return 8;
- if(model==kSingFrogModel)return 9;
+ if(model==kSingFrogModel)return 10;
  if(model==kAcidBoxModel||model==kReeseBassModel)return 7;
  if(model==kFmSysexModel)return 4;
  if(is_spectral_model(model))return 6;
@@ -568,7 +569,7 @@ const char* synth_param_name(int model,int index){
  if(model==kFmSysexModel){static const char* fm[]={"Output tone","Drive","Bank","Voice"};return fm[index];}
  if(model==kAcidBoxModel){static const char* acid[]={"Output tone","Drive","Wave","Decay","Accent","Squash","Sub"};return acid[index];}
  if(model==kReeseBassModel){static const char* reese[]={"Output tone","Drive","Voices","Sub","Resonance","Squash","Drift speed"};return reese[index];}
- if(model==kSingFrogModel){static const char* sing[]={"Output tone","Drive","Lyrics","Voice","Croak","Vibrato","Glide","Coda","Syllable"};return sing[index];}
+ if(model==kSingFrogModel){static const char* sing[]={"Output tone","Drive","Lyrics","Voice","Croak","Vibrato","Glide","Coda","Syllable","Pitch source"};return sing[index];}
  if(model==kFrogVoiceModel){static const char* frog[]={"Output tone","Drive","Species","Pulses","Croak depth","Throat","Chirp","Bubble"};return frog[index];}
  if(model==kDubSirenModel){static const char* dub[]={"Output tone","Drive","Wave","LFO shape","Cutoff","Resonance","Sweep time","Fine tune","Ping"};return dub[index];}
  if(model==kDcoPolyModel){static const char* dco[]={"Output tone","Drive","Saw","Pulse","Pulse width","PWM","Sub","Noise","HPF","Env amount","Env decay","Env sustain","LFO rate","Vibrato","Key follow"};return dco[index];}
@@ -601,7 +602,7 @@ int synth_param_default(int model,int index){
  if(model==kAcidBoxModel){static constexpr int acid[]={255,0,32,100,40,90,0};return acid[index];}
  // REESE BASS: tone, drive, three voices, half sub, a little resonance, some squash, a slow drift
  if(model==kReeseBassModel){static constexpr int reese[]={255,0,192,128,40,90,80};return reese[index];}
- if(model==kSingFrogModel){static constexpr int sing[]={255,0,0,32,128,77,85,120,0};return sing[index];}
+ if(model==kSingFrogModel){static constexpr int sing[]={255,0,0,32,128,77,85,120,0,0};return sing[index];}
  if(model==kFrogVoiceModel){static constexpr int frog[]={255,0,32,64,204,128,77,51};return frog[index];}
  if(model==kDubSirenModel){static constexpr int dub[]={255,0,32,16,255,51,128,128,0};return dub[index];}
  // SP ADDITIVE: tone, drive, partials (119 → 64), even harmonics, formant (off), shimmer
@@ -654,6 +655,7 @@ int synth_param_adjust(int model,int index,int value,int direction,bool coarse){
  if(model==kAcidBoxModel&&index==2)return std::clamp(value/64+sign,0,AcidBox::kWaveCount-1)*64+32;
  if(model==kReeseBassModel&&index==2)return std::clamp(value/128+sign,0,1)*128+64;
  if(model==kSingFrogModel&&index==kSingVoiceParam)return std::clamp(value/64+sign,0,SingFrog::kVoiceCount-1)*64+32;
+ if(model==kSingFrogModel&&index==kSingPitchParam)return std::clamp(value/128+sign,0,1)*128+64;
  if(model==kSingFrogModel&&index==kSingSyllableParam)return std::clamp(value/5+sign*(coarse?4:1),0,sing::kMaxSyllables)*5;
  if(model==kSingFrogModel&&index==kSingLyricParam)return value;
  if(model==kFrogVoiceModel&&index==2)return std::clamp(value/64+sign,0,FrogVoice::kSpeciesCount-1)*64+32;
@@ -706,6 +708,7 @@ std::string synth_param_value(int model,int index,int value){
  else if(model==kSingFrogModel&&index==6)std::snprintf(text,sizeof(text),"%.0f ms",SingFrog::glide_ms(value/255.f));
  else if(model==kSingFrogModel&&index==7){const float ms=SingFrog::coda_ms(value/255.f);if(ms<=0.f)std::snprintf(text,sizeof(text),"Off");else std::snprintf(text,sizeof(text),"%.2f s",ms/1000.f);}
  else if(model==kSingFrogModel&&index==kSingSyllableParam){if(value<5)std::snprintf(text,sizeof(text),"Auto");else std::snprintf(text,sizeof(text),"No. %d",value/5);}
+ else if(model==kSingFrogModel&&index==kSingPitchParam)std::snprintf(text,sizeof(text),"%s",value>=128?"Mic":"Note");
  else if(model==kSingFrogModel&&index==kSingLyricParam)std::snprintf(text,sizeof(text),"A+Right: type");
  else if(model==kFrogVoiceModel&&index==2)std::snprintf(text,sizeof(text),"%s",FrogVoice::kSpeciesNames[std::min(value/64,FrogVoice::kSpeciesCount-1)]);
  else if(model==kFrogVoiceModel&&index==3)std::snprintf(text,sizeof(text),value<64?"%d pulse":"%d pulses",1+std::min(value/64,3));
@@ -733,7 +736,7 @@ int uri_code(const char* p){
 struct Synth::State {
  plaits::Voice plaits{}; braids::MacroOscillator braids{};
  rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FrogVoice frog; SingFrog singer; AcidBox acid; ReeseBass reese; FmSysexVoice fm;
- uint8_t lyric[sing::kPackedSize]{},defaultLyric[sing::kPackedSize]{}; bool lyricSet=false; uint32_t noteIndex=0;
+ uint8_t lyric[sing::kPackedSize]{},defaultLyric[sing::kPackedSize]{}; bool lyricSet=false; uint32_t noteIndex=0; float micSmooth=0.f;
  fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet=false;
  alignas(8) char memory[65536]{};
  uint16_t reverbR[32768]{},reverbE[32768]{};
@@ -906,9 +909,17 @@ struct Synth::State {
      const int pick=fixed>0?(fixed-1)%count:int(noteIndex%uint32_t(count));
      std::memcpy(&syl,packed+1+pick*sing::kSyllableBytes,sizeof syl);
     }
-    singer.start(syl,set);
+    singer.start(syl,set);micSmooth=0.f;
    }
-   singer.render(out,24,hz,a,b,c,set);size=24;
+   // Pitch source Mic: the voice sings the pitch the microphone hears (while the recorder is listening); when nothing
+   // is heard it holds the last pitch, and before any it uses the note.
+   float singHz=hz;
+   if(params[kSingPitchParam]>=128){
+    const float heard=mic_pitch_read();
+    if(heard>=60.f&&heard<=1200.f)micSmooth=micSmooth>0.f?micSmooth+(heard-micSmooth)*.35f:heard;
+    if(micSmooth>0.f)singHz=micSmooth;
+   }
+   singer.render(out,24,singHz,a,b,c,set);size=24;
   }else if(model==kFrogVoiceModel){
    if(strike)frog.start();
    const bool named=!(code&kCustomFlag)&&var>=0&&var<16;

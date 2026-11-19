@@ -4,6 +4,7 @@
 #include "kiss_fftr.h"
 #include "synth.h"
 #include "synth_params.h"
+#include "mic_pitch.h"
 
 #include <cassert>
 #include <cmath>
@@ -87,7 +88,7 @@ int main() {
     assert(std::string(model_name(kSingFrogModel)) == "FROGGY" && !synth_needs_strike(kSingFrogModel));
     assert(macro_count(kSingFrogModel) == 3 && std::string(macro_name(kSingFrogModel, 0)) == "Mouth" &&
            std::string(macro_name(kSingFrogModel, 1)) == "Breath" && std::string(macro_name(kSingFrogModel, 2)) == "Throat");
-    assert(synth_param_count(kSingFrogModel) == 9 && std::string(synth_param_name(kSingFrogModel, 2)) == "Lyrics" &&
+    assert(synth_param_count(kSingFrogModel) == 10 && std::string(synth_param_name(kSingFrogModel, 2)) == "Lyrics" &&
            std::string(synth_param_name(kSingFrogModel, 8)) == "Syllable");
     assert(synth_param_value(kSingFrogModel, 3, 32) == "Frog" && synth_param_value(kSingFrogModel, 3, 224) == "Child" &&
            synth_param_value(kSingFrogModel, 7, 0) == "Off" && synth_param_value(kSingFrogModel, 8, 0) == "Auto" &&
@@ -210,6 +211,31 @@ int main() {
         for (int i = 0; i < 24000; ++i) { const float y = s.next(196.f, kRate); e += double(y) * y; }
         assert(std::sqrt(e / 24000) > .01);
         std::printf("lyric follows the notes\n");
+    }
+
+    // Pitch source Mic: the voice sings the pitch the microphone hears, not the note; Note ignores the microphone.
+    {
+        assert(std::string(synth_param_name(kSingFrogModel, kSingPitchParam)) == "Pitch source" &&
+               synth_param_value(kSingFrogModel, kSingPitchParam, 0) == "Note" && synth_param_value(kSingFrogModel, kSingPitchParam, 192) == "Mic" &&
+               synth_param_adjust(kSingFrogModel, kSingPitchParam, 0, 1, false) == 192 && synth_param_adjust(kSingFrogModel, kSingPitchParam, 192, -1, false) == 64);
+        auto render = [&](int source, float micHz) {
+            studio::mic_pitch_publish(micHz);
+            Synth s;
+            const int code = custom_code(kSingFrogModel, 128, 0, 128);
+            auto params = default_synth_params();
+            params[kSingVoiceParam] = 96; params[4] = 0; params[5] = 0; params[7] = 0; params[kSingPitchParam] = source;
+            s.start(code);
+            s.update(code, params);
+            std::vector<float> x;
+            for (int i = 0; i < 24000; ++i) x.push_back(s.next(110.f, kRate));
+            studio::mic_pitch_publish(0.f);
+            return x;
+        };
+        const auto micOn = render(192, 330.f), micOff = render(0, 330.f);
+        auto line = [&](const std::vector<float>& x, float hz) { return range(spectrum(x, 4000), hz * .96f, hz * 1.04f); };
+        std::printf("mic on: 330 Hz line %.1f dB over 110 Hz; mic off: 110 Hz line %.1f dB over 165 Hz\n", db(line(micOn, 330.f) / line(micOn, 110.f)), db(line(micOff, 110.f) / line(micOff, 165.f)));
+        assert(line(micOn, 330.f) > 4.0 * line(micOn, 110.f));
+        assert(line(micOff, 110.f) > 20.0 * line(micOff, 165.f));
     }
 
     // Every named singer, every voice, extreme settings: finite and bounded.

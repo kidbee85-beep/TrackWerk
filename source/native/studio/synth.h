@@ -72,6 +72,7 @@ inline constexpr int kReeseBassModel = kVintageFirstModel + 7;   // 127 REESE BA
 inline constexpr int kSingLyricParam = 2;
 inline constexpr int kSingVoiceParam = 3;
 inline constexpr int kSingSyllableParam = 8;
+inline constexpr int kSingPitchParam = 9;   // 0 Note: the note sets the pitch; 1 Mic: the pitch the microphone hears (studio/mic_pitch.h)
 // FM SYSEX parameters 2 and 3 pick a bank and a voice in it (banks 0…2 are Plaits' built-in ones).
 inline constexpr int kFmBankParam = 2;
 inline constexpr int kFmVoiceParam = 3;

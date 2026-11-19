@@ -58,6 +58,7 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="coda")return "Coda is when the last consonants arrive. Off keeps the vowel held.";
         if(name=="syllable")return "Syllable: Auto sings the next one each note. A number pins one.";
         if(name=="lyrics")return "Lyrics: A+Right opens the keyboard. Spell it the way it sounds.";
+        if(name=="pitch source")return "Pitch source: Note uses the key you play. Mic sings the pitch you hum into the recorder.";
     }
     // CROAKER: the croaker.
     if(model==studio::kFrogVoiceModel){
