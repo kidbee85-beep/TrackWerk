@@ -7,8 +7,8 @@ and the documents differ. So this reads the Brick ZIP, checks that the ELF in it
 Brick Program Update carries, swaps the launcher and descriptors, rewrites START-HERE.txt and
 SHA256SUMS.txt and writes one deterministic ZIP. Nothing is built, signed or published.
 
-  python3 package.py --brick-first-install TrackWerk-1.2.1-Brick-KNULLI-First-Install.zip \\
-                     --brick-program-update TrackWerk-1.2.1-Brick-Program-Update.zip \\
+  python3 package.py --brick-first-install TrackWerk-1.3.0-Brick-KNULLI-First-Install.zip \\
+                     --brick-program-update TrackWerk-1.3.0-Brick-Program-Update.zip \\
                      --out OUTPUT_DIR
 """
 from __future__ import annotations
@@ -21,12 +21,12 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 NAME = f"TrackWerk-{VERSION}-Anbernic-H700-KNULLI-Community-Test"
 ELF = "trackwerk/trackwerk.aarch64"
 ZIP_TIME = (2026, 11, 19, 0, 0, 0)
 
-START_HERE = """TRACKWERK 1.2.1 / ANBERNIC H700 / KNULLI - COMMUNITY TEST
+START_HERE = """TRACKWERK 1.3.0 / ANBERNIC H700 / KNULLI - COMMUNITY TEST
 
 NOT YET RUN ON THE DEVICE. This is the TrimUI Brick program with a launcher for the Anbernic
 Anbernic H700 handhelds (RG40XX V first). Read README-H700.txt first (what is known, what is not, how to report).
@@ -52,8 +52,8 @@ Samples go in roms/ports/trackwerk/data/Samples.
 """
 
 SOURCE_NOTE = (
-    "TrackWerk 1.2.1 corresponding source: TrackWerk-1.2.1-Source.zip\n"
-    "Program: the same aarch64 build as TrackWerk-1.2.1-Brick-KNULLI-First-Install.zip\n"
+    "TrackWerk 1.3.0 corresponding source: TrackWerk-1.3.0-Source.zip\n"
+    "Program: the same aarch64 build as TrackWerk-1.3.0-Brick-KNULLI-First-Install.zip\n"
     "Launcher: source/shell/h700/TrackWerk.sh\n"
 )
 
