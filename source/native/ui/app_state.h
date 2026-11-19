@@ -234,6 +234,7 @@ struct AppState {
 
     // ── The visualizer: filled once a frame; null is silence ─────────────────────────────────────
     const float* waveform       = nullptr;  // WAVEFORM_SIZE master samples
+    uint32_t     lyricNotes     = 0;        // notes the current instrument has started since PLAY (FROGGY's karaoke display)
     const float* trackWaveforms = nullptr;  // TRACK_WAVEFORM_COUNT × WAVEFORM_SIZE, flat (OCTA)
     const float* spectrum       = nullptr;  // NUM_BARS magnitudes (SPECTRUM modes)
 

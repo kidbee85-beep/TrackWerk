@@ -1008,6 +1008,11 @@ private:
     };
     // Audio thread only: how many notes each instrument has started (FROGGY sings syllable n for note n).
     uint32_t lyricNotes[256]{};
+    // The same counts for the UI (the karaoke display of FROGGY): written by the audio thread, read by the screen.
+    std::atomic<uint32_t> lyricNotesShown[256]{};
+public:
+    uint32_t lyricNotesStarted(int sampleId) const { return sampleId>=0&&sampleId<256?lyricNotesShown[sampleId].load(std::memory_order_relaxed):0; }
+private:
     StagedTable<StudioSynthRow, 256> studioSynthParams;
     struct GranularControl {
         bool enabled=false;

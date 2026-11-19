@@ -258,6 +258,7 @@ void AudioEngine::triggerSamplerNote(const ScheduledNote& note, int frame, int64
                               note.tableId, effectiveTicRates, note.noteOctave, note.notePitch, startRows);
             studioVoices[v].start(liveStudioCode(note.sampleId));
             studioVoices[v].set_note_index(lyricNotes[note.sampleId&255]++);
+            lyricNotesShown[note.sampleId&255].store(lyricNotes[note.sampleId&255],std::memory_order_relaxed);
             if(studioVoices[v].active())voices[v].studioTuneRatio=songcore::detune_multiplier(instrumentParams[note.sampleId].studioDetune);
             voices[v].setChord(chordSemis, studioVoices[v].active() ? 0 : chordCount, strumWait);
             voices[v].instrId = note.sampleId;

@@ -126,6 +126,12 @@ int main() {
         sing::pack_lyric("sing me a song", p);
         sing::pack_lyric("sing me a song", q);
         assert(std::memcmp(p, q, sizeof p) == 0);
+        // The karaoke display: words with their syllable counts and first syllables.
+        sing::WordSpan sp[8];
+        assert(sing::lyric_words("ribbit quack, la", sp, 8) == 3);
+        assert(sp[0].syllables == 2 && sp[0].firstSyllable == 0 && sp[1].syllables == 1 && sp[1].firstSyllable == 2 &&
+               sp[2].syllables == 1 && sp[2].firstSyllable == 3 && sp[1].start == 7 && sp[1].length == 5);
+        assert(sing::lyric_words("", sp, 8) == 0 && sing::lyric_words("hmm ... 12", sp, 8) == 0);
         std::printf("text front end ok\n");
     }
 

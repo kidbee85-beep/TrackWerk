@@ -1,4 +1,5 @@
 #include "ui/studio.h"
+#include "studio/sing_text.h"
 #include "ui/demo_font_style.h"
 #include "ui/scene_layout.h"
 #include "ui/scene_animation.h"
@@ -331,10 +332,29 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
  for(int bar=0;bar<3;++bar){const int bh=1+int((moving?level:.4f)*6.f*(1.f-.2f*bar)*(.8f+.2f*std::sin(T*6.f+bar*2.f)));c.fill_rect(x+8+bar*60,y+21-bh,40,bh,with_alpha(orange,.35f));}
  std::snprintf(text,sizeof(text),"JAW %.1f cm",.2f+open*.12f);label(c,text,x+w-84,y+22,orange,80,11);
  std::snprintf(text,sizeof(text),"LIPS %.1f cm",.3f+mouth*1.1f);label(c,text,x+w-84,y+36,pink,80,11);
- std::snprintf(text,sizeof(text),"TONGUE %.1f",std::clamp(flick>0.f?flick:open/(14.f*S),0.f,1.f));label(c,text,x+w-84,y+50,green,80,11);
+ if(!sing){std::snprintf(text,sizeof(text),"TONGUE %.1f",std::clamp(flick>0.f?flick:open/(14.f*S),0.f,1.f));label(c,text,x+w-84,y+50,green,80,11);}   // FROGGY shows the karaoke here
  if(sing){
-  const std::string& words=s.studioDraft.lyric.empty()?std::string("ribbit ribbit quack la la"):s.studioDraft.lyric;
-  label(c,words.size()>20?words.substr(0,19)+"~":words,x+w-84,y+h-26,gold,80,11);
+  // Karaoke: the word being sung in gold with one dot per syllable (the sung one filled), the next word beneath it.
+  const std::string defaultText="ribbit ribbit quack la la";
+  const std::string& text=s.studioDraft.lyric.empty()?defaultText:s.studioDraft.lyric;
+  studio::sing::WordSpan spans[24];
+  const int wordCount=studio::sing::lyric_words(text.c_str(),spans,24);
+  const int total=wordCount>0?spans[wordCount-1].firstSyllable+spans[wordCount-1].syllables:0;
+  const int pitchParam=s.studioDraft.studioSynthParams[studio::kSingSyllableParam];
+  const int fixed=pitchParam>=5?pitchParam/5:0;
+  const int sung=total<=0?-1:fixed>0?(fixed-1)%total:s.lyricNotes>0?int((s.lyricNotes-1)%uint32_t(total)):-1;
+  int current=0;
+  for(int i=0;i<wordCount;++i)if(sung>=spans[i].firstSyllable&&sung<spans[i].firstSyllable+spans[i].syllables)current=i;
+  if(wordCount>0){
+   const auto wordText=[&](int i){return text.substr(size_t(spans[i].start),size_t(spans[i].length));};
+   const bool active=sung>=0;
+   label(c,wordText(current),x+w-84,y+h-40,active?gold:with_alpha(gold,.5f),80,14);
+   for(int k=0;k<spans[current].syllables&&k<8;++k){
+    const bool on=active&&sung==spans[current].firstSyllable+k;
+    c.fill_rect(x+w-84+k*8,y+h-22,on?6:4,on?6:4,on?gold:with_alpha(gold,.4f));
+   }
+   if(wordCount>1)label(c,wordText((current+1)%wordCount),x+w-84,y+h-14,with_alpha(t.textParam,.8f),80,10);
+  }
  }else{
   std::snprintf(text,sizeof(text),"CROAK %.1f/s",.5f*std::exp2(5.f*mouth));label(c,text,x+w-84,y+h-26,gold,80,11);
  }

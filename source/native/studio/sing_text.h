@@ -14,6 +14,7 @@
 // phones are cut into syllables (a single consonant between two vowels starts the next syllable, a pair
 // splits between them), and the syllables are packed 8 bytes each. Spell words the way they should sound:
 // "la la ree", "ri-bbit", "kwaak".
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
@@ -215,6 +216,34 @@ inline int pack_lyric(const char* text, uint8_t* out) {
     flush();
     out[0] = uint8_t(count);
     return count;
+}
+
+// The words of a lyric with how many syllables each has and where its first one sits in the packed list: what the
+// karaoke display needs to say which word is being sung. At most `max` words; returns how many.
+struct WordSpan { int start, length, firstSyllable, syllables; };
+inline int lyric_words(const char* text, WordSpan* out, int max) {
+    int words = 0, syllable = 0, chars = 0;
+    int start = -1;
+    uint8_t scratch[kPackedSize];
+    auto close = [&](int end) {
+        if (start < 0) return;
+        char word[40];
+        const int len = std::min(end - start, 39);
+        std::memcpy(word, text + start, size_t(len));
+        word[len] = 0;
+        const int n = pack_lyric(word, scratch);
+        if (n > 0 && words < max && syllable + n <= kMaxSyllables) out[words++] = {start, end - start, syllable, n};
+        syllable += n;
+        start = -1;
+    };
+    for (const char* p = text; p && *p && chars < kMaxTextChars; ++p, ++chars) {
+        const char c = *p;
+        const bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\'';
+        if (letter) { if (start < 0) start = chars; }
+        else close(chars);
+    }
+    close(chars);
+    return words;
 }
 
 }  // namespace sing

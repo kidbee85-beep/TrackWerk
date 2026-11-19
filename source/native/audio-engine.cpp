@@ -88,6 +88,7 @@ void AudioEngine::stopAll() {
     }
     resetTic00Cursors();   // PLAY starts every table at row 0
     std::fill(std::begin(lyricNotes),std::end(lyricNotes),0u);   // and every lyric at its first syllable
+    for(auto& shown:lyricNotesShown)shown.store(0,std::memory_order_relaxed);
     LOGD("stopAll: voices and SF notes cleared, stream stays running");
 }
 
