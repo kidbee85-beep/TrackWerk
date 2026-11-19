@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Package the RG40XX V (KNULLI) community test from an existing, verified Brick First Install ZIP.
+"""Package the Anbernic H700 (KNULLI) community test from an existing, verified Brick First Install ZIP.
 
 The program is byte-for-byte the Brick's aarch64 build; only the launcher, the two menu descriptors
 and the documents differ. So this reads the Brick ZIP, checks that the ELF in it is the one the
@@ -22,14 +22,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 VERSION = "1.2.1"
-NAME = f"TrackWerk-{VERSION}-RG40XXV-KNULLI-Community-Test"
+NAME = f"TrackWerk-{VERSION}-Anbernic-H700-KNULLI-Community-Test"
 ELF = "trackwerk/trackwerk.aarch64"
 ZIP_TIME = (2026, 11, 19, 0, 0, 0)
 
-START_HERE = """TRACKWERK 1.2.1 / RG40XX V / KNULLI - COMMUNITY TEST
+START_HERE = """TRACKWERK 1.2.1 / ANBERNIC H700 / KNULLI - COMMUNITY TEST
 
 NOT YET RUN ON THE DEVICE. This is the TrimUI Brick program with a launcher for the Anbernic
-RG40XX V. Read README-RG40XXV.txt first (what is known, what is not, how to report).
+Anbernic H700 handhelds (RG40XX V first). Read README-H700.txt first (what is known, what is not, how to report).
 
 Needs KNULLI "Scarab" (2026-05-11) or newer. https://knulli.org/
 
@@ -43,7 +43,7 @@ PLEASE WAIT on the first start. It copies about 2,400 factory presets (under a m
 minutes, the screen may stay black), and if the first display mode shows nothing the launcher tries a
 second one after 25 seconds, so up to about 50 seconds can pass before TrackWerk appears. Do not power
 off or press buttons meanwhile. After 5 minutes with no picture, hold the power button and send the log.
-Later starts are fast. This version has not been run on an RG40XX V yet; if you would rather not be
+Later starts are fast. This version has not been run on an H700 device yet; if you would rather not be
 the first, wait for a report from someone who has.
 
 If it does not start: send trackwerk/log.txt and your KNULLI version. The launcher tries the GPU
@@ -54,7 +54,7 @@ Samples go in roms/ports/trackwerk/data/Samples.
 SOURCE_NOTE = (
     "TrackWerk 1.2.1 corresponding source: TrackWerk-1.2.1-Source.zip\n"
     "Program: the same aarch64 build as TrackWerk-1.2.1-Brick-KNULLI-First-Install.zip\n"
-    "Launcher: source/shell/rg40xxv/TrackWerk.sh\n"
+    "Launcher: source/shell/h700/TrackWerk.sh\n"
 )
 
 
@@ -94,11 +94,11 @@ def main() -> None:
     out["TrackWerk.sh"] = (HERE / "TrackWerk.sh").read_bytes()
     out["trackwerk/port.json"] = (HERE / "port.json").read_bytes()
     out["trackwerk/gameinfo.xml"] = (HERE / "gameinfo.xml").read_bytes()
-    out["README-RG40XXV.txt"] = (HERE / "README.txt").read_bytes()
+    out["README-H700.txt"] = (HERE / "README.txt").read_bytes()
     out["START-HERE.txt"] = START_HERE.encode()
     out["SOURCE.txt"] = SOURCE_NOTE.encode()
     json.loads(out["trackwerk/port.json"])
-    require(b"RG40XXV" in out["TrackWerk.sh"], "launcher is not the RG40XX V one")
+    require(b"H700" in out["TrackWerk.sh"], "launcher is not the H700 one")
 
     sums = "".join(f"{sha(out[n])}  {n}\n" for n in sorted(out))
     out["SHA256SUMS.txt"] = sums.encode()

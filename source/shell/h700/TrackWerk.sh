@@ -1,5 +1,6 @@
 #!/bin/bash
-# GPL-3.0-or-later. Standalone native Anbernic RG40XX V / KNULLI launcher (community test).
+# GPL-3.0-or-later. Standalone native Anbernic H700 / KNULLI launcher (community test; the RG40XX V is
+# the device it was written for, the other H700 devices run the same KNULLI image).
 # KNULLI supplies SDL controller mappings; this script never sources PortMaster.
 #
 # The binary is the same aarch64 build as the TrimUI Brick's (Cortex-A53, glibc 2.31 or newer, the
@@ -19,7 +20,7 @@ if [ ! -d "$PTE_APP_DIR" ]; then
 fi
 PTE_LOG="$PTE_APP_DIR/log.txt"
 exec >> "$PTE_LOG" 2>&1 || exit 2
-printf '\n=== TrackWerk 1.2.1-RG40XXV: shell entered ===\n'
+printf '\n=== TrackWerk 1.2.1-H700: shell entered ===\n'
 # Persist before any command substitution or native graphics initialization.
 # A forced power-off must not erase the only evidence of where startup stopped.
 sync || printf '%s\n' 'WARNING: initial startup log sync failed'
@@ -125,7 +126,7 @@ PTE_LOG_SIZE="$(wc -c < "$PTE_LOG" 2>/dev/null)"
 if [[ "$PTE_LOG_SIZE" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] && [ "$PTE_LOG_SIZE" -gt 1048576 ]; then
     mv -f -- "$PTE_LOG" "$GAMEDIR/log.previous.txt" || pte_fail "Startprotokoll kann nicht rotiert werden."
     exec >> "$PTE_LOG" 2>&1 || exit 2
-    printf '\n=== TrackWerk 1.2.1-RG40XXV: shell entered (log rotated) ===\n'
+    printf '\n=== TrackWerk 1.2.1-H700: shell entered (log rotated) ===\n'
 fi
 pte_phase "Standalone start; no PortMaster scripts or network checks"
 

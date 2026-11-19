@@ -3,7 +3,7 @@
   <game>
     <path>./TrackWerk.sh</path>
     <name>TrackWerk</name>
-    <desc>TrackWerk by Kid Bunka: independent GPL music tracker for KNULLI handhelds. RG40XX V community test: not yet run on the device.</desc>
+    <desc>TrackWerk by Kid Bunka: independent GPL music tracker for KNULLI handhelds. Anbernic H700 community test (RG40XX V first): not yet run on a device.</desc>
     <image>./trackwerk/screenshot.png</image>
     <developer>PocketTracker contributors / TrackWerk</developer>
     <publisher>Kid Bunka</publisher>

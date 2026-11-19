@@ -1,5 +1,5 @@
 #!/bin/bash
-# GPL-3.0-or-later. Launcher test for the RG40XX V package: the video-mode fallback, with a fake
+# GPL-3.0-or-later. Launcher test for the Anbernic H700 package: the video-mode fallback, with a fake
 # "native binary" in place of trackwerk.aarch64. Needs only bash. Usage: test_launcher.sh <new empty dir>
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -73,5 +73,5 @@ check "forced mode that works is not stored either" "$(mode_file "$d")" none
 d=$(new_case early-exit-0);       rc=$(run "$d" "renderer:ok0,surface:ok0")
 check "clean exit status 0" "$rc" 0
 echo
-[ "$FAILS" -eq 0 ] && { echo "RG40XXV_LAUNCHER_PASS"; exit 0; }
-echo "RG40XXV_LAUNCHER_FAIL: $FAILS"; exit 1
+[ "$FAILS" -eq 0 ] && { echo "H700_LAUNCHER_PASS"; exit 0; }
+echo "H700_LAUNCHER_FAIL: $FAILS"; exit 1

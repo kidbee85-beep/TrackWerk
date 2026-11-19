@@ -1,7 +1,13 @@
-TrackWerk on the Anbernic RG40XX V (KNULLI) - community test
+TrackWerk on Anbernic H700 handhelds (KNULLI) - community test
 
-STATUS: untested on the device. Nobody has run TrackWerk on an RG40XX V yet. This package exists so
+STATUS: untested on any device. Nobody has run TrackWerk on an RG40XX V or any other H700 device yet. This package exists so
 that the first person with one can try it and report back. Please read "What is known" first.
+
+Devices
+  Written for the Anbernic RG40XX V (640x480). KNULLI runs the same H700 image on the RG35XX H, Plus, SP
+  and 2024, the RG28XX, the RG34XX (720x480), the RG40XX H and the RG CubeXX (720x720), so the same
+  package is expected to start on them too. TrackWerk scales its 640x480 design to other screen shapes
+  (as on the R36 Ultra), but none of these devices has been tried. Report the model with the log.
 
 What it is
   The same aarch64 program as the TrimUI Brick build (Cortex-A53, glibc 2.31 or newer, the system's
