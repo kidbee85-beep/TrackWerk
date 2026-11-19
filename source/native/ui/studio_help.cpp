@@ -16,6 +16,8 @@ constexpr const char* pages[]={"Workflow","Controls","Current context"};
 std::string short_text(const std::string& s,int chars=74){return Canvas::clip_text(s,chars);}
 std::string control_hint(std::string name,int model=-1) {
     for(char& c:name)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    // XY pad page: the cards are named "X  <macro>" and "Y  <macro>".
+    if(name.size()>3&&(name[0]=='x'||name[0]=='y')&&name[1]==' '&&name[2]==' ')return "Hold L + D-pad to move the dot: X and Y are the first two macros.";
     // FM SYSEX: its own meanings of Brightness, Envelope, Velocity, Bank and Voice.
     if(model==studio::kFmSysexModel){
         if(name=="brightness")return "Brightness turns the modulators up or down. As stored at the centre.";

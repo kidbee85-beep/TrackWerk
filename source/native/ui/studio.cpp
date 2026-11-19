@@ -439,6 +439,8 @@ bool studio_button(const ButtonEvent& e,AppState& s,songcore::SongcoreHost& host
    if(s.studioAppearanceSettings||repeated||e.mods.a)return true;
    change_studio_tab(s,host,engine,studio_next_music_tab(s.studioTab,dir));return true;
   }
+  // XY pad page: hold L (the audition) and the D-pad moves the dot instead of the cursor.
+  if(s.studioTab==0&&e.mods.l&&!e.mods.a&&!e.mods.r&&!e.mods.b&&studio_synth_xy_page(s)){studio_synth_xy_move(s,host,engine,e.button);return true;}
   if(!e.mods.a&&s.studioTab==0){studio_synth_navigate(s,e.button);return true;}
   if(!e.mods.a&&s.studioTab==4&&(e.button==Button::DPAD_LEFT||e.button==Button::DPAD_RIGHT)){studio_capture_edit(s,e.button==Button::DPAD_RIGHT?1:-1);return true;}
   if(!e.mods.a){if(e.button==Button::DPAD_UP||e.button==Button::DPAD_DOWN){s.studioConfirm=false;s.studioMessage.clear();const int delta=e.button==Button::DPAD_UP?-1:1;s.studioRow=std::clamp(s.studioRow+delta,0,(s.studioTab==0?studio_synth_apply_row(s)+1:rows(s.studioTab))-1);if(s.studioTab==0&&s.studioRow>=3+studio_synth_control_count(s)&&s.studioRow<studio_synth_apply_row(s))s.studioRow=delta>0?studio_synth_apply_row(s):2+studio_synth_control_count(s);}return true;}

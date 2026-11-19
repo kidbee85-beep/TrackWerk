@@ -343,7 +343,8 @@ void synth_page(Canvas& c,const AppState& s){
    else c.stroke_rect(x,232,7,7,with_alpha(t.textParam,.55f));}}
  label(c,"R + Left / Right: Pages",455,229,t.textParam,168);
  const int controls=std::clamp(studio_synth_control_count(s),1,4);
- const int cellWidth=608/controls;
+ const bool xyPage=studio_synth_xy_page(s);
+ const int cellWidth=xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
  studio_card(c,16,248,608,105,t);
  for(int i=0;i<controls;++i){
   const int x=16+i*cellWidth;
@@ -363,6 +364,20 @@ void synth_page(Canvas& c,const AppState& s){
    const bool lit=j*255/blocks<level;
    c.fill_rect(x+16+j*step,326,step-2,7,with_alpha(t.rowCursor,lit?(selected?.92f:.57f):.15f));
   }
+ }
+ if(xyPage){
+  // The pad: X is the first macro, Y the second (up is more). The dot glides to each new position; with
+  // scene motion on a ring breathes around it. Hold L and press the D-pad to move it.
+  const int px=398,py=254,pw=218,ph=92,inner=8;
+  c.panel_rect(px,py,pw,ph,mix(t.rowEvery4th,t.background,.5f),with_alpha(t.rowCursor,.55f),5);
+  for(int g=1;g<4;++g){c.fill_rect(px+inner+g*(pw-2*inner)/4,py+inner,1,ph-2*inner,with_alpha(t.textParam,.18f));c.fill_rect(px+inner,py+inner+g*(ph-2*inner)/4,pw-2*inner,1,with_alpha(t.textParam,.18f));}
+  const int gx=c.tween(0x2100000u,std::clamp(s.studioHarmonics,0,255)),gy=c.tween(0x2100001u,std::clamp(s.studioTimbre,0,255));
+  const int dx=px+inner+gx*(pw-2*inner-1)/255,dy=py+ph-inner-1-gy*(ph-2*inner-1)/255;
+  c.fill_rect(px+inner,dy,pw-2*inner,1,with_alpha(t.rowCursor,.35f));   // the crosshair
+  c.fill_rect(dx,py+inner,1,ph-2*inner,with_alpha(t.rowCursor,.35f));
+  if(s.settings.sceneMotion){const int phase=int((s.animationMs/90)%6);c.stroke_rect(dx-4-phase,dy-4-phase,9+2*phase,9+2*phase,with_alpha(t.rowCursor,.5f-.08f*phase));}
+  c.fill_rect(dx-2,dy-2,5,5,t.rowCursor);
+  label(c,"HOLD L + D-PAD",px+10,py+ph-20,with_alpha(t.textParam,.8f),pw-20,10);
  }
 
  const bool focus=s.studioRow==studio_synth_apply_row(s);

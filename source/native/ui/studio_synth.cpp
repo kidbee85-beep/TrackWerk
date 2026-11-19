@@ -17,6 +17,7 @@
 namespace pt::ui {
 namespace {
 int extra_pages(const AppState& s){return (studio::synth_param_count(s.studioModel)+2)/3;}
+// 0 oscillator, 1 engine pages, 2 filter, 3 amplifier, 4 ADSR, 5 XY pad (the first two macros on one surface).
 int kind(const AppState& s){const int n=extra_pages(s);return s.studioSynthPage==0?0:s.studioSynthPage<=n?1:s.studioSynthPage-n+1;}
 int extra_index(const AppState& s,int i){return (s.studioSynthPage-1)*3+i;}
 std::string patch_uri(const AppState& s){return s.studioSynthCustom?studio::custom_uri(s.studioModel,s.studioHarmonics,s.studioTimbre,s.studioMorph):studio::uri(studio::preset_code(s.studioModel,s.studioVariation));}
@@ -519,17 +520,17 @@ bool studio_synth_live(const AppState& s){
  return ins.instrumentType==songcore::InstrumentType::SAMPLER&&ins.sampleId>=0&&ins.sampleId<256&&
   ins.sampleFilePath&&*ins.sampleFilePath==s.studioBoundUri;
 }
-int studio_synth_page_count(const AppState& s){return sample_granular_studio(s)?sample_granular_page_count():1+extra_pages(s)+3;}
+int studio_synth_page_count(const AppState& s){return sample_granular_studio(s)?sample_granular_page_count():1+extra_pages(s)+4;}
 std::string studio_synth_page_name(const AppState& s){
  if(sample_granular_studio(s))return sample_granular_page_name(s);
- switch(kind(s)){case 0:return "Oscillator";case 1:return "Engine "+std::to_string(s.studioSynthPage)+" / "+std::to_string(extra_pages(s));case 2:return "Filter / Drive";case 3:return "Amplifier / Tune";default:return "ADSR envelope";}
+ switch(kind(s)){case 0:return "Oscillator";case 1:return "Engine "+std::to_string(s.studioSynthPage)+" / "+std::to_string(extra_pages(s));case 2:return "Filter / Drive";case 3:return "Amplifier / Tune";case 5:return "XY pad";default:return "ADSR envelope";}
 }
-int studio_synth_control_count(const AppState& s){if(sample_granular_studio(s))return sample_granular_control_count(s);switch(kind(s)){case 0:return studio::macro_count(s.studioModel);case 1:return std::clamp(studio::synth_param_count(s.studioModel)-extra_index(s,0),0,3);case 3:return 3;default:return 4;}}
+int studio_synth_control_count(const AppState& s){if(sample_granular_studio(s))return sample_granular_control_count(s);switch(kind(s)){case 0:return studio::macro_count(s.studioModel);case 1:return std::clamp(studio::synth_param_count(s.studioModel)-extra_index(s,0),0,3);case 3:return 3;case 5:return 2;default:return 4;}}
 int studio_synth_apply_row(const AppState& s){return std::max(6,3+studio_synth_control_count(s));}
 std::string studio_synth_control_label(const AppState& s,int i){
  if(sample_granular_studio(s))return sample_granular_control_label(s,i);
  if(i<0||i>=studio_synth_control_count(s))return {};
- switch(kind(s)){case 0:return studio::macro_name(s.studioModel,i);case 1:return studio::synth_param_name(s.studioModel,extra_index(s,i));case 2:{const char* n[]={"Filter type","Cutoff","Resonance","Drive"};return n[i];}case 3:{const char* n[]={"Level","Pan","Fine tune"};return n[i];}default:{const char* n[]={"Attack","Decay","Sustain","Release"};return n[i];}}
+ switch(kind(s)){case 0:return studio::macro_name(s.studioModel,i);case 1:return studio::synth_param_name(s.studioModel,extra_index(s,i));case 2:{const char* n[]={"Filter type","Cutoff","Resonance","Drive"};return n[i];}case 3:{const char* n[]={"Level","Pan","Fine tune"};return n[i];}case 5:return std::string(i==0?"X  ":"Y  ")+studio::macro_name(s.studioModel,i);default:{const char* n[]={"Attack","Decay","Sustain","Release"};return n[i];}}
 }
 int studio_synth_control_level(const AppState& s,int i){
  if(sample_granular_studio(s))return sample_granular_control_level(s,i);
@@ -538,6 +539,7 @@ int studio_synth_control_level(const AppState& s,int i){
  case 1:{const int x=extra_index(s,i),v=p.studioSynthParams[x];return v<0?studio::synth_param_default(s.studioModel,x):v;}
  case 2:{const int v[]={filter_index(p)*85,p.filterCut,p.filterRes,p.drive};return v[i];}
  case 3:{const int v[]={p.volume,p.pan,p.detune};return v[i];}
+ case 5:{const int v[]={s.studioHarmonics,s.studioTimbre};return v[i];}
  default:{const auto* m=envelope(p);if(!m)return 0;const int v[]={m->attack,m->decay,m->sustain,m->release};return v[i];}}
 }
 std::string studio_synth_control_value(const AppState& s,int i){
@@ -584,6 +586,17 @@ void studio_synth_sync_target(AppState& s){
   open_studio_synth(s,s.project->instruments[s.currentInstrument]);s.studioRow=std::clamp(row,0,studio_synth_apply_row(s));
   s.studioAUsed=a;s.studioBUsed=b;s.studioShortcutRelease=shortcut;s.studioHelp=help;
  }
+}
+bool studio_synth_xy_page(const AppState& s){return !sample_granular_studio(s)&&kind(s)==5;}
+// Hold L (the audition) and press the D-pad: the dot moves, the sound follows at once. X is the first
+// macro and Y the second; up raises Y. Each press is one step, and holding repeats it.
+void studio_synth_xy_move(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,Button button){
+ if(!studio_synth_xy_page(s))return;
+ studio_synth_sync_target(s);s.studioConfirm=false;
+ constexpr int step=4;
+ const int dx=button==Button::DPAD_RIGHT?1:button==Button::DPAD_LEFT?-1:0,dy=button==Button::DPAD_UP?1:button==Button::DPAD_DOWN?-1:0;
+ s.studioHarmonics=std::clamp(s.studioHarmonics+dx*step,0,255);s.studioTimbre=std::clamp(s.studioTimbre+dy*step,0,255);
+ s.studioSynthCustom=true;publish(s,host,engine,false);
 }
 void studio_synth_navigate(AppState& s,Button button){
  if(sample_granular_studio(s)){sample_granular_navigate(s,button);return;}
@@ -645,8 +658,9 @@ void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& eng
  else if(k==1){const int x=extra_index(s,i);p.studioSynthParams[x]=studio::synth_param_adjust(s.studioModel,x,p.studioSynthParams[x],direction,coarse);publish(s,host,engine,false);return;}
  else if(k==2){if(i==0){const char* n[]={"off","lp","hp","bp"};p.filterType=n[std::clamp(filter_index(p)+direction,0,3)];if(p.filterType!="off"&&!p.filterCut)p.filterCut=255;}else{int* v[]={&p.filterCut,&p.filterRes,&p.drive};value=v[i-1];}}
  else if(k==3){int* v[]={&p.volume,&p.pan,&p.detune};value=v[i];}
+ else if(k==5){int* v[]={&s.studioHarmonics,&s.studioTimbre};value=v[i];s.studioSynthCustom=true;}
  else{auto* m=edit_envelope(p);if(!m){s.studioMessage="All modulation slots are used - free one in MODS for ADSR";return;}int* v[]={&m->attack,&m->decay,&m->sustain,&m->release};value=v[i];}
- if(value)*value=std::clamp(*value+direction*(coarse?16:1),0,255);publish(s,host,engine,k>=2,&previousDraft);
+ if(value)*value=std::clamp(*value+direction*(coarse?16:1),0,255);publish(s,host,engine,k>=2&&k!=5,&previousDraft);
 }
 
 bool studio_synth_compare(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine){
