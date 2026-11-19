@@ -1087,9 +1087,11 @@ inline constexpr HelpEntry HELP_ENTRIES[] = {
     /* PROJECT_SAVE */
     {"SAVE: write the song to disk", "It uses the name on the NAME", "row above.",
      {"Saves into the Projects folder,",
-      "under the NAME above. A file of",
-      "another song with that name is",
-      "only replaced if you say so."},
+      "under the NAME above. The old",
+      "version is kept in Backups (the",
+      "last five). Another song with",
+      "that name is only replaced if",
+      "you say so."},
      {"A saves"}},
     /* PROJECT_LOAD */
     {"LOAD: open another song", "Opens the file browser to", "pick one.",

@@ -8,6 +8,7 @@
 //   E5 a case-only rename works, and an extension in another case is not doubled
 //   E6 an instrument preset's FILE name is sanitised like every other preset's
 //   E7 COLLECT keeps two different files of one name apart (kick.wav, kick_2.wav)
+//   B1 SAVE keeps the previous versions (Backups/<NAME>_bak1..5.ptp), also what REPLACE overwrites
 //   S1 the synced write (temp, fsync, rename) is correct, replaces cleanly and fails without a trace
 // usage: ptfile-safety-check <new run directory>
 #include "audio-engine.h"
@@ -486,6 +487,47 @@ void collect_keeps_namesakes(const fs::path& root) {
     }
 }
 
+// SAVE keeps what it replaces, newest first, up to five, and never the same version twice.
+void backup_cases(const fs::path& root) {
+    Rig r(root / "b1");
+    const std::string file = r.sfs.projects_directory() + "/UNTITLED.ptp";
+    const auto bak = [&](int n) { return project_backup_path(r.sfs, "UNTITLED", n); };
+    const auto save_tempo = [&](int tempoUps) {
+        r.tempo_up(tempoUps);
+        r.cell(ProjectRow::PROJECT, 1);
+        r.tap(Button::A);
+        assert(!r.state.confirm.is_open() && r.state.statusMessage == "SAVED");
+    };
+    save_tempo(1);                                   // 129: nothing to keep yet
+    assert(!fs::exists(bak(1)) && r.file_tempo(file) == 129);
+    save_tempo(1);                                   // 130: 129 is kept
+    assert(r.file_tempo(bak(1)) == 129 && r.file_tempo(file) == 130 && !fs::exists(bak(2)));
+    r.cell(ProjectRow::PROJECT, 1);                  // saved again without a change: nothing new
+    r.tap(Button::A);
+    assert(r.file_tempo(bak(1)) == 129 && !fs::exists(bak(2)));
+    for (int i = 0; i < 6; ++i) save_tempo(1);       // 131 … 136
+    assert(r.file_tempo(file) == 136);
+    for (int n = 1; n <= kProjectBackupsKept; ++n) assert(r.file_tempo(bak(n)) == 136 - n);   // newest first
+    assert(!fs::exists(bak(kProjectBackupsKept + 1)));
+
+    // REPLACE keeps the other project it overwrites, and the backup holds that project's own tempo.
+    Rig q(root / "b2");
+    q.tempo_up(5);
+    q.cell(ProjectRow::PROJECT, 1);
+    q.tap(Button::A);
+    const std::string untitled = q.sfs.projects_directory() + "/UNTITLED.ptp";
+    q.cell(ProjectRow::PROJECT, 3);
+    q.tap(Button::A);                                // NEW
+    q.tempo_up(20);
+    q.cell(ProjectRow::PROJECT, 1);
+    q.tap(Button::A);                                // asks
+    assert(q.state.confirm.kind == ConfirmDialogState::Kind::SAVE_EXISTS);
+    q.tap(Button::DPAD_LEFT);
+    q.tap(Button::DPAD_LEFT);                        // REPLACE
+    q.tap(Button::A);
+    assert(q.file_tempo(untitled) == 148 && q.file_tempo(project_backup_path(q.sfs, "UNTITLED", 1)) == 133);
+}
+
 // The write behind SAVE, settings and the autosave: temp file, fsync, rename, directory sync. A power cut
 // cannot be staged here; what can be checked is that the result is exact and that a failure leaves the
 // old file whole and no temp behind.
@@ -540,6 +582,7 @@ int main(int argc, char** argv) {
     preset_file_names(root);
     collect_keeps_namesakes(root);
     write_cases(root);
+    backup_cases(root);
     std::cout << "FILE_SAFETY_PASS: load asks, save never replaces unasked, no paste into itself, "
-                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes\n";
+                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes, save backups\n";
 }

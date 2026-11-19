@@ -26,6 +26,11 @@ std::string unique_render_path(FileSystem& fs, const std::string& dir, const std
 // Writes `<Projects>/<name>.ptp` and marks the document clean.
 ActionResult save_project(songcore::SongcoreHost& host, FileSystem& fs, AppState& s);
 
+// SAVE keeps what it replaces: <home>/Backups/<NAME>_bak1.ptp is the previous version, _bak2 the one before,
+// up to this many. (Also kept when SAVE > REPLACE overwrites another project of the same file name.)
+inline constexpr int kProjectBackupsKept = 5;
+std::string project_backup_path(FileSystem& fs, const std::string& stem, int generation);
+
 // Where SAVE writes: `<Projects>/<project_file_name(name)>.ptp`.
 std::string project_save_path(const songcore::SongcoreHost& host, FileSystem& fs);
 

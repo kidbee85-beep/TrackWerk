@@ -46,6 +46,33 @@ std::string unique_render_path(FileSystem& fs, const std::string& dir, const std
 
 // ─── SAVE ────────────────────────────────────────────────────────────────────────────────────────
 
+std::string project_backup_path(FileSystem& fs, const std::string& stem, int generation) {
+    return fs.make_app_folder("Backups") + "/" + stem + "_bak" + std::to_string(generation) + ".ptp";
+}
+
+namespace {
+
+// The file SAVE is about to replace is kept first: Backups/<NAME>_bak1.ptp is the previous version,
+// _bak2 the one before, up to kProjectBackupsKept. Best effort: a failed backup (a full card, a folder
+// that cannot be made) never stops the save. An identical file, or one the newest backup already holds,
+// is not kept twice, so saving over and over without changes does not push the real history out.
+void keep_previous_version(FileSystem& fs, const std::string& path, const std::string& stem,
+                           const std::string& incoming) {
+    std::string old;
+    if (!fs.file_exists(path) || !fs.read_file(path, old) || old.empty() || old == incoming) return;
+    std::string newest;
+    const std::string first = project_backup_path(fs, stem, 1);
+    if (fs.file_exists(first) && fs.read_file(first, newest) && newest == old) return;
+    for (int generation = kProjectBackupsKept; generation >= 2; --generation) {
+        std::string older;
+        const std::string from = project_backup_path(fs, stem, generation - 1);
+        if (fs.file_exists(from) && fs.read_file(from, older)) fs.write_file(project_backup_path(fs, stem, generation), older);
+    }
+    fs.write_file(first, old);
+}
+
+}  // namespace
+
 std::string project_save_path(const songcore::SongcoreHost& host, FileSystem& fs) {
     return fs.projects_directory() + "/" + songcore::project_file_name(host.project().name) + ".ptp";
 }
@@ -53,7 +80,9 @@ std::string project_save_path(const songcore::SongcoreHost& host, FileSystem& fs
 ActionResult save_project(songcore::SongcoreHost& host, FileSystem& fs, AppState& s) {
     const std::string path = project_save_path(host, fs);
 
-    if (!write_project(host, fs, path)) return ActionResult{false, "SAVE FAILED"};
+    const std::string text = songcore::serialize_project(host.project());
+    keep_previous_version(fs, path, songcore::project_file_name(host.project().name), text);
+    if (!fs.write_file(path, text)) return ActionResult{false, "SAVE FAILED"};
 
     // Clean, and the autosave goes with it (its pending deadline re-checks the dirty flag).
     s.savedProjectVersion = s.projectVersion;
