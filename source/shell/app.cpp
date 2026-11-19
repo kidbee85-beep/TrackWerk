@@ -266,6 +266,12 @@ bool open_boot_project(const AppConfig& cfg, SongcoreHost& host) {
 void make_app_folders(const AppConfig& cfg, ui::FileSystem& filesystem) {
     if (const int moved = ui::move_old_preset_folders(filesystem); moved > 0)
         std::printf("files:   moved %d entries from the old preset folders into Presets/\n", moved);
+    {
+        int refused = 0;
+        const int installed = ui::import_preset_inbox(filesystem, &refused);
+        if (installed > 0 || refused > 0)
+            std::printf("files:   preset inbox: %d installed, %d left in Presets/Inbox (not readable)\n", installed, refused);
+    }
 
     filesystem.projects_directory();
     filesystem.samples_directory();

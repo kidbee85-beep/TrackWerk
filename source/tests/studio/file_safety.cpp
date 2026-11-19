@@ -10,12 +10,14 @@
 //   E7 COLLECT keeps two different files of one name apart (kick.wav, kick_2.wav)
 //   B1 SAVE keeps the previous versions (Backups/<NAME>_bak1..5.ptp), also what REPLACE overwrites
 //   M1 EXPORT > MIDI writes <Renders>/<NAME>_NNNN.mid through the real button
+//   P1 Presets/Inbox installs dropped presets, keeps both on a name clash, leaves what it cannot read
 //   S1 the synced write (temp, fsync, rename) is correct, replaces cleanly and fails without a trace
 // usage: ptfile-safety-check <new run directory>
 #include "audio-engine.h"
 #include "songcore/host.h"
 #include "songcore/project_io.h"
 #include "ui/button_mapper.h"
+#include "ui/folder_config.h"
 #include "ui/instrument_row_layout.h"
 #include "ui/input_dispatcher.h"
 #include "ui/project_actions.h"
@@ -488,6 +490,45 @@ void collect_keeps_namesakes(const fs::path& root) {
     }
 }
 
+// Presets dropped into Presets/Inbox are installed where the app looks; nothing is overwritten and
+// nothing unreadable is lost.
+void inbox_case(const fs::path& root) {
+    const fs::path dir = root / "p1";
+    StdFileSystem sfs(dir.string());
+    auto project = songcore::make_default_project();
+    const std::string preset = songcore::serialize_instrument_preset(songcore::make_instrument_preset(project, 0));
+    const std::string inbox = sfs.make_app_folder("Presets/Inbox");
+    assert(fs::is_directory(inbox));   // the place to drop files exists from the first start
+    const auto drop = [&](const char* name, const std::string& text) { assert(sfs.write_file(inbox + "/" + name, text)); };
+    drop("Fresh.pti", preset);
+    drop("Broken.pti", "this is not a preset");
+    drop("Clash.pti", preset);
+    drop("Upper.PTI", preset);
+    drop("room.ptr", "{}");
+    drop("echo.ptd", "{}");
+    drop("minor.pts", "{}");
+    drop("swing.ptg", "{}");
+    drop("notes.txt", "hello");
+    drop(".hidden.pti", preset);
+    drop("array.ptg", "[1,2]");
+    assert(sfs.write_file(sfs.instruments_directory() + "/Clash.pti", "OLD"));   // a name already taken
+
+    int refused = -1;
+    const int installed = import_preset_inbox(sfs, &refused);
+    assert(installed == 7 && refused == 2);   // Fresh, Clash_2, Upper (any case), room, echo, minor, swing; Broken and array refused
+    const auto text = [&](const std::string& p) { std::string t; return sfs.read_file(p, t) ? t : std::string("<missing>"); };
+    assert(text(sfs.instruments_directory() + "/Fresh.pti") == preset && text(sfs.instruments_directory() + "/Upper.PTI") == preset);
+    assert(text(sfs.instruments_directory() + "/Clash.pti") == "OLD");               // never overwritten
+    assert(text(sfs.instruments_directory() + "/Clash_2.pti") == preset);            // both kept
+    assert(sfs.file_exists(sfs.reverbs_directory() + "/room.ptr") && sfs.file_exists(sfs.delays_directory() + "/echo.ptd"));
+    assert(sfs.file_exists(sfs.scales_directory() + "/minor.pts") && sfs.file_exists(sfs.grooves_directory() + "/swing.ptg"));
+    assert(sfs.file_exists(inbox + "/Broken.pti") && sfs.file_exists(inbox + "/array.ptg") &&
+           sfs.file_exists(inbox + "/notes.txt") && sfs.file_exists(inbox + "/.hidden.pti"));   // left alone
+    assert(!sfs.file_exists(inbox + "/Fresh.pti"));
+    int again = -1;
+    assert(import_preset_inbox(sfs, &again) == 0 && again == 2);                 // nothing moves twice
+}
+
 // EXPORT > MIDI through the button: a file in Renders, a numbered name each time, and a message when
 // there is nothing to export.
 void midi_button_case(const fs::path& root) {
@@ -609,6 +650,7 @@ int main(int argc, char** argv) {
     write_cases(root);
     backup_cases(root);
     midi_button_case(root);
+    inbox_case(root);
     std::cout << "FILE_SAFETY_PASS: load asks, save never replaces unasked, no paste into itself, "
-                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes, save backups, midi export\n";
+                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes, save backups, midi export, preset inbox\n";
 }

@@ -76,7 +76,7 @@ Press **A** on it. Android's own folder picker opens; pick a folder and confirm.
 Projects/  Samples/  Renders/  Soundfonts/  Themes/  Presets/
 ```
 
-`Presets/` holds what you save from inside a project: `Instruments/`, `Scales/`, `Grooves/`, `Reverbs/` and `Delays/`.
+`Presets/` holds what you save from inside a project: `Instruments/`, `Scales/`, `Grooves/`, `Reverbs/` and `Delays/`. Presets from a friend or a download can simply be dropped into `Presets/Inbox/` (over USB, with the app closed): at the next start each readable `.pti`, `.ptr`, `.ptd`, `.pts` or `.ptg` is moved to the matching folder; an existing preset of the same name is never overwritten (the new one becomes `Name_2`), and a file the app cannot read stays in the Inbox.
 
 Anything already in the folder is left exactly as it is — so if you have used PocketTracker before, pick your existing `Documents/PocketTracker` and every project, sample and theme is where it was.
 
