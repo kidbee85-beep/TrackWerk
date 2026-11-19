@@ -40,6 +40,7 @@ void studio_synth_audition(AppState&,songcore::SongcoreHost&,bool on);
 void studio_synth_stop_audition(AppState&,songcore::SongcoreHost&);
 void studio_synth_navigate(AppState&,Button direction);
 bool studio_synth_xy_page(const AppState&);
+bool studio_synth_frog_model(const AppState&);   // FROG VOICE and SING FROG: the stage is on the first page too
 void studio_synth_xy_move(AppState&,songcore::SongcoreHost&,AudioEngine&,Button direction);
 bool studio_button(const ButtonEvent&,AppState&,songcore::SongcoreHost&,AudioEngine&,FileSystem&);
 }

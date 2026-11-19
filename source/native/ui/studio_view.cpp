@@ -61,7 +61,7 @@ Theme synth_theme(const AppState& s){
  Theme t=s.theme;
  // One tint per family after Sample Granular (synth_family). Spectral and Voice were missing before
  // 1.1.0-dev.2 patch 0062: a Spectral model read past the end of this table.
- static constexpr Argb colors[]={0xFF5CD8D0,0xFFB699F3,0xFF78B7EE,0xFFE4BD7A,0xFF8FDEA6,0xFFE89BBE,0xFFE8A37A,0xFF9FC4F8,0xFFF0A0A8,0xFFB8E07A};
+ static constexpr Argb colors[]={0xFF5CD8D0,0xFFB699F3,0xFF78B7EE,0xFFE4BD7A,0xFF8FDEA6,0xFFE89BBE,0xFFE8A37A,0xFF9FC4F8,0xFFF0A0A8,0xFFB8E07A,0xFFFF9A5E};
  static_assert(std::size(colors)==std::tuple_size_v<std::remove_reference_t<decltype(studio_synth_model_groups())>>-1);
  if(t.name!="MONO"&&t.name.find("OLED")==std::string::npos)
   t.rowCursor=mix(t.rowCursor,colors[synth_family(s.studioModel)],t.name=="STUDIO"||t.name=="GRAPHITE"||t.name=="CARBON"?.52f:.20f);
@@ -107,6 +107,12 @@ void engine_diagram(Canvas& c,int family,int x,int y,Argb color){
     previous=py;
    }
   }
+ }else if(family==10){
+  // Low End and Sirens: a fat sub sine under a falling saw, the shape of a bass note landing.
+  c.line(x,y+19,x+76,y+19,faint);
+  int previous=y+10;
+  for(int px=1;px<=76;++px){const int py=y+10-int(std::lround(8.f*std::sin(float(px)*.17f)));c.line(x+px-1,previous,x+px,py,faint);previous=py;}
+  for(int tooth=0;tooth<4;++tooth){const int left=x+tooth*19;c.line(left,y+2+tooth*2,left+18,y+17,color);c.line(left+18,y+17,left+18,y+2+(tooth+1)*2,color);}
  }else if(family==9){
   // Vintage: a square wave stepping through an arpeggio (SID CHIP; DCO POLY draws its own).
   static constexpr int levels[]={14,10,6,14,10,6};
@@ -157,7 +163,7 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
   c.fill_rect(px,wy+3+wob,2,1,with_alpha(water,.55f));
   if(px%6==0)c.fill_rect(px,wy+8+int(std::lround(std::sin(float(px)*.17f-T*1.6f))),2,1,with_alpha(water,.28f));
  }
- const float padX=x+w*.30f;
+ const float padX=x+w*(w<360?.25f:.30f);
  for(int ring=0;ring<2;++ring){
   const float ph=moving?std::fmod(T*.45f+ring*.5f,1.f):.35f+ring*.3f;
   ellipse(padX+10,wy+7,26+ph*70,2+ph*5,with_alpha(water,.5f*(1.f-ph)),0.f,6.2831853f);
@@ -166,7 +172,8 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
  fill(padX+4,wy+1,54,4,with_alpha(green,.20f));ellipse(padX+4,wy+1,54,4,with_alpha(green,.85f));
  c.line(int(padX+4),wy+1,int(padX+58),wy-1,with_alpha(green,.85f));   // the notch
  // the frog, facing right: body, folded hind leg, head (everything scaled by S)
- constexpr float S=1.4f;
+ const bool narrow=w<360;   // beside three macro cards the frog is smaller and keeps clear of the readouts
+ const float S=narrow?1.05f:1.4f;
  const float bx=padX,by=wy-15*S,hx=bx+43*S,hy=by-5*S;
  const float beat=moving?(.5f-.5f*std::cos(6.2831853f*T*(sing?3.f:.5f*std::exp2(5.f*mouth)))):.45f;
  const float activity=sing?(.35f+.65f*beat):beat;
@@ -205,7 +212,7 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
   const int n=1+int(second*6.f);
   for(int i=0;i<n;++i){
    const float ph=moving?std::fmod(T*.7f+float(i)*.37f,1.f):float(i)/float(n);
-   const float bxp=noseX+4+ph*34+3.f*std::sin(T*3.f+float(i)),byp=noseY+6*S-ph*36;
+   const float bxp=noseX+4+ph*(narrow?20.f:34.f)+3.f*std::sin(T*3.f+float(i)),byp=noseY+6*S-ph*(narrow?30.f:36.f);
    if(byp<y+6)continue;
    const int r=1+i%3;c.stroke_rect(int(bxp)-r,int(byp)-r,2*r+1,2*r+1,with_alpha(water,.9f*(1.f-ph)));
   }
@@ -224,14 +231,14 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
  std::snprintf(text,sizeof(text),"F1 %d",f1);label(c,text,x+8,y+5,orange,56,11);
  std::snprintf(text,sizeof(text),"F2 %d",f2);label(c,text,x+68,y+5,orange,56,11);
  std::snprintf(text,sizeof(text),"F3 %d",f3);label(c,text,x+128,y+5,orange,56,11);
- std::snprintf(text,sizeof(text),"JAW %.1f cm",.2f+open*.12f);label(c,text,x+w-96,y+22,orange,90,11);
- std::snprintf(text,sizeof(text),"LIPS %.1f cm",.3f+mouth*1.1f);label(c,text,x+w-96,y+36,pink,90,11);
- std::snprintf(text,sizeof(text),"TONGUE %.1f",open>3.f?std::min(1.f,open/14.f):0.f);label(c,text,x+w-96,y+50,green,90,11);
+ std::snprintf(text,sizeof(text),"JAW %.1f cm",.2f+open*.12f);label(c,text,x+w-84,y+22,orange,80,11);
+ std::snprintf(text,sizeof(text),"LIPS %.1f cm",.3f+mouth*1.1f);label(c,text,x+w-84,y+36,pink,80,11);
+ std::snprintf(text,sizeof(text),"TONGUE %.1f",open>3.f?std::min(1.f,open/14.f):0.f);label(c,text,x+w-84,y+50,green,80,11);
  if(sing){
   const std::string& words=s.studioDraft.lyric.empty()?std::string("ribbit ribbit quack la la"):s.studioDraft.lyric;
-  label(c,words.size()>20?words.substr(0,19)+"~":words,x+w-96,y+h-26,gold,92,11);
+  label(c,words.size()>20?words.substr(0,19)+"~":words,x+w-84,y+h-26,gold,80,11);
  }else{
-  std::snprintf(text,sizeof(text),"CROAK %.1f/s",.5f*std::exp2(5.f*mouth));label(c,text,x+w-96,y+h-26,gold,92,11);
+  std::snprintf(text,sizeof(text),"CROAK %.1f/s",.5f*std::exp2(5.f*mouth));label(c,text,x+w-84,y+h-26,gold,80,11);
  }
  label(c,"HOLD L + D-PAD",x+8,y+h-14,with_alpha(t.textParam,.8f),110,10);
 }
@@ -488,8 +495,9 @@ void synth_page(Canvas& c,const AppState& s){
  label(c,"R + Left / Right: Pages",455,229,t.textParam,168);
  const int controls=std::clamp(studio_synth_control_count(s),1,4);
  const bool xyPage=studio_synth_xy_page(s);
- const bool frogPage=xyPage&&(s.studioModel==studio::kFrogVoiceModel||s.studioModel==studio::kSingFrogModel);
- const int cellWidth=frogPage?100:xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
+ const bool frogPage=xyPage&&studio_synth_frog_model(s);
+ const bool frogFirst=frogPage&&s.studioSynthPage==0;   // three macro cards beside the stage
+ const int cellWidth=frogFirst?94:frogPage?100:xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
  studio_card(c,16,248,608,105,t);
  for(int i=0;i<controls;++i){
   const int x=16+i*cellWidth;
@@ -513,7 +521,8 @@ void synth_page(Canvas& c,const AppState& s){
  if(xyPage){
   // The pad: X is the first macro, Y the second (up is more). The dot glides to each new position; with
   // scene motion on a ring breathes around it. Hold L and press the D-pad to move it.
-  if(frogPage)frog_stage(c,s,224,254,392,92);
+  if(frogFirst)frog_stage(c,s,304,254,312,92);
+  else if(frogPage)frog_stage(c,s,224,254,392,92);
   else{
   const int px=398,py=254,pw=218,ph=92,inner=8;
   c.panel_rect(px,py,pw,ph,mix(t.rowEvery4th,t.background,.5f),with_alpha(t.rowCursor,.55f),5);
@@ -610,7 +619,7 @@ void synth_picker_page(Canvas& c,const AppState& s){
   // Eight families fit the card at 31 px; a ninth (Spectral) tightens the rows to 27 px, a tenth (Voice)
   // to 25 px, an eleventh (Vintage) to 23 px.
   const int families=studio_synth_model_group_count();
-  const int familyStep=families>10?23:families>9?25:families>8?27:31;
+  const int familyStep=families>11?21:families>10?23:families>9?25:families>8?27:31;
   const int familyTop=families>10?158:161;   // eleven rows end 3 px above the card's lower edge
   for(int i=0;i<families;++i){
    const bool focus=i==picker.group;
@@ -620,13 +629,13 @@ void synth_picker_page(Canvas& c,const AppState& s){
   }
   studio_card(c,modelX,153,422,259,t);
   const auto& group=groups[picker.group];
-  const int highlighted=group.firstModel+picker.item;
+  const int highlighted=studio_synth_group_model(group,picker.item);
   constexpr int visible=8;
   const int first=std::clamp(picker.item-visible/2,0,std::max(0,group.count-visible));
   const int active=sample_granular_studio(s)?kSampleGranularModel:s.studioModel;
   for(int i=first;i<std::min(group.count,first+visible);++i){
    const int y=161+(i-first)*27;
-   const int id=group.firstModel+i;
+   const int id=studio_synth_group_model(group,i);
    const bool focus=i==picker.item;
    if(focus){c.panel_rect(modelX+6,y,410,25,mix(t.rowEvery4th,t.rowCursor,.15f),t.rowCursor,4);c.mark_cursor(modelX+6,y,410,25);}
    label(c,id==kSampleGranularModel?"Sample Granular":studio::model_name(id),modelX+20,y+5,focus?t.rowCursor:t.textValue,307,14);

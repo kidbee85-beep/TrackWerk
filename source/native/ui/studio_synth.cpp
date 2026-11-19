@@ -169,7 +169,7 @@ void select_preset(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,
 void preview_picker_choice(AppState& s,songcore::SongcoreHost& host){
  auto& picker=s.studioSynthPicker;
  const bool modelPicker=picker.mode==StudioSynthPickerMode::Model;
- const int model=modelPicker?studio_synth_model_groups()[picker.group].firstModel+picker.item:s.studioModel;
+ const int model=modelPicker?studio_synth_group_model(studio_synth_model_groups()[picker.group],picker.item):s.studioModel;
  if(model==kSampleGranularModel){
   if(picker.previewSounding)host.stop_preview(true);
   picker.previewSounding=false;
@@ -253,38 +253,40 @@ void follow_slot(AppState& s){
 }
 }
 
-const std::array<StudioSynthModelGroup,11>& studio_synth_model_groups(){
+const std::array<StudioSynthModelGroup,12>& studio_synth_model_groups(){
  constexpr int gravityStart=studio::kOctaveOrbitModel+1;
  constexpr int spectralStart=studio::kSpectralFirstModel;
- constexpr int voiceStart=studio::kVoiceFirstModel;
- constexpr int vintageStart=studio::kVintageFirstModel;
- static const std::array<StudioSynthModelGroup,11> groups{{
+ // The tabs are for finding a sound, not for remembering where it came from: a sung voice and a croaking frog sit
+ // together under Voices, the bass engines under Low End. The model IDs never move; a tab lists them.
+ static constexpr int voices[]={studio::kFormantChoirModel,studio::kFrogVoiceModel,studio::kSingFrogModel};
+ static constexpr int lowEnd[]={studio::kDubSirenModel,studio::kAcidBoxModel,studio::kReeseBassModel};
+ static const std::array<StudioSynthModelGroup,12> groups{{
   {"Sample Granular",kSampleGranularModel,1},
-  {"Plaits",0,24},
-  {"Braids",24,48},
-  {"Rings",72,6},
-  {"Elements",78,16},
+  {"Plaits: Macro",0,24},
+  {"Braids: Digital",24,48},
+  {"Rings: Strings",72,6},
+  {"Elements: Modal",78,16},
   {"Grain Oscillators",94,8},
   {"Studio DSP",102,std::min(studio::model_count(),gravityStart)-102},
   {"Gravity",gravityStart,std::max(0,std::min(studio::model_count(),spectralStart)-gravityStart)},
-  {"Spectral",spectralStart,std::max(0,std::min(studio::model_count(),voiceStart)-spectralStart)},
-  {"Voice",voiceStart,std::max(0,std::min(studio::model_count(),vintageStart)-voiceStart)},
-  // New engines register after the Vintage models; the tab appears once the first one exists.
-  {"Vintage",vintageStart,std::max(0,studio::model_count()-vintageStart)},
+  {"Spectral",spectralStart,std::max(0,std::min(studio::model_count(),studio::kVoiceFirstModel)-spectralStart)},
+  {"Voices and Frogs",studio::kFormantChoirModel,3,voices},
+  {"Vintage Chips",studio::kSidChipModel,3},
+  {"Low End and Sirens",studio::kDubSirenModel,3,lowEnd},
  }};
  return groups;
 }
 
 int studio_synth_model_group_count(){
  const auto& groups=studio_synth_model_groups();
- return static_cast<int>(groups.size())-(groups.back().count==0?1:0);
+ return static_cast<int>(groups.size())-(groups.back().count==0?1:0);   // an empty last tab stays hidden
 }
 
 int studio_synth_model_group(int model){
  const auto& groups=studio_synth_model_groups();
  for(std::size_t i=0;i<groups.size();++i){
   const auto& g=groups[i];
-  if(model>=g.firstModel&&model<g.firstModel+g.count)return static_cast<int>(i);
+  if(studio_synth_group_index(g,model)>=0)return static_cast<int>(i);
  }
  return 1;
 }
@@ -317,7 +319,7 @@ bool studio_synth_open_picker_for_row(AppState& s,songcore::SongcoreHost& host){
   const int current=granular?kSampleGranularModel:s.studioModel;
   picker.group=studio_synth_model_group(current);
   const auto& group=studio_synth_model_groups()[picker.group];
-  picker.item=std::clamp(current-group.firstModel,0,group.count-1);
+  picker.item=std::clamp(studio_synth_group_index(group,current),0,group.count-1);
  }else{
   picker.mode=StudioSynthPickerMode::Preset;
   picker.item=std::clamp(s.studioVariation,0,studio::variation_count()-1);
@@ -451,7 +453,7 @@ bool studio_synth_picker_button(const ButtonEvent& e,AppState& s,songcore::Songc
    if(factory){use_sound(s,host,fs);return true;}
    const auto mode=picker.mode;
    const int chosen=mode==StudioSynthPickerMode::Model?
-    studio_synth_model_groups()[picker.group].firstModel+picker.item:picker.item;
+    studio_synth_group_model(studio_synth_model_groups()[picker.group],picker.item):picker.item;
    studio_synth_stop_audition(s,host);
    if(browser)close_browser(s);else studio_synth_close_picker(s);
    if(mode==StudioSynthPickerMode::Model){
@@ -592,7 +594,9 @@ void studio_synth_sync_target(AppState& s){
   s.studioAUsed=a;s.studioBUsed=b;s.studioShortcutRelease=shortcut;s.studioHelp=help;
  }
 }
-bool studio_synth_xy_page(const AppState& s){return !sample_granular_studio(s)&&kind(s)==5;}
+// The frog models show their stage on the FIRST page too (it is their gimmick), so the firefly moves there as well.
+bool studio_synth_frog_model(const AppState& s){return s.studioModel==studio::kFrogVoiceModel||s.studioModel==studio::kSingFrogModel;}
+bool studio_synth_xy_page(const AppState& s){return !sample_granular_studio(s)&&(kind(s)==5||(kind(s)==0&&studio_synth_frog_model(s)));}
 // Hold L (the audition) and press the D-pad: the dot moves, the sound follows at once. X is the first
 // macro and Y the second; up raises Y. Each press is one step, and holding repeats it.
 void studio_synth_xy_move(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,Button button){
