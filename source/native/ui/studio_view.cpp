@@ -128,6 +128,16 @@ void engine_diagram(Canvas& c,int family,int x,int y,Argb color){
  }
 }
 // One line on what a model is for, shown under its name and in the model list. nullptr: no line of its own.
+enum class SynthSheet { Blocks, Knob, Lcd, Bars };
+// The control sheet of a family (the index of its tab).
+SynthSheet synth_sheet(int group){
+ switch(group){
+  case 2:case 10:return SynthSheet::Lcd;     // Braids (digital), Vintage Chips
+  case 3:case 4:case 11:return SynthSheet::Knob;   // Rings, Elements, Low End and Sirens
+  case 7:case 8:return SynthSheet::Bars;     // Gravity, Spectral
+  default:return SynthSheet::Blocks;
+ }
+}
 const char* model_blurb(int model){
  if(model==studio::kFormantChoirModel)return "A choir of vowels: ah, oh, ee";
  if(model==studio::kSidChipModel)return "8-bit chip: pulse, noise, filter, arp";
@@ -588,6 +598,9 @@ void synth_page(Canvas& c,const AppState& s){
  const bool frogFirst=frogPage&&s.studioSynthPage==0;   // three macro cards beside the stage
  const int cellWidth=frogFirst?94:frogPage?100:xyPage?190:608/controls;   // the XY page keeps two slim cards and gives the rest to the pad
  studio_card(c,16,248,608,105,t);
+ // Each family has its own control sheet: knobs for the resonators and the low end, an LCD for the digital and chip
+ // engines, a bar graph for the spectral ones, the plain blocks for the rest. The numbers and the cursor stay the same.
+ const SynthSheet sheet=frogFirst?SynthSheet::Blocks:synth_sheet(studio_synth_model_group(s.studioModel));
  for(int i=0;i<controls;++i){
   const int x=16+i*cellWidth;
   const bool selected=s.studioRow==i+3;
@@ -598,13 +611,43 @@ void synth_page(Canvas& c,const AppState& s){
    c.mark_cursor(x+5,254,cellWidth-10,92);   // the highlight glides between controls (ui/layout.cpp)
    c.fill_rect(x+6,265,2,70,t.rowCursor);
   }
+  const int level=c.tween(0x2000000u+static_cast<uint32_t>(i),std::clamp(studio_synth_control_level(s,i),0,255));   // the numbers fill smoothly
   label(c,studio_synth_control_label(s,i),x+16,265,selected?ink:t.textParam,cellWidth-32,14);
-  label(c,studio_synth_control_value(s,i),x+16,290,ink,cellWidth-32,20);
-  const int level=c.tween(0x2000000u+static_cast<uint32_t>(i),std::clamp(studio_synth_control_level(s,i),0,255));   // the blocks fill smoothly
-  const int blocks=16,step=(cellWidth-32)/blocks;
-  for(int j=0;j<blocks;++j){
-   const bool lit=j*255/blocks<level;
-   c.fill_rect(x+16+j*step,326,step-2,7,with_alpha(t.rowCursor,lit?(selected?.92f:.57f):.15f));
+  if(sheet==SynthSheet::Knob){
+   // A dial: ticks on a 270 degree sweep, the lit part up to the value, and a pointer.
+   label(c,studio_synth_control_value(s,i),x+16,290,ink,cellWidth-32-(controls>2?40:52),20);
+   const float cx=float(x+cellWidth-(controls>2?32:42)),cy=311.f,r=controls>2?17.f:22.f;
+   const int ticks=16;
+   for(int k=0;k<=ticks;++k){
+    const float a=(225.f-270.f*float(k)/ticks)*3.14159265f/180.f;
+    const bool lit=k*255/ticks<=level;
+    const float r0=r-(k%4==0?6.f:4.f);
+    c.line(int(std::lround(cx+r0*std::cos(a))),int(std::lround(cy-r0*std::sin(a))),int(std::lround(cx+r*std::cos(a))),int(std::lround(cy-r*std::sin(a))),with_alpha(t.rowCursor,lit?(selected?.95f:.6f):.2f));
+   }
+   const float pa=(225.f-270.f*float(level)/255.f)*3.14159265f/180.f;
+   c.line(int(cx),int(cy),int(std::lround(cx+(r-8.f)*std::cos(pa))),int(std::lround(cy-(r-8.f)*std::sin(pa))),selected?t.rowCursor:t.textValue);
+   c.fill_rect(int(cx)-1,int(cy)-1,3,3,selected?t.rowCursor:t.textValue);
+   c.fill_rect(x+16,330,cellWidth-32,1,with_alpha(t.rowCursor,.15f));
+  }else if(sheet==SynthSheet::Lcd){
+   // A small LCD: the value in phosphor on a dark inset with scanlines, and a strip of LED cells for the level.
+   const Argb phosphor=0xFF9BE08Au;
+   c.panel_rect(x+14,286,cellWidth-28,28,0xFF081008u,with_alpha(phosphor,selected?.7f:.35f),3);
+   for(int row=288;row<312;row+=2)c.fill_rect(x+16,row,cellWidth-32,1,with_alpha(phosphor,.06f));
+   label(c,studio_synth_control_value(s,i),x+20,290,with_alpha(phosphor,selected?1.f:.8f),cellWidth-40,20);
+   const int cells=24,step=(cellWidth-32)/cells;
+   for(int j=0;j<cells;++j){const bool lit=j*255/cells<level;c.fill_rect(x+16+j*step,322,std::max(1,step-1),11,with_alpha(phosphor,lit?(selected?.9f:.55f):.10f));}
+  }else if(sheet==SynthSheet::Bars){
+   // A bar graph that rises like a spectrum: every bar a little taller than the one before it.
+   label(c,studio_synth_control_value(s,i),x+16,290,ink,cellWidth-32,20);
+   const int bars=16,step=(cellWidth-32)/bars;
+   for(int j=0;j<bars;++j){const bool lit=j*255/bars<level;const int bh=3+j*13/bars;c.fill_rect(x+16+j*step,334-bh,std::max(1,step-2),bh,with_alpha(t.rowCursor,lit?(selected?.92f:.57f):.14f));}
+  }else{
+   label(c,studio_synth_control_value(s,i),x+16,290,ink,cellWidth-32,20);
+   const int blocks=16,step=(cellWidth-32)/blocks;
+   for(int j=0;j<blocks;++j){
+    const bool lit=j*255/blocks<level;
+    c.fill_rect(x+16+j*step,326,step-2,7,with_alpha(t.rowCursor,lit?(selected?.92f:.57f):.15f));
+   }
   }
  }
  if(xyPage){
