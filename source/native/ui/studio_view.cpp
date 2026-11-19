@@ -127,6 +127,19 @@ void engine_diagram(Canvas& c,int family,int x,int y,Argb color){
   for(int i=0;i<18;++i){const int px=x+(i*37)%76,py=y+2+(i*11)%16;c.fill_rect(px,py,i%3+2,2,i%2?color:faint);}
  }
 }
+// One line on what a model is for, shown under its name and in the model list. nullptr: no line of its own.
+const char* model_blurb(int model){
+ if(model==studio::kFormantChoirModel)return "A choir of vowels: ah, oh, ee";
+ if(model==studio::kSidChipModel)return "8-bit chip: pulse, noise, filter, arp";
+ if(model==studio::kDcoPolyModel)return "Warm digital oscillators and a filter";
+ if(model==studio::kFmSysexModel)return "FM with DX7 voice banks you can load";
+ if(model==studio::kDubSirenModel)return "Wailing siren: LFO, sweep and ping";
+ if(model==studio::kFrogVoiceModel)return "A croaking frog: ri-bbit, throat size";
+ if(model==studio::kSingFrogModel)return "Sings the words you type";
+ if(model==studio::kAcidBoxModel)return "Squelchy acid bass with accent";
+ if(model==studio::kReeseBassModel)return "Wide detuned bass that beats and moves";
+ return nullptr;
+}
 const char* gravity_description(int model){
  switch(model-studio::kGravityFirstModel){
  case 0:return "Each rebound strikes a tuned resonator";
@@ -476,13 +489,14 @@ void synth_page(Canvas& c,const AppState& s){
  label(c,"SYNTH MODEL",194,108,t.textParam,132);
  label(c,"A: Choose",527,108,s.studioRow==1?t.rowCursor:t.textParam,86);
  label(c,studio::model_name(s.studioModel),194,128,t.textValue,322,20);
- label(c,studio::is_gravity_model(s.studioModel)?gravity_description(s.studioModel):group.name,194,153,t.textParam,316);
+ label(c,studio::is_gravity_model(s.studioModel)?gravity_description(s.studioModel):model_blurb(s.studioModel)?model_blurb(s.studioModel):group.name,194,153,t.textParam,316);
  synth_diagram(c,s.studioModel,526,134,t.rowCursor,&s);
 
  studio_card(c,16,178,608,42,t,s.studioRow==2);
  label(c,"PRESET",28,191,t.textParam,75);
  const auto variation=s.studioSynthCustom?"Custom macros":studio_synth_preset_label(s.studioModel,s.studioVariation);
- label(c,variation,111,188,t.textValue,399,18);
+ label(c,variation,111,188,t.textValue,340,18);
+ if(!s.studioSynthCustom)label(c,std::to_string(s.studioVariation+1)+" / "+std::to_string(studio::variation_count()),462,191,t.textParam,56,12);
  label(c,"A: Choose",527,191,s.studioRow==2?t.rowCursor:t.textParam,86);
 
  const std::string page=studio_synth_page_name(s)+"   "+std::to_string(s.studioSynthPage+1)+" / "+std::to_string(studio_synth_page_count(s));
@@ -648,6 +662,7 @@ void synth_picker_page(Canvas& c,const AppState& s){
   }else{
    const std::string position=std::to_string(picker.item+1)+" / "+std::to_string(group.count);
    if(studio::is_gravity_model(highlighted))label(c,gravity_description(highlighted),modelX+20,364,t.textParam,375,14);
+   else if(model_blurb(highlighted))label(c,model_blurb(highlighted),modelX+20,364,t.textParam,300,14);
    label(c,position,modelX+20,390,t.textParam,111);
    synth_diagram(c,highlighted,modelX+324,384,t.rowCursor);
   }
