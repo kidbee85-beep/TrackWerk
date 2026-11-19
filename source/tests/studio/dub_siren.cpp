@@ -92,7 +92,7 @@ bool near(double a, double b, double tolerance) { return std::fabs(a - b) <= tol
 int main() {
     // Registration: the Vintage family's fourth model, three macros, nine parameters, sixteen sounds.
     assert(kDubSirenModel == kFmSysexModel + 1 && is_vintage_model(kDubSirenModel));
-    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 124);
+    assert(model_count() == kVintageFirstModel + kVintageModelCount && model_count() == 126);
     assert(std::string(model_name(kDubSirenModel)) == "DUB SIREN" && !synth_needs_strike(kDubSirenModel));
     assert(macro_count(kDubSirenModel) == 3 && std::string(macro_name(kDubSirenModel, 0)) == "LFO rate" &&
            std::string(macro_name(kDubSirenModel, 1)) == "LFO depth" && std::string(macro_name(kDubSirenModel, 2)) == "Sweep");
@@ -109,7 +109,7 @@ int main() {
     for (int v = 0; v < 16; ++v) assert(valid_code(preset_code(kDubSirenModel, v)));
     assert(uri_code(uri(preset_code(kDubSirenModel, 5)).c_str()) == preset_code(kDubSirenModel, 5));
     assert(uri_code(custom_uri(kDubSirenModel, 10, 20, 30).c_str()) == custom_code(kDubSirenModel, 10, 20, 30));
-    assert(!valid_code(preset_code(kDubSirenModel + 1, 0)) && preset_code(kDubSirenModel + 1, 0) == -1);
+    assert(!valid_code(preset_code(kSingFrogModel + 1, 0)) && preset_code(kSingFrogModel + 1, 0) == -1);
     assert(std::fabs(DubSiren::lfo_hz(0.f) - .1f) < 1e-4f && std::fabs(DubSiren::lfo_hz(1.f) - 20.f) < .2f);
 
     // Every named sound plays, stays bounded and is neither silent nor quiet beside the others.

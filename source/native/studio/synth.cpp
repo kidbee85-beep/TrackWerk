@@ -9,6 +9,8 @@
 #include "sid_chip.h"
 #include "dco_poly.h"
 #include "dub_siren.h"
+#include "frog_voice.h"
+#include "sing_frog.h"
 #include "fm_sysex_voice.h"
 #include "plaits/resources.h"
 #include <algorithm>
@@ -59,7 +61,7 @@ const char* additionalNames[] = {
  "S OCTAVE ORBIT", "S GRAVITY BOUNCE", "S ORBIT BELLS", "S GRAVITY RAIN",
  "SP ADDITIVE", "SP FREEZE", "SP MORPH",
  "FORMANT CHOIR",
- "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN"
+ "SID CHIP", "DCO POLY", "FM SYSEX", "DUB SIREN", "FROG VOICE", "SING FROG"
 };
 static_assert(sizeof(additionalNames) / sizeof(*additionalNames) == additionalModels);
 static_assert(kGravityFirstModel + kGravityModelCount == kSpectralFirstModel);
@@ -265,7 +267,56 @@ constexpr std::array<int, 7> kDubSirenSounds[16] = {
     {{ 32, 208, 255,  60,  60, 128, 180}}, {{ 32, 176, 245,  70, 110, 128,  80}},
 };
 
+// FROG VOICE: A croak rate, B throat, C dip (frog_voice.h). Sixteen animals and ponds.
+constexpr NamedPreset kFrogVoicePresets[16] = {
+    {"Pond Starter",  { 70, 128,  60}}, {"Big Ribbit",    { 60,  60, 110}},
+    {"Tiny Peep",     {120, 190,  20}}, {"Night Chorus",  { 95, 140,  70}},
+    {"Grumpy Toad",   { 45,  90, 140}}, {"Rain Frog",     {150, 170,  40}},
+    {"Lily Pad",      { 55, 150,  30}}, {"Swamp Bass",    { 35,  30, 160}},
+    {"Bubble Talk",   { 85, 110,  90}}, {"Jumpy",         {180, 150,  50}},
+    {"Moon Croak",    { 40, 100, 180}}, {"Marsh Machine", {210,  80,  70}},
+    {"Froggy Phone",  {100, 200, 120}}, {"Deep Pond",     { 30,  20,  90}},
+    {"Tadpole",       {230, 220,  10}}, {"King of Frogs", { 65,  45, 200}},
+};
+// Each sound's own settings (rows 2…7, 0..255): species (value/64), pulses (1 + value/64), croak depth,
+// throat, chirp, bubble.
+constexpr std::array<int, 6> kFrogVoiceSounds[16] = {
+    {{  32,  64, 200, 128,  80,  60}}, {{  96, 128, 230,  90, 120,  90}},
+    {{ 224,   0, 160, 170,  60,   0}}, {{  32, 192, 210, 128,  70,  40}},
+    {{ 160,  64, 240,  70, 140, 120}}, {{ 224,  64, 180, 160,  50,  20}},
+    {{  32, 128, 170, 140,  40,  30}}, {{  96,   0, 255,  40, 160, 150}},
+    {{ 160, 128, 190, 120, 100, 220}}, {{  32,  64, 220, 150, 130,  20}},
+    {{  96,  64, 200, 100, 180,  80}}, {{ 160, 192, 255,  90,  60,  60}},
+    {{ 224, 128, 150, 180,  90,  10}}, {{  96, 128, 230,  50,  70, 100}},
+    {{ 224, 192, 120, 200,  30,   0}}, {{  96, 192, 255,  60, 200, 110}},
+};
+
+// SING FROG: A mouth, B breath, C throat (sing_frog.h). Sixteen singers.
+constexpr NamedPreset kSingFrogPresets[16] = {
+    {"Pond Choir",    {128,  20, 128}}, {"Lily Lead",     {150,  10, 150}},
+    {"Deep Ribbit",   {110,  30,  60}}, {"Tadpole Pop",   {170,  40, 190}},
+    {"Night Singer",  {120,  60, 110}}, {"Marsh Man",     {128,  15,  90}},
+    {"Rain Diva",     {140,  25, 170}}, {"Croaky Bass",   {100,  50,  30}},
+    {"Whisper Frog",  {128, 200, 128}}, {"Bell Frog",     {160,   5, 200}},
+    {"Toad Tenor",    {130,  20,  80}}, {"Kero Lead",     {145,  15, 140}},
+    {"Glass Voice",   {128,  35, 230}}, {"Mud Crooner",   { 95,  45,  50}},
+    {"Moon Chant",    {115,  70, 120}}, {"Frog King",     {105,  20,  40}},
+};
+// Each singer's own settings (rows 3…8, 0..255): voice (value/64), croak, vibrato, glide, coda, syllable.
+constexpr std::array<int, 6> kSingFrogSounds[16] = {
+    {{  32, 100,  80,  85, 120,   0}}, {{  32,  60, 120,  60, 100,   0}},
+    {{  32, 180,  40, 110, 140,   0}}, {{ 224,  60,  90,  40,  90,   0}},
+    {{  32, 120, 100,  90, 150,   0}}, {{  96,  40,  90,  70, 130,   0}},
+    {{ 160,  20, 150,  60, 110,   0}}, {{  32, 230,  20, 120, 160,   0}},
+    {{  32,  80,  40,  90, 100,   0}}, {{ 160,  10, 130,  30,  60,   0}},
+    {{  96,  50,  80,  80, 130,   0}}, {{ 160,  30,  60,  50,  90,   0}},
+    {{ 224,  10, 160,  45,  80,   0}}, {{  96,  70,  60, 100, 150,   0}},
+    {{  32,  90,  70, 100, 170,   0}}, {{  32, 200,  60,  95, 120,   0}},
+};
+
 const NamedPreset* named_preset(int model, int variation) {
+    if (model == kSingFrogModel && variation >= 0 && variation < 16) return &kSingFrogPresets[variation];
+    if (model == kFrogVoiceModel && variation >= 0 && variation < 16) return &kFrogVoicePresets[variation];
     if (model == kDubSirenModel && variation >= 0 && variation < 16) return &kDubSirenPresets[variation];
     if (model == kFmSysexModel && variation >= 0 && variation < 16) return &kFmSysexPresets[variation];
     if (model == kDcoPolyModel && variation >= 0 && variation < 16) return &kDcoPolyPresets[variation];
@@ -378,7 +429,9 @@ const char* macro_name(int model,int index){
   {"Colour","Arp","Cutoff"},                        // SID CHIP
   {"Cutoff","Resonance","Chorus"},                  // DCO POLY
   {"Brightness","Envelope","Velocity"},             // FM SYSEX
-  {"LFO rate","LFO depth","Sweep"}                  // DUB SIREN
+  {"LFO rate","LFO depth","Sweep"},                 // DUB SIREN
+  {"Croak","Throat","Dip"},                         // FROG VOICE
+  {"Mouth","Breath","Throat"}                       // SING FROG
  };
  if(model<24)return plaits[model][index];
  if(model<24+braidsCount){
@@ -448,6 +501,8 @@ int synth_param_count(int model){
  if(model==kSidChipModel)return 8;
  if(model==kDcoPolyModel)return 15;
  if(model==kDubSirenModel)return 9;
+ if(model==kFrogVoiceModel)return 8;
+ if(model==kSingFrogModel)return 9;
  if(model==kFmSysexModel)return 4;
  if(is_spectral_model(model))return 6;
  if(model<24)return plaits_lpg(model)?4:2;if(model<72)return 3;if(model<78)return model==76?4:3;
@@ -468,6 +523,8 @@ const char* synth_param_name(int model,int index){
  if(model==kFormantChoirModel){static const char* choir[]={"Output tone","Drive","Voice","Singers","Vibrato","Vibrato rate"};return choir[index];}
  if(model==kSidChipModel){static const char* sid[]={"Output tone","Drive","Wave","Chip","Filter","Resonance","PWM","Arp speed"};return sid[index];}
  if(model==kFmSysexModel){static const char* fm[]={"Output tone","Drive","Bank","Voice"};return fm[index];}
+ if(model==kSingFrogModel){static const char* sing[]={"Output tone","Drive","Lyrics","Voice","Croak","Vibrato","Glide","Coda","Syllable"};return sing[index];}
+ if(model==kFrogVoiceModel){static const char* frog[]={"Output tone","Drive","Species","Pulses","Croak depth","Throat","Chirp","Bubble"};return frog[index];}
  if(model==kDubSirenModel){static const char* dub[]={"Output tone","Drive","Wave","LFO shape","Cutoff","Resonance","Sweep time","Fine tune","Ping"};return dub[index];}
  if(model==kDcoPolyModel){static const char* dco[]={"Output tone","Drive","Saw","Pulse","Pulse width","PWM","Sub","Noise","HPF","Env amount","Env decay","Env sustain","LFO rate","Vibrato","Key follow"};return dco[index];}
  if(is_spectral_model(model)){static const char* spectral[]={"Output tone","Drive","Partials","Even harmonics","Formant","Shimmer"};return spectral[index];}
@@ -493,6 +550,10 @@ int synth_param_default(int model,int index){
  if(model==kFmSysexModel){static constexpr int fm[]={255,0,fm_index_value(0),fm_index_value(0)};return fm[index];}
  if(model==kDcoPolyModel){static constexpr int dco[]={255,0,255,0,0,0,0,0,1*64+32,64,128,128,120,0,128};return dco[index];}
  // DUB SIREN: tone, drive, sine, triangle LFO, filter open, a little resonance, ~1.5 s sweep, in tune, no ping
+ // FROG VOICE: tone, drive, tree frog, two pulses, deep croak, throat centred, a little chirp and bubble
+ // SING FROG: tone, drive, frog voice, some croak, a little vibrato, medium glide, coda after ~0.55 s, next syllable
+ if(model==kSingFrogModel){static constexpr int sing[]={255,0,0,32,128,77,85,120,0};return sing[index];}
+ if(model==kFrogVoiceModel){static constexpr int frog[]={255,0,32,64,204,128,77,51};return frog[index];}
  if(model==kDubSirenModel){static constexpr int dub[]={255,0,32,16,255,51,128,128,0};return dub[index];}
  // SP ADDITIVE: tone, drive, partials (119 → 64), even harmonics, formant (off), shimmer
  if(is_spectral_model(model)){static constexpr int spectral[]={255,0,119,255,0,48};return spectral[index];}
@@ -541,6 +602,11 @@ int synth_param_adjust(int model,int index,int value,int direction,bool coarse){
  // DCO POLY HPF: one press, one position
  if(model==kDcoPolyModel&&index==8)return std::clamp(value/64+sign,0,DcoPoly::kHpfCount-1)*64+32;
  // DUB SIREN wave and LFO shape: one press, one step
+ if(model==kSingFrogModel&&index==kSingVoiceParam)return std::clamp(value/64+sign,0,SingFrog::kVoiceCount-1)*64+32;
+ if(model==kSingFrogModel&&index==kSingSyllableParam)return std::clamp(value/5+sign*(coarse?4:1),0,sing::kMaxSyllables)*5;
+ if(model==kSingFrogModel&&index==kSingLyricParam)return value;
+ if(model==kFrogVoiceModel&&index==2)return std::clamp(value/64+sign,0,FrogVoice::kSpeciesCount-1)*64+32;
+ if(model==kFrogVoiceModel&&index==3)return std::clamp(value/64+sign,0,3)*64+32;
  if(model==kDubSirenModel&&index==2)return std::clamp(value/64+sign,0,DubSiren::kWaveCount-1)*64+32;
  if(model==kDubSirenModel&&index==3)return std::clamp(value/32+sign,0,DubSiren::kLfoCount-1)*32+16;
  return std::clamp(value+sign*(coarse?16:1),0,255);
@@ -580,6 +646,14 @@ std::string synth_param_value(int model,int index,int value){
  else if(model==kFmSysexModel&&index==kFmBankParam&&fm_bank_index(value)<kFmFactoryBanks)std::snprintf(text,sizeof(text),"Built-in %c",'A'+fm_bank_index(value));
  else if(model==kFmSysexModel&&index==kFmBankParam)std::snprintf(text,sizeof(text),"Bank %d",fm_bank_index(value)-kFmFactoryBanks+1);
  else if(model==kFmSysexModel&&index==kFmVoiceParam)std::snprintf(text,sizeof(text),"Voice %d",fm_voice_index(value)+1);
+ else if(model==kSingFrogModel&&index==kSingVoiceParam)std::snprintf(text,sizeof(text),"%s",SingFrog::kVoiceNames[std::min(value/64,SingFrog::kVoiceCount-1)]);
+ else if(model==kSingFrogModel&&index==5)std::snprintf(text,sizeof(text),"%.0f cents",45.f*value/255.f);
+ else if(model==kSingFrogModel&&index==6)std::snprintf(text,sizeof(text),"%.0f ms",SingFrog::glide_ms(value/255.f));
+ else if(model==kSingFrogModel&&index==7){const float ms=SingFrog::coda_ms(value/255.f);if(ms<=0.f)std::snprintf(text,sizeof(text),"Off");else std::snprintf(text,sizeof(text),"%.2f s",ms/1000.f);}
+ else if(model==kSingFrogModel&&index==kSingSyllableParam){if(value<5)std::snprintf(text,sizeof(text),"Auto");else std::snprintf(text,sizeof(text),"No. %d",value/5);}
+ else if(model==kSingFrogModel&&index==kSingLyricParam)std::snprintf(text,sizeof(text),"A+Right: type");
+ else if(model==kFrogVoiceModel&&index==2)std::snprintf(text,sizeof(text),"%s",FrogVoice::kSpeciesNames[std::min(value/64,FrogVoice::kSpeciesCount-1)]);
+ else if(model==kFrogVoiceModel&&index==3)std::snprintf(text,sizeof(text),value<64?"%d pulse":"%d pulses",1+std::min(value/64,3));
  else if(model==kDubSirenModel&&index==2)std::snprintf(text,sizeof(text),"%s",DubSiren::kWaveNames[std::min(value/64,DubSiren::kWaveCount-1)]);
  else if(model==kDubSirenModel&&index==3)std::snprintf(text,sizeof(text),"%s",DubSiren::kLfoNames[std::min(value/32,DubSiren::kLfoCount-1)]);
  else if(model==kDubSirenModel&&index==4)std::snprintf(text,sizeof(text),"%.0f Hz",DubSiren::cutoff_hz(value/255.f));
@@ -603,7 +677,8 @@ int uri_code(const char* p){
 }
 struct Synth::State {
  plaits::Voice plaits{}; braids::MacroOscillator braids{};
- rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FmSysexVoice fm;
+ rings::Part rings{}; elements::Part elements{}; extra::Voice additional{}; SpectralAdditive spectral{}; SpectralFreeze freeze; SpectralMorph morph; FormantChoir choir; SidChip sid; DcoPoly dco; DubSiren dub; FrogVoice frog; SingFrog singer; FmSysexVoice fm;
+ uint8_t lyric[sing::kPackedSize]{},defaultLyric[sing::kPackedSize]{}; bool lyricSet=false; uint32_t noteIndex=0;
  fm_sysex::PackedVoice fmVoice{}; bool fmVoiceSet=false;
  alignas(8) char memory[65536]{};
  uint16_t reverbR[32768]{},reverbE[32768]{};
@@ -632,7 +707,7 @@ struct Synth::State {
  // In practice State is big enough to arrive as fresh zero pages; this keeps it so on any allocator.
  // Rings and Elements likewise: OminousVoice::Init leaves damping_ and feedback_ unset, and with a
  // reused heap block the Ominous model read them as garbage (ptperform-check, MallocPreScribble=1).
- State(){std::memset(static_cast<void*>(&braids),0,sizeof(braids));
+ State(){sing::pack_lyric("ribbit ribbit quack la la",defaultLyric);std::memset(static_cast<void*>(&braids),0,sizeof(braids));
   std::memset(static_cast<void*>(&rings),0,sizeof(rings));std::memset(static_cast<void*>(&elements),0,sizeof(elements));stmlib::BufferAllocator a(memory,sizeof(memory));plaits.Init(&a);braids.Init();rings.Init(reverbR);rings.set_polyphony(1);elements.Init(reverbE);}
  void fill(int code,float hz){
   const int model=model_id(code),var=code&(1<<30)?0:preset_variation(code);
@@ -736,6 +811,39 @@ struct Synth::State {
     fm.set_voice(builtIn);
    }
    fm.render(out,24,hz,a,b,c);size=24;
+  }else if(model==kSingFrogModel){
+   const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
+   const auto sp=[&](int index){
+    if(params[index]>=0)return params[index];
+    if(named)return kSingFrogSounds[var][size_t(index-3)];
+    return synth_param_default(model,index);
+   };
+   SingFrog::Settings set;
+   set.voice=std::clamp(sp(3)/64,0,SingFrog::kVoiceCount-1);set.croak=sp(4)/255.f;set.vibrato=sp(5)/255.f;
+   set.glideMs=SingFrog::glide_ms(sp(6)/255.f);set.codaMs=SingFrog::coda_ms(sp(7)/255.f);
+   if(strike){
+    const uint8_t* packed=lyricSet?lyric:defaultLyric;const int count=packed[0];
+    sing::Syllable syl{};
+    if(count>0){
+     const int fixed=sp(kSingSyllableParam)/5;   // 0 = auto
+     const int pick=fixed>0?(fixed-1)%count:int(noteIndex%uint32_t(count));
+     std::memcpy(&syl,packed+1+pick*sing::kSyllableBytes,sizeof syl);
+    }
+    singer.start(syl,set);
+   }
+   singer.render(out,24,hz,a,b,c,set);size=24;
+  }else if(model==kFrogVoiceModel){
+   if(strike)frog.start();
+   const bool named=!(code&kCustomFlag)&&var>=0&&var<16;
+   const auto fp=[&](int index){
+    if(params[index]>=0)return params[index];
+    if(named)return kFrogVoiceSounds[var][size_t(index-2)];
+    return synth_param_default(model,index);
+   };
+   FrogVoice::Settings set;
+   set.species=std::clamp(fp(2)/64,0,FrogVoice::kSpeciesCount-1);set.pulses=1+std::clamp(fp(3)/64,0,3);
+   set.depth=fp(4)/255.f;set.throat=fp(5)/255.f;set.chirp=fp(6)/255.f;set.bubble=fp(7)/255.f;
+   frog.render(out,24,hz,a,b,c,set);size=24;
   }else if(model==kDubSirenModel){
    if(strike)dub.start();
    // Settings at Factory: the sound's own (a custom macro patch uses the model defaults).
@@ -817,6 +925,13 @@ std::array<int,2> fm_preset_voice(int variation){
 void fm_builtin_voice(int bank,int voice,uint8_t* out){
  std::memcpy(out,plaits::fm_patches_table[std::clamp(bank,0,kFmFactoryBanks-1)]+std::clamp(voice,0,31)*fm_sysex::kPackedSize,fm_sysex::kPackedSize);
 }
+void Synth::set_lyric(const uint8_t* packed){
+ if(!packed){s_->lyricSet=false;return;}
+ std::memcpy(s_->lyric,packed,sizeof(s_->lyric));
+ if(s_->lyric[0]>sing::kMaxSyllables)s_->lyric[0]=sing::kMaxSyllables;
+ s_->lyricSet=true;
+}
+void Synth::set_note_index(uint32_t index){s_->noteIndex=index;}
 void Synth::set_fm_voice(const uint8_t* packed){
  if(!packed){s_->fmVoiceSet=false;return;}
  std::memcpy(s_->fmVoice.data(),packed,s_->fmVoice.size());

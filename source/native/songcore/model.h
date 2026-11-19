@@ -381,6 +381,9 @@ struct Instrument {
     // FM SYSEX's own voice, 128 packed bytes in the DX7 bank layout (studio/fm_sysex.h); absent = the
     // built-in banks. Carried by the song so it sounds the same without the .syx file it came from.
     std::optional<std::array<uint8_t,128>> fmVoice;
+    // SING FROG's words (up to 120 characters, studio/sing_text.h); empty = the built-in line. Carried by the
+    // song, each note sings the next syllable.
+    std::string lyric;
     // Optional sample-based mode. The real sampleFilePath remains the source; legacy defaults omit it.
     bool granularEnabled = false;
     studio::granular::Parameters granularParams{};

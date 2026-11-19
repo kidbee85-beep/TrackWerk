@@ -156,6 +156,43 @@ void synth_diagram(Canvas& c,int model,int x,int y,Argb color,const AppState* li
   }
   return;
  }
+ if(model==studio::kFrogVoiceModel||model==studio::kSingFrogModel){
+  // A frog: two eyes on top, a wide mouth, and a throat sac under it that swells. FROG VOICE swells it at the
+  // croak rate (macro A); SING FROG opens the mouth with macro A (Mouth) and breathes the sac with the
+  // sound. With motion off it is a still frog.
+  const auto dim=with_alpha(color,.38f);
+  const auto disc=[&](int cx,int cy,int r,Argb col){for(int dy=-r;dy<=r;++dy){const int half=int(std::lround(std::sqrt(float(r*r-dy*dy))));c.fill_rect(cx-half,cy+dy,2*half+1,1,col);}};
+  const bool sing=model==studio::kSingFrogModel;
+  const float macroA=live?live->studioHarmonics/255.f:.5f;
+  const bool moving=live&&live->settings.sceneMotion;
+  const float rateHz=sing?4.f:.5f*std::exp2(5.f*macroA);
+  const float beat=moving?.5f-.5f*std::cos(6.2831853f*float(live->animationMs%100000)/1000.f*rateHz):.45f;
+  // Drawn 1.7 times the size of the diagram slot, centred on it and rising above it: the card has the room.
+  const auto sc=[](float v){return int(std::lround(v*1.7f));};
+  const int cx=x+14,oy=y-12;
+  // head: a wide dome, filled softly, with the outline on top
+  for(int row=sc(8);row<=sc(13);++row){const int half=sc(22)+(row-sc(8))*sc(5)/std::max(1,sc(13)-sc(8));c.fill_rect(cx-half,oy+row,2*half+1,1,with_alpha(color,.14f));}
+  c.line(cx-sc(27),oy+sc(13),cx-sc(22),oy+sc(8),dim);c.line(cx-sc(22),oy+sc(8),cx+sc(22),oy+sc(8),dim);c.line(cx+sc(22),oy+sc(8),cx+sc(27),oy+sc(13),dim);
+  c.fill_rect(cx-3,oy+sc(9),2,2,dim);c.fill_rect(cx+2,oy+sc(9),2,2,dim);   // nostrils
+  // eyes
+  for(int side=-1;side<=1;side+=2){
+   disc(cx+side*sc(15),oy+sc(5),sc(5),dim);disc(cx+side*sc(15),oy+sc(5),sc(5)-1,0x17000000u);
+   c.fill_rect(cx+side*sc(15)-2,oy+sc(5)-2,5,5,color);c.fill_rect(cx+side*sc(15)-1,oy+sc(5)-1,2,2,0xFF000000u);
+  }
+  // mouth: a line, or an opening that follows the Mouth macro
+  const int gap=sing?2+int(macroA*7.f):0;
+  c.line(cx-sc(26),oy+sc(13),cx+sc(26),oy+sc(13),color);
+  c.line(cx-sc(26),oy+sc(13),cx-sc(28),oy+sc(11),color);c.line(cx+sc(26),oy+sc(13),cx+sc(28),oy+sc(11),color);
+  if(gap>0){c.fill_rect(cx-sc(20),oy+sc(13)+1,sc(41),gap,with_alpha(color,.5f));c.line(cx-sc(26),oy+sc(13)+gap,cx+sc(26),oy+sc(13)+gap,color);}
+  // throat sac
+  const int sac=3+int(beat*(sing?8.f:11.f));
+  const int top=oy+sc(13)+gap+1;
+  for(int row=0;row<sac;++row){
+   const int half=int(std::lround(float(sc(18))*std::sqrt(1.f-float(row*row)/float(sac*sac))));
+   c.fill_rect(cx-half,top+row,2*half+1,1,with_alpha(color,.30f+.35f*beat));
+  }
+  return;
+ }
  if(model==studio::kDubSirenModel){
   // DUB SIREN: the pitch curve the note will draw - the LFO's swing (rate: how many waves, depth: how tall)
   // riding on the sweep (a slope up or down). With a live state it is the sound's own macros, and with

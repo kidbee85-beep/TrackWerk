@@ -87,7 +87,7 @@ bool publish(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,bool c
   const auto oldAutoName=(oldCode&studio::kCustomFlag)?std::string(studio::model_name(studio::preset_model(oldCode)))+" / CUSTOM":studio::preset_name(oldCode);
   const bool autoName=before.name==oldAutoName||songcore::instrument_has_default_name(before);
   const auto uri=patch_uri(s);
-  if(!host.update_studio_synth(s.currentInstrument,uri,s.studioDraft.studioSynthParams,&s.studioDraft.fmVoice)){
+  if(!host.update_studio_synth(s.currentInstrument,uri,s.studioDraft.studioSynthParams,&s.studioDraft.fmVoice,&s.studioDraft.lyric)){
    s.studioLiveBound=false;s.studioBoundUri.clear();
    s.studioMessage="Synth source unavailable. Apply the draft to reload the slot.";return false;
   }
@@ -553,6 +553,11 @@ std::string studio_synth_control_value(const AppState& s,int i){
  }
  if(kind(s)==1&&s.studioModel==studio::kFmSysexModel&&extra_index(s,i)==studio::kFmBankParam)return fm_bank_label(s);
  if(kind(s)==1&&s.studioModel==studio::kFmSysexModel&&extra_index(s,i)==studio::kFmVoiceParam)return fm_voice_label(s);
+ if(kind(s)==1&&s.studioModel==studio::kSingFrogModel&&extra_index(s,i)==studio::kSingLyricParam){
+  const std::string& text=s.studioDraft.lyric;
+  if(text.empty())return "ribbit ribbit quack...";
+  return text.size()>22?text.substr(0,21)+"~":text;
+ }
  if(kind(s)==1)return studio::synth_param_value(s.studioModel,extra_index(s,i),s.studioDraft.studioSynthParams[extra_index(s,i)]);
  if(kind(s)==2&&i==0){const char* n[]={"Off","Low pass","High pass","Band pass"};return n[filter_index(s.studioDraft)];}
  if(kind(s)==3&&i==1){if(std::abs(v-128)<=1)return "Center";return std::to_string(std::abs(v-128)*100/128)+(v<128?" % L":" % R");}
@@ -655,6 +660,13 @@ void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& eng
  if(k==0){int* v[]={&s.studioHarmonics,&s.studioTimbre,&s.studioMorph};value=v[i];s.studioSynthCustom=true;}
  else if(k==1&&s.studioModel==studio::kFmSysexModel&&(extra_index(s,i)==studio::kFmBankParam||extra_index(s,i)==studio::kFmVoiceParam)){
   fm_step(s,fs,extra_index(s,i),direction,coarse);publish(s,host,engine,false);return;}
+ else if(k==1&&s.studioModel==studio::kSingFrogModel&&extra_index(s,i)==studio::kSingLyricParam){
+  // The words are typed on the keyboard; A+D-pad on this row opens it with the current text.
+  auto& k2=s.qwerty;k2=QwertyKeyboardState{};k2.isOpen=true;
+  k2.text=s.studioDraft.lyric.empty()?std::string("ribbit ribbit quack la la"):s.studioDraft.lyric;
+  k2.maxLength=studio::sing::kMaxTextChars;k2.textCursor=static_cast<int>(k2.text.size());
+  k2.fieldLabel="LYRICS:";k2.context=QwertyContext::LYRIC_EDIT;k2.insertBefore=s.settings.insertBefore;
+  s.studioMessage="Type the words. Each note sings the next syllable.";return;}
  else if(k==1){const int x=extra_index(s,i);p.studioSynthParams[x]=studio::synth_param_adjust(s.studioModel,x,p.studioSynthParams[x],direction,coarse);publish(s,host,engine,false);return;}
  else if(k==2){if(i==0){const char* n[]={"off","lp","hp","bp"};p.filterType=n[std::clamp(filter_index(p)+direction,0,3)];if(p.filterType!="off"&&!p.filterCut)p.filterCut=255;}else{int* v[]={&p.filterCut,&p.filterRes,&p.drive};value=v[i-1];}}
  else if(k==3){int* v[]={&p.volume,&p.pan,&p.detune};value=v[i];}

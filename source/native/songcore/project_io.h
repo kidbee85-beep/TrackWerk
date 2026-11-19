@@ -325,6 +325,10 @@ inline Instrument parse_instrument(const json& j, int index) {
         studio::fm_sysex::PackedVoice v{};
         if(studio::fm_sysex::from_hex(it->get<std::string>(),v))i.fmVoice=v;
     }
+    if (const auto it=j.find("lyric");it!=j.end()&&it->is_string()) {
+        i.lyric=it->get<std::string>();
+        if(i.lyric.size()>120)i.lyric.resize(120);
+    }
     i.tableId        = get_int(j, "tableId", i.tableId);
     i.tableTicRate   = get_int(j, "tableTicRate", i.tableTicRate);
     { auto it = j.find("modSlots");
@@ -816,6 +820,7 @@ inline void emit_instrument(JsonWriter& w, const Instrument& i) {
         w.end_array();
     }
     if (i.fmVoice) w.field_string("fmVoice", studio::fm_sysex::to_hex(*i.fmVoice));
+    if (!i.lyric.empty()) w.field_string("lyric", i.lyric);
     if(granular_has_settings(i)){w.key("granular");w.out+=granular_object(i).dump();}
     if (i.tableId != -1)    w.field_int("tableId", i.tableId);
     if (i.tableTicRate != 0x06) w.field_int("tableTicRate", i.tableTicRate);

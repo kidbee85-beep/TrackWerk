@@ -26,6 +26,30 @@ std::string control_hint(std::string name,int model=-1) {
         if(name=="bank")return "Bank: three built-in banks, then the .syx files of the SysEx folder (DX7 format).";
         if(name=="voice")return "Voice picks one of the bank's 32 voices. The song keeps a copy of it.";
     }
+    // SING FROG: the singer. Each line stays within the help width and uses no apostrophes.
+    if(model==studio::kSingFrogModel){
+        if(name=="mouth")return "Mouth opens the jaw: more of the first formant, a rounder ah.";
+        if(name=="breath")return "Breath adds a whisper of air to the voice, up to a full whisper.";
+        if(name=="throat")return "Throat makes the whole voice bigger and deeper, or small and bright.";
+        if(name=="voice")return "Voice picks frog, man, woman or child: the size of the throat.";
+        if(name=="croak")return "Croak chops the sound into quacks and dips the pitch. Frog likes it.";
+        if(name=="vibrato")return "Vibrato wobbles the pitch a little once the note has settled.";
+        if(name=="glide")return "Glide is how slowly the mouth moves from one sound to the next.";
+        if(name=="coda")return "Coda is when the last consonants arrive. Off keeps the vowel held.";
+        if(name=="syllable")return "Syllable: Auto sings the next one each note. A number pins one.";
+        if(name=="lyrics")return "Lyrics: A+Right opens the keyboard. Spell it the way it sounds.";
+    }
+    // FROG VOICE: the croaker.
+    if(model==studio::kFrogVoiceModel){
+        if(name=="croak")return "Croak sets how fast the frog croaks, from slow ribbits to a rattle.";
+        if(name=="throat")return "Throat sets the size of the throat: small and bright, or big and deep.";
+        if(name=="dip")return "Dip bends the pitch down inside every pulse of the croak.";
+        if(name=="species")return "Species: tree frog, bullfrog, toad or peeper. Each has its own throat.";
+        if(name=="pulses")return "Pulses is how many pops one croak has: ri-bbit has two.";
+        if(name=="croak depth")return "Croak depth is how deep the gaps between the pops are cut.";
+        if(name=="chirp")return "Chirp adds a short pitch swoop to each pop.";
+        if(name=="bubble")return "Bubble blows noise through the throat, like air under water.";
+    }
     // DUB SIREN: the wail. Every line stays within the help width and uses no apostrophes.
     if(model==studio::kDubSirenModel){
         if(name=="lfo rate")return "LFO rate sets how fast the pitch wails: a slow swell to a quick trill.";
