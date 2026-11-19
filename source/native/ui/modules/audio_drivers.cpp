@@ -53,8 +53,8 @@ void draw_audio_drivers(Canvas& c, const AudioDriversState& s, const Theme& t) {
     c.draw_text(title, box_x() + (BOX_W - title_w) / 2, title_y, t.textTitle, CHAR_SPACING,
                 FONT_SCALE);
 
-    // "PLAYING: <name>" under the title, clipped to the panel.
-    const std::string playing = "PLAYING: " + Canvas::clip_text(active_name(s), 26);
+    // "NOW: <name>" under the title, clipped to the panel.
+    const std::string playing = "NOW: " + Canvas::clip_text(active_name(s), 28);
     const int playing_w = Canvas::text_width(playing, CHAR_SPACING, FONT_SCALE);
     c.draw_text(playing, box_x() + (BOX_W - playing_w) / 2, title_y + ROW_HEIGHT, t.textParam,
                 CHAR_SPACING, FONT_SCALE);
@@ -72,7 +72,9 @@ void draw_audio_drivers(Canvas& c, const AudioDriversState& s, const Theme& t) {
         // The row's own mark: the output playing now, independent of the cursor.
         c.draw_text(active ? "*" : " ", box_x() + CONTENT_PAD, y, t.textTitle, CHAR_SPACING,
                     FONT_SCALE);
-        draw_cursor_cell(c, Canvas::clip_text(s.names[static_cast<size_t>(index)], 30), name_x, y,
+        // The row band glides to the cursor row (the same highlight the cards use), the name sits on it.
+        if (cursor) c.mark_cursor(box_x() + CONTENT_PAD, y - TEXT_PADDING, BOX_W - 2 * CONTENT_PAD, ROW_HEIGHT);
+        draw_cursor_cell(c, Canvas::clip_text(s.names[static_cast<size_t>(index)], active ? 28 : 34), name_x, y,
                          cursor, t.textValue, t);
         if (active) {
             const char* now = "NOW";
@@ -87,8 +89,11 @@ void draw_audio_drivers(Canvas& c, const AudioDriversState& s, const Theme& t) {
     }
 
     const int footer_y = box_y(s) + box_height(s) - CONTENT_PAD - ROW_HEIGHT + TEXT_PADDING;
-    if (!s.message.empty()) {
-        c.draw_text(Canvas::clip_text(s.message, 40), box_x() + CONTENT_PAD, footer_y,
+    // "PLAYING: <name>" is already under the title: the footer only speaks for what that line does not say
+    // (SWITCHING..., an error) and otherwise shows the keys.
+    const bool repeatsTitle = s.messageOk && s.message == "PLAYING: " + active_name(s);
+    if (!s.message.empty() && !repeatsTitle) {
+        c.draw_text(Canvas::clip_text(s.message, 34), box_x() + CONTENT_PAD, footer_y,
                     s.messageOk ? t.textValue : t.rowCursor, CHAR_SPACING, FONT_SCALE);
     } else {
         const char* keys = "UP/DOWN CHOOSE   A SELECT   B CLOSE";
