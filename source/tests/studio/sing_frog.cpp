@@ -126,6 +126,17 @@ int main() {
         sing::pack_lyric("sing me a song", p);
         sing::pack_lyric("sing me a song", q);
         assert(std::memcmp(p, q, sizeof p) == 0);
+        // Short words whose only vowel is a final e are sung, not lost (found by review): "Do Re Mi", "me", "the".
+        assert(sing::pack_lyric("do re mi fa so la ti do", p) == 8);
+        for (const char* w : {"me", "he", "we", "be", "she", "the", "re", "red", "bed", "yes", "I", "you", "of", "are", "go", "no"})
+            assert(sing::pack_lyric(w, p) == 1);
+        assert(sing::pack_lyric("row row row your boat gently down the stream", p) == 10);
+        // UTF-8: a cut never splits a character (a half character would make the project file unreadable)
+        {
+            const std::string s = std::string(119, 'a') + "\xC3\xBC" + "xyz";   // u-umlaut straddles byte 120
+            const std::string cut = sing::utf8_cut(s, 120);
+            assert(cut.size() == 119 && sing::utf8_cut("abc", 120) == "abc" && sing::utf8_cut(std::string(10, 'a'), 4).size() == 4);
+        }
         // The karaoke display: words with their syllable counts and first syllables.
         sing::WordSpan sp[8];
         assert(sing::lyric_words("ribbit quack, la", sp, 8) == 3);

@@ -10,6 +10,7 @@
 // remain integers; optional granular settings use round-trip-safe physical-unit float numbers.
 
 #include "../studio/fm_sysex.h"
+#include "../studio/sing_text.h"
 #include "midi_map.h"
 #include "model.h"
 #include "../vendor/nlohmann/json.hpp"
@@ -327,7 +328,7 @@ inline Instrument parse_instrument(const json& j, int index) {
     }
     if (const auto it=j.find("lyric");it!=j.end()&&it->is_string()) {
         i.lyric=it->get<std::string>();
-        if(i.lyric.size()>120)i.lyric.resize(120);
+        i.lyric=studio::sing::utf8_cut(i.lyric,120);
     }
     i.tableId        = get_int(j, "tableId", i.tableId);
     i.tableTicRate   = get_int(j, "tableTicRate", i.tableTicRate);

@@ -133,7 +133,8 @@ class MonitorRing {
             if (!primed_) {
                 // Wait for the cushion (the band's floor plus one callback); meanwhile the last sample
                 // fades out instead of stopping dead.
-                if (fill() < size_t(2 * frames + kLowFrames) || !pop(cur_[0], cur_[1]) || !pop(next_[0], next_[1])) {
+                // (never ask for more than the ring can hold: a very large output block would never prime)
+                if (fill() < std::min<size_t>(size_t(2 * frames + kLowFrames), CAPACITY - 64) || !pop(cur_[0], cur_[1]) || !pop(next_[0], next_[1])) {
                     fade(stereo, i, frames);
                     return;
                 }

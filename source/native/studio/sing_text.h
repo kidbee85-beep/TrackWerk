@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace studio {
 namespace sing {
@@ -83,7 +84,7 @@ inline constexpr Token kTokens[] = {
     {"UH", V_UH, 0}, {"U", V_U, 0}, {"AH", V_AH, 0}, {"SCHWA", V_SCHWA, 0}, {"ER", V_ER, 0},
     {"EY", V_EH, V_IH}, {"AY", V_AA, V_IH}, {"OY", V_AO, V_IH}, {"AW", V_AA, V_UH}, {"O", V_O, V_UH},
     {"P", C_P, 0}, {"B", C_B, 0}, {"T", C_T, 0}, {"D", C_D, 0}, {"K", C_K, 0}, {"G", C_G, 0}, {"F", C_F, 0},
-    {"V", C_V, 0}, {"TH", C_TH, 0}, {"S", C_S, 0}, {"Z", C_Z, 0}, {"SH", C_SH, 0}, {"ZH", C_ZH, 0}, {"H", C_H, 0},
+    {"V", C_V, 0}, {"TH", C_TH, 0}, {"DH", C_DH, 0}, {"S", C_S, 0}, {"Z", C_Z, 0}, {"SH", C_SH, 0}, {"ZH", C_ZH, 0}, {"H", C_H, 0},
     {"CH", C_CH, 0}, {"JH", C_JH, 0}, {"M", C_M, 0}, {"N", C_N, 0}, {"NG", C_NG, 0}, {"L", C_L, 0}, {"R", C_R, 0},
     {"W", C_W, 0}, {"J", C_J, 0},
 };
@@ -128,8 +129,19 @@ inline void add_tokens(PhoneRun& run, const char* tokens) {
     }
 }
 
+// Common short words the spelling rules get wrong or lose altogether (a final e is silent, so "me" would have no
+// vowel at all): sung the way they are said.
+struct Exception { const char* word; const char* phones; };
+inline constexpr Exception kExceptions[] = {
+    {"me", "M I"}, {"he", "H I"}, {"we", "W I"}, {"be", "B I"}, {"she", "SH I"}, {"the", "DH AH"}, {"re", "R EY"},
+    {"ye", "J I"}, {"mi", "M I"}, {"ti", "T I"}, {"do", "D O"}, {"so", "S O"}, {"go", "G O"}, {"no", "N O"},
+    {"to", "T U"}, {"i", "AY"}, {"you", "J U"}, {"your", "J AO R"}, {"of", "AH V"}, {"are", "AA R"}, {"was", "W AH Z"},
+    {"red", "R EH D"}, {"bed", "B EH D"}, {"fed", "F EH D"}, {"yes", "J EH S"}, {"oh", "O"}, {"a", "AH"}, {"or", "AO R"},
+};
 // Spelling → phones for one lower-case word (letters only).
 inline void word_to_phones(const char* w, int n, PhoneRun& run) {
+    for (const Exception& e : kExceptions)
+        if (int(std::strlen(e.word)) == n && std::strncmp(e.word, w, size_t(n)) == 0) { add_tokens(run, e.phones); return; }
     int i = 0;
     while (i < n) {
         bool done = false;
@@ -232,8 +244,9 @@ inline int lyric_words(const char* text, WordSpan* out, int max) {
         std::memcpy(word, text + start, size_t(len));
         word[len] = 0;
         const int n = pack_lyric(word, scratch);
-        if (n > 0 && words < max && syllable + n <= kMaxSyllables) out[words++] = {start, end - start, syllable, n};
-        syllable += n;
+        const int fit = std::min(n, kMaxSyllables - syllable);   // pack_lyric stops at the limit, so a word may fit in part
+        if (fit > 0 && words < max) out[words++] = {start, end - start, syllable, fit};
+        syllable += std::max(fit, 0);
         start = -1;
     };
     for (const char* p = text; p && *p && chars < kMaxTextChars; ++p, ++chars) {
@@ -244,6 +257,15 @@ inline int lyric_words(const char* text, WordSpan* out, int max) {
     }
     close(chars);
     return words;
+}
+
+// Cuts `text` to at most `maxBytes` bytes without splitting a UTF-8 character (a half character makes the project
+// file unreadable). Returns the cut string.
+inline std::string utf8_cut(const std::string& text, size_t maxBytes) {
+    if (text.size() <= maxBytes) return text;
+    size_t end = maxBytes;
+    while (end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80) --end;   // back to a character start
+    return text.substr(0, end);
 }
 
 }  // namespace sing

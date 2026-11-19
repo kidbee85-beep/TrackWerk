@@ -180,6 +180,14 @@ int main() {
         }
     }
 
+    // ACID BOX Sub is a sine one octave below the note (found by review: it was at the note itself).
+    {
+        const auto none = note(kAcidBoxModel, 90, 20, 0, {{3, 120}, {8, 0}}, 110.f, 16000), sub = note(kAcidBoxModel, 90, 20, 0, {{3, 120}, {8, 0}, {6, 255}}, 110.f, 16000);
+        const auto a = spectrum(none, 4000), b = spectrum(sub, 4000);
+        std::printf("acid sub: 55 Hz line %.1f dB over the plain note\n", db(range(b, 50.f, 60.f) / std::max(range(a, 50.f, 60.f), 1e-30)));
+        assert(range(b, 50.f, 60.f) > 20.0 * range(a, 50.f, 60.f));
+    }
+
     // Every named sound plays, stays bounded, and none is silent or far louder than the rest.
     for (int m : {kAcidBoxModel, kReeseBassModel}) {
         double quietest = 1, loudest = 0;

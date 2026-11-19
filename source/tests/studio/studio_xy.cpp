@@ -161,6 +161,13 @@ int main(int argc, char** argv) {
         assert(studio_touch_canvas(t.s, t.host, *t.engine, 5, 5, 1) && t.s.studioHarmonics == 0 && t.s.studioTimbre == 255);   // a drag may leave the pad
         assert(studio_touch_canvas(t.s, t.host, *t.engine, 0, 0, 2) && !t.s.canvasTouchActive);
         assert(!studio_touch_canvas(t.s, t.host, *t.engine, 300, 300, 1));        // a move without a down on the pad
+        // a second finger does not move the dot, and its lifting does not end the first finger's drag
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 398 + 8, 254 + 8, 0, /*finger*/ 7));
+        assert(!studio_touch_canvas(t.s, t.host, *t.engine, 398 + 8 + 100, 254 + 8 + 30, 1, /*finger*/ 9));
+        assert(t.s.studioHarmonics == 0 && t.s.studioTimbre == 255);
+        assert(!studio_touch_canvas(t.s, t.host, *t.engine, 0, 0, 2, /*finger*/ 9) && t.s.canvasTouchActive);
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 398 + 8 + 201, 254 + 8 + 75, 1, 7) && t.s.studioHarmonics == 255);
+        assert(studio_touch_canvas(t.s, t.host, *t.engine, 0, 0, 2, 7) && !t.s.canvasTouchActive);
         // the frog stage on the first page
         Rig f(dir / "touchfrog");
         f.s.studioModel = studio::kSingFrogModel;

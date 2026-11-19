@@ -337,8 +337,8 @@ void frog_stage(Canvas& c,const AppState& s,int x,int y,int w,int h){
   // Karaoke: the word being sung in gold with one dot per syllable (the sung one filled), the next word beneath it.
   const std::string defaultText="ribbit ribbit quack la la";
   const std::string& text=s.studioDraft.lyric.empty()?defaultText:s.studioDraft.lyric;
-  studio::sing::WordSpan spans[24];
-  const int wordCount=studio::sing::lyric_words(text.c_str(),spans,24);
+  studio::sing::WordSpan spans[64];
+  const int wordCount=studio::sing::lyric_words(text.c_str(),spans,64);
   const int total=wordCount>0?spans[wordCount-1].firstSyllable+spans[wordCount-1].syllables:0;
   const int pitchParam=s.studioDraft.studioSynthParams[studio::kSingSyllableParam];
   const int fixed=pitchParam>=5?pitchParam/5:0;

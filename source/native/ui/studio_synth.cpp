@@ -63,7 +63,7 @@ std::vector<LyricTemplate> lyric_templates(FileSystem* fs){
   for(auto& ch:content)if(ch=='\n'||ch=='\r'||ch=='\t')ch=' ';
   while(!content.empty()&&content.back()==' ')content.pop_back();
   size_t first=content.find_first_not_of(' ');if(first==std::string::npos)continue;
-  content=content.substr(first);if(content.size()>size_t(studio::sing::kMaxTextChars))content.resize(size_t(studio::sing::kMaxTextChars));
+  content=studio::sing::utf8_cut(content.substr(first),size_t(studio::sing::kMaxTextChars));
   out.push_back({e.name_without_extension(),content});
  }
  std::sort(out.begin(),out.end(),[](const LyricTemplate& a,const LyricTemplate& b){return a.name<b.name;});
@@ -655,13 +655,14 @@ static bool pad_rect(const AppState& s,int& x,int& y,int& w,int& h,bool& frog){
  else{x=398;w=218;}
  return true;
 }
-bool studio_touch_canvas(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,int cx,int cy,int phase){
+bool studio_touch_canvas(AppState& s,songcore::SongcoreHost& host,AudioEngine& engine,int cx,int cy,int phase,uint64_t finger){
+ if(phase!=0&&s.canvasTouchActive&&finger!=s.canvasFinger)return false;   // another finger: not ours
  if(phase==2){const bool was=s.canvasTouchActive;s.canvasTouchActive=false;return was;}
  if(!s.studioOpen||s.studioTab!=0||s.qwerty.isOpen||!studio_synth_xy_page(s)||studio_synth_picker_open(s)){s.canvasTouchActive=false;return false;}
  int x,y,w,h;bool frog;pad_rect(s,x,y,w,h,frog);
  if(phase==0){
   if(cx<x||cx>=x+w||cy<y||cy>=y+h)return false;
-  s.canvasTouchActive=true;
+  s.canvasTouchActive=true;s.canvasFinger=finger;
  }else if(!s.canvasTouchActive)return false;
  float gx,gy;
  if(frog){   // the firefly: x from x+10 over w-20; y from y+8 over h-43 (studio_view.cpp frog_stage)

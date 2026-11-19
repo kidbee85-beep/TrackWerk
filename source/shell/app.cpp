@@ -1190,7 +1190,7 @@ void FrameLoop::handle_sdl_event(const SDL_Event& e, Uint64 now) {
             const int phase = e.type == SDL_FINGERDOWN ? 0 : e.type == SDL_FINGERMOTION ? 1 : 2;
             if (phase == 2 || screen.touch.canvas_point(e, cx, cy)) {
                 const auto oldProjectVersion = state.projectVersion;
-                if (ui::studio_touch_canvas(state, host, engineRef, cx, cy, phase) && state.projectVersion != oldProjectVersion)
+                if (ui::studio_touch_canvas(state, host, engineRef, cx, cy, phase, static_cast<uint64_t>(e.tfinger.fingerId)) && state.projectVersion != oldProjectVersion)
                     dispatch.arm_studio_autosave();
             }
         }

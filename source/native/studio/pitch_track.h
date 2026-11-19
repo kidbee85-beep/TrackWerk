@@ -19,17 +19,18 @@ public:
 
     struct Result { float hz = 0.f, confidence = 0.f, level = 0.f; bool fresh = false; };
 
-    PitchTracker() : buf_(kWindow + kMaxLag + kHop, 0.f), diff_(kMaxLag + 2, 0.f), cmnd_(kMaxLag + 2, 0.f) {}
+    PitchTracker() : ring_(kWindow + kMaxLag, 0.f), lin_(kWindow + kMaxLag, 0.f), diff_(kMaxLag + 2, 0.f), cmnd_(kMaxLag + 2, 0.f) {}
 
     // Feeds mono float samples at `rate` (Hz). Returns the newest result; `fresh` is true when a new window was
     // analysed during this call.
     Result feed(const float* mono, size_t n, int rate) {
         const double step = double(rate) / kRate;   // input samples per reduced sample
+        const float a = alpha(rate);
         result_.fresh = false;
         for (size_t i = 0; i < n; ++i) {
             // two one-pole stages (about 3 kHz at 12 kHz output) before dropping samples
-            lp1_ += (mono[i] - lp1_) * alpha(rate);
-            lp2_ += (lp1_ - lp2_) * alpha(rate);
+            lp1_ += (mono[i] - lp1_) * a;
+            lp2_ += (lp1_ - lp2_) * a;
             phase_ += 1.0;
             if (phase_ >= step) {
                 phase_ -= step;
@@ -39,18 +40,19 @@ public:
         return result_;
     }
     const Result& last() const { return result_; }
-    void reset() { std::fill(buf_.begin(), buf_.end(), 0.f); fill_ = 0; sinceHop_ = 0; lp1_ = lp2_ = 0.f; phase_ = 0.0; result_ = Result{}; }
+    void reset() { std::fill(ring_.begin(), ring_.end(), 0.f); head_ = 0; fill_ = 0; sinceHop_ = 0; lp1_ = lp2_ = 0.f; phase_ = 0.0; result_ = Result{}; }
 
 private:
     static float alpha(int rate) { return 1.f - std::exp(-6.2831853f * 3000.f / float(rate)); }
     void push(float v) {
-        // sliding buffer: newest sample last
-        if (fill_ < int(buf_.size())) buf_[size_t(fill_++)] = v;
-        else { std::copy(buf_.begin() + 1, buf_.end(), buf_.begin()); buf_.back() = v; }
-        if (fill_ == int(buf_.size()) && ++sinceHop_ >= kHop) { sinceHop_ = 0; analyse(); }
+        ring_[size_t(head_)] = v;                       // a circular buffer: no memmove per sample
+        head_ = (head_ + 1) % int(ring_.size());
+        if (fill_ < int(ring_.size())) ++fill_;
+        if (fill_ == int(ring_.size()) && ++sinceHop_ >= kHop) { sinceHop_ = 0; analyse(); }
     }
     void analyse() {
-        const float* x = buf_.data() + (buf_.size() - size_t(kWindow + kMaxLag));
+        for (size_t k = 0; k < lin_.size(); ++k) lin_[k] = ring_[(size_t(head_) + k) % ring_.size()];   // oldest first, once per hop
+        const float* x = lin_.data();
         double energy = 0;
         for (int j = 0; j < kWindow; ++j) energy += double(x[j]) * x[j];
         result_.level = float(std::sqrt(energy / kWindow));
@@ -84,8 +86,8 @@ private:
         result_.confidence = std::clamp(1.f - b, 0.f, 1.f);
     }
 
-    std::vector<float> buf_, diff_, cmnd_;
-    int fill_ = 0, sinceHop_ = 0;
+    std::vector<float> ring_, lin_, diff_, cmnd_;
+    int head_ = 0, fill_ = 0, sinceHop_ = 0;
     float lp1_ = 0.f, lp2_ = 0.f;
     double phase_ = 0.0;
     Result result_;

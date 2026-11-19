@@ -234,7 +234,8 @@ struct AppState {
 
     // ── The visualizer: filled once a frame; null is silence ─────────────────────────────────────
     const float* waveform       = nullptr;  // WAVEFORM_SIZE master samples
-    bool         canvasTouchActive = false;   // a finger that went down on the XY pad is dragging it (touch screens)
+    bool         canvasTouchActive = false;
+    uint64_t     canvasFinger      = 0;       // which finger it is: a second finger or a palm does not move the dot   // a finger that went down on the XY pad is dragging it (touch screens)
     uint32_t     lyricNotes     = 0;        // notes the current instrument has started since PLAY (FROGGY's karaoke display)
     const float* trackWaveforms = nullptr;  // TRACK_WAVEFORM_COUNT × WAVEFORM_SIZE, flat (OCTA)
     const float* spectrum       = nullptr;  // NUM_BARS magnitudes (SPECTRUM modes)

@@ -115,6 +115,8 @@ void AudioEngine::startStopRamp(int64_t blockStartFrame) {
         else                      sfVoices[t].hardStop();
     }
     resetTic00Cursors();   // as stopAll(): PLAY starts at row 0
+    std::fill(std::begin(lyricNotes), std::end(lyricNotes), 0u);   // and every lyric at its first syllable (audio thread: it owns the counters)
+    for (auto& shown : lyricNotesShown) shown.store(0, std::memory_order_relaxed);
     // When the audio thread reclaims the slots (see processAudioBlock).
     stopRampEndFrame.store(blockStartFrame + KILL_FADE_SAMPLES, std::memory_order_relaxed);
 }

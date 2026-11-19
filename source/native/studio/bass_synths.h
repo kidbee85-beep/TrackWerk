@@ -46,7 +46,12 @@ struct SoftClipAdaa {
 struct DcBlock {
     float x1 = 0.f, y1 = 0.f;
     void reset() { x1 = y1 = 0.f; }
-    float process(float x) { const float y = x - x1 + .9995f * y1; x1 = x; y1 = y; return y; }
+    float process(float x) {
+        const float y = x - x1 + .9995f * y1;
+        x1 = x;
+        y1 = std::fabs(y) < 1e-15f ? 0.f : y;   // no denormal tail after a note
+        return y;
+    }
 };
 inline float blep(float t, float dt) {
     if (t < dt) { t /= dt; return t + t - t * t - 1.f; }
@@ -92,7 +97,7 @@ public:
     static float decay_seconds(float v01) { return .06f * std::exp2(5.f * std::clamp(v01, 0.f, 1.f)); }   // 0.06 … 1.9 s
 
     AcidBox() { start(); }
-    void start() { phase_ = 0.f; env_ = 1.f; f1_.reset(); f2_.reset(); dc_.reset(); clip_.reset(); }
+    void start() { phase_ = 0.f; subPhase_ = 0.f; env_ = 1.f; f1_.reset(); f2_.reset(); dc_.reset(); clip_.reset(); }
 
     void render(float* out, int frames, float hz, float cutoff01, float res01, float mod01, const Settings& s) {
         using namespace bass_detail;
@@ -122,7 +127,9 @@ public:
                 p2 -= std::floor(p2);
                 v = (phase_ < .5f ? 1.f : -1.f) + blep(phase_, dt) - blep(p2, dt);
             }
-            if (s.sub > 0.f) v = v * (1.f - .4f * s.sub) + s.sub * .7f * std::sin(3.14159265f * phase_);
+            subPhase_ += dt * .5f;   // a sine an octave below
+            subPhase_ -= std::floor(subPhase_);
+            if (s.sub > 0.f) v = v * (1.f - .4f * s.sub) + s.sub * .7f * std::sin(6.2831853f * subPhase_);
             const float x = clip_.process(driveGain * .6f * v);
             // four poles: a plain stage, a soft clip (the squelch), then the resonant stage
             const float y1 = fast_tanh(1.2f * f1_.low(x, b1, b2, b3));
@@ -134,7 +141,7 @@ public:
     }
 
 private:
-    float phase_ = 0.f, env_ = 1.f;
+    float phase_ = 0.f, subPhase_ = 0.f, env_ = 1.f;
     bass_detail::Svf f1_, f2_;
     bass_detail::DcBlock dc_;
     bass_detail::SoftClipAdaa clip_;

@@ -102,7 +102,7 @@ void InputDispatcher::qwerty_apply() {
         case QwertyContext::LYRIC_EDIT: {
             // The words belong to the instrument. A linked instrument takes them at once; otherwise the draft
             // keeps them until APPLY.
-            s_.studioDraft.lyric = text;
+            s_.studioDraft.lyric = studio::sing::utf8_cut(text, size_t(studio::sing::kMaxTextChars));
             if (studio_synth_live(s_))
                 host_.update_studio_synth(s_.currentInstrument, s_.studioBoundUri, s_.studioDraft.studioSynthParams,
                                           nullptr, &s_.studioDraft.lyric);

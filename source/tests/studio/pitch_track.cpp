@@ -3,6 +3,7 @@
 #include "pitch_track.h"
 #include "mic_pitch.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -46,7 +47,7 @@ int main() {
         for (auto& v : n) { s = s * 1664525u + 1013904223u; v = float(int(s >> 9) - (1 << 22)) / float(1 << 22) * .3f; }
         PitchTracker t;
         int hits = 0, windows = 0;
-        for (size_t i = 0; i < n.size(); i += 512) { const auto r = t.feed(n.data() + i, 512, 48000); if (r.fresh) { ++windows; if (r.hz > 0) ++hits; } }
+        for (size_t i = 0; i < n.size(); i += 512) { const auto r = t.feed(n.data() + i, std::min<size_t>(512, n.size() - i), 48000); if (r.fresh) { ++windows; if (r.hz > 0) ++hits; } }
         std::printf("noise: %d of %d windows gave a pitch\n", hits, windows);
         assert(hits * 10 < windows);
     }
@@ -58,7 +59,7 @@ int main() {
         PitchTracker t;
         float firstHz = 0, lastHz = 0;
         for (size_t i = 0; i < g.size(); i += 512) {
-            const auto r = t.feed(g.data() + i, 512, 48000);
+            const auto r = t.feed(g.data() + i, std::min<size_t>(512, g.size() - i), 48000);
             if (r.fresh && r.hz > 0) { if (firstHz == 0 && i > 6000) firstHz = r.hz; lastHz = r.hz; }
         }
         std::printf("glide: first %.0f Hz, last %.0f Hz\n", firstHz, lastHz);
