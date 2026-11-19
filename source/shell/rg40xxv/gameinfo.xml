@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gameList>
+  <game>
+    <path>./TrackWerk.sh</path>
+    <name>TrackWerk</name>
+    <desc>TrackWerk by Kid Bunka: independent GPL music tracker for KNULLI handhelds. RG40XX V community test: not yet run on the device.</desc>
+    <image>./trackwerk/screenshot.png</image>
+    <developer>PocketTracker contributors / TrackWerk</developer>
+    <publisher>Kid Bunka</publisher>
+    <genre>Other</genre>
+    <players>1</players>
+  </game>
+</gameList>
