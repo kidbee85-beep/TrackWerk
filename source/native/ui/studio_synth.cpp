@@ -525,6 +525,12 @@ bool studio_synth_live(const AppState& s){
 int studio_synth_page_count(const AppState& s){return sample_granular_studio(s)?sample_granular_page_count():1+extra_pages(s)+4;}
 std::string studio_synth_page_name(const AppState& s){
  if(sample_granular_studio(s))return sample_granular_page_name(s);
+ // The frog models name their pages by what is on them, not by the engine's anatomy.
+ if(studio_synth_frog_model(s)){
+  static const char* sing[]={"Words","Voice","Timing"};static const char* frog[]={"Frog","Croak","Air"};
+  if(kind(s)==0)return "Stage";
+  if(kind(s)==1&&s.studioSynthPage>=1&&s.studioSynthPage<=3)return std::string(s.studioModel==studio::kSingFrogModel?sing[s.studioSynthPage-1]:frog[s.studioSynthPage-1])+"   "+std::to_string(s.studioSynthPage)+" / "+std::to_string(extra_pages(s));
+ }
  switch(kind(s)){case 0:return "Oscillator";case 1:return "Engine "+std::to_string(s.studioSynthPage)+" / "+std::to_string(extra_pages(s));case 2:return "Filter / Drive";case 3:return "Amplifier / Tune";case 5:return "XY pad";default:return "ADSR envelope";}
 }
 int studio_synth_control_count(const AppState& s){if(sample_granular_studio(s))return sample_granular_control_count(s);switch(kind(s)){case 0:return studio::macro_count(s.studioModel);case 1:return std::clamp(studio::synth_param_count(s.studioModel)-extra_index(s,0),0,3);case 3:return 3;case 5:return 2;default:return 4;}}

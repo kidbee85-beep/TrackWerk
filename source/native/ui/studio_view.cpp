@@ -913,7 +913,10 @@ void draw_studio(Canvas& c,const AppState& s){
     s.studioRow==studio_synth_apply_row(s)?(s.sampleGranular.action==kGranularCompareAction?
       "A: Store / toggle    A + Left / Right: Morph    A + Up: Set A":"Left / Right: Action    A: Run"):
     s.studioRow==0?"A + arrows: Change target slot":"A + arrows: Edit    R + Left / Right: Parameter page";
- const std::string hint=granular?granularHint:s.studioAppearanceSettings?"Appearance / your saved themes and typefaces":s.studioTab==3?"L / R: Category     D-pad: Select pad     Select: Help":s.studioTab==0?synthHint:s.studioTab==4?"B + Left / Right: Studio pages    Select: Recording help":"B + Left / Right: Page     A + D-pad: Edit     Select: Help";
+ const int hintControl=s.studioRow-3;
+ const bool lyricRow=!granular&&s.studioTab==0&&s.studioModel==studio::kSingFrogModel&&hintControl>=0&&hintControl<studio_synth_control_count(s)&&studio_synth_control_label(s,hintControl)=="Lyrics";
+ const bool stageRow=!granular&&s.studioTab==0&&studio_synth_frog_model(s)&&s.studioSynthPage==0&&hintControl>=0&&hintControl<studio_synth_control_count(s);
+ const std::string hint=lyricRow?"A + Right: type the words. Each note sings the next syllable.":stageRow?"A + arrows: Edit    Hold L + D-pad: move the firefly":granular?granularHint:s.studioAppearanceSettings?"Appearance / your saved themes and typefaces":s.studioTab==3?"L / R: Category     D-pad: Select pad     Select: Help":s.studioTab==0?synthHint:s.studioTab==4?"B + Left / Right: Studio pages    Select: Recording help":"B + Left / Right: Page     A + D-pad: Edit     Select: Help";
  label(c,s.studioMessage.empty()?hint:s.studioMessage,22,435,s.studioMessage.empty()?t.textParam:t.rowCursor,590);
  const auto controls=granular?"Hold R + Select: Audition    Select: Help    B: Back":s.studioAppearanceSettings?"Up / Down: Choose     A + arrows: Change     B: Back to Settings":s.studioTab==3?"Hold A: Punch    Release A: Restore    Start: Play / Stop    B: Back":s.studioTab==0?"L + R + Start: Record / Stop    B + Down: Length    Select: Help    B: Back":s.studioTab==4?"Up / Down: Select    Left / Right: Change    A: Action    B: Back":"A: Apply     Start: Playback     B: Back";
  label(c,controls,22,458,t.textEmpty,590);
