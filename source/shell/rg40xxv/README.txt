@@ -23,6 +23,17 @@ What is NOT known
   The launcher writes what it can see (model, kernel, SDL environment, "aplay -l", input devices) to
   trackwerk/log.txt on every start.
 
+PLEASE WAIT - the first start is slow
+  - The first start copies about 2,400 factory presets to the card. Depending on the card this takes
+    from under a minute to several minutes. The screen can stay black or on the menu meanwhile.
+  - If the first display mode does not show a picture, the launcher waits 25 seconds and then tries a
+    second mode. So up to about 50 seconds can pass before TrackWerk appears. This is expected.
+  - Do not power the device off and do not press buttons during this time. If nothing has appeared
+    after 5 minutes, hold the power button, then see "If it does not start".
+  - Later starts are fast and use the display mode that worked.
+  - This version has not been run on an RG40XX V yet. If you would rather not be the first, wait for
+    a report from someone who has, before you install it.
+
 Install (new)
   1. Power the device off and put the SD card in your computer.
   2. Copy TrackWerk.sh and the trackwerk folder into roms/ports/ on the SHARE partition.

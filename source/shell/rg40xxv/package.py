@@ -39,6 +39,13 @@ Needs KNULLI "Scarab" (2026-05-11) or newer. https://knulli.org/
    Review the plan and repeat with --apply.
 4. Eject the card safely, boot and open Ports > TrackWerk.
 
+PLEASE WAIT on the first start. It copies about 2,400 factory presets (under a minute to several
+minutes, the screen may stay black), and if the first display mode shows nothing the launcher tries a
+second one after 25 seconds, so up to about 50 seconds can pass before TrackWerk appears. Do not power
+off or press buttons meanwhile. After 5 minutes with no picture, hold the power button and send the log.
+Later starts are fast. This version has not been run on an RG40XX V yet; if you would rather not be
+the first, wait for a report from someone who has.
+
 If it does not start: send trackwerk/log.txt and your KNULLI version. The launcher tries the GPU
 renderer first and then the window-surface mode, and logs what the device reports.
 Samples go in roms/ports/trackwerk/data/Samples.
