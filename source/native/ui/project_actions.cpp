@@ -13,6 +13,7 @@
 
 #include "common/byte_source.h"   // pt_fopen / pt_remove / pt_rename
 #include "songcore/project_io.h"
+#include "songcore/midi_export.h"
 #include "songcore/render.h"
 #include "ui/lifecycle.h"
 
@@ -90,6 +91,26 @@ ActionResult save_project(songcore::SongcoreHost& host, FileSystem& fs, AppState
     autosave_clear(fs);
 
     return ActionResult{true, "SAVED"};
+}
+
+// ─── EXPORT > MIDI ───────────────────────────────────────────────────────────────────────────────
+
+ActionResult export_midi(const songcore::SongcoreHost& host, FileSystem& fs) {
+    songcore::MidiExportReport report;
+    const std::string bytes = songcore::export_midi_file(host.project(), &report);
+    if (bytes.empty()) return ActionResult{false, "NO NOTES TO EXPORT"};
+    const std::string dir = fs.renders_directory();
+    const std::string name = songcore::project_file_name(host.project().name);
+    std::string path;
+    for (int index = 1; index < 10000 && path.empty(); ++index) {
+        const std::string candidate = dir + "/" + name + "_" + pad4(index) + ".mid";
+        if (!fs.file_exists(candidate)) path = candidate;
+    }
+    if (path.empty()) return ActionResult{false, "EXPORT FAILED: NO FREE NUMBER"};
+    if (!fs.write_file(path, bytes)) return ActionResult{false, "EXPORT FAILED"};
+    return ActionResult{true, "MIDI: " + std::to_string(report.notes) + " NOTES, " + std::to_string(report.tracks) +
+                                  (report.tracks == 1 ? " TRACK" : " TRACKS") +
+                                  (report.stepsWithEffects > 0 ? " (FX NOT INCLUDED)" : "")};
 }
 
 // ─── COLLECT ─────────────────────────────────────────────────────────────────────────────────────

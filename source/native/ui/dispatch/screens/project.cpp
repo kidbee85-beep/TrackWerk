@@ -103,6 +103,11 @@ void InputDispatcher::project_action() {
             // Both open the RENDER panel; the button picks MIX or STEMS.
             if (s_.projectCursorColumn == 1)      open_render_dialog(RenderDialogState::Output::MIX);
             else if (s_.projectCursorColumn == 2) open_render_dialog(RenderDialogState::Output::STEMS);
+            else if (s_.projectCursorColumn == 3) {   // MIDI: a note sketch, no render panel and no wait
+                before_save();
+                const ActionResult r = export_midi(host_, fs_);
+                set_status(s_, r.message, r.ok);
+            }
             break;
 
         case ProjectRow::COMPACT:

@@ -9,6 +9,7 @@
 //   E6 an instrument preset's FILE name is sanitised like every other preset's
 //   E7 COLLECT keeps two different files of one name apart (kick.wav, kick_2.wav)
 //   B1 SAVE keeps the previous versions (Backups/<NAME>_bak1..5.ptp), also what REPLACE overwrites
+//   M1 EXPORT > MIDI writes <Renders>/<NAME>_NNNN.mid through the real button
 //   S1 the synced write (temp, fsync, rename) is correct, replaces cleanly and fails without a trace
 // usage: ptfile-safety-check <new run directory>
 #include "audio-engine.h"
@@ -487,6 +488,30 @@ void collect_keeps_namesakes(const fs::path& root) {
     }
 }
 
+// EXPORT > MIDI through the button: a file in Renders, a numbered name each time, and a message when
+// there is nothing to export.
+void midi_button_case(const fs::path& root) {
+    Rig r(root / "m1");
+    r.cell(ProjectRow::EXPORT, 3);
+    r.tap(Button::A);
+    assert(r.state.statusMessage == "NO NOTES TO EXPORT" && !fs::exists(r.sfs.renders_directory() + "/UNTITLED_0001.mid"));
+    auto p = r.host.project();
+    p.tracks[0].chainRefs = {0};
+    p.chains[0].phraseRefs[0] = 0;
+    p.phrases[0].steps[0].note = songcore::Note::C4();
+    p.phrases[0].steps[4].note = songcore::Note{7, 4};
+    p.phrases[0].steps[4].fx1Type = 3;
+    assert(r.host.push_project(songcore::serialize_project(p)));
+    r.state.project = &r.host.edit_project();
+    r.cell(ProjectRow::EXPORT, 3);
+    r.tap(Button::A);
+    assert(r.state.statusMessage == "MIDI: 2 NOTES, 1 TRACK (FX NOT INCLUDED)");
+    r.tap(Button::A);
+    const std::string first = r.sfs.renders_directory() + "/UNTITLED_0001.mid", second = r.sfs.renders_directory() + "/UNTITLED_0002.mid";
+    std::string a, b;
+    assert(r.sfs.read_file(first, a) && r.sfs.read_file(second, b) && a == b && a.compare(0, 4, "MThd") == 0);
+}
+
 // SAVE keeps what it replaces, newest first, up to five, and never the same version twice.
 void backup_cases(const fs::path& root) {
     Rig r(root / "b1");
@@ -583,6 +608,7 @@ int main(int argc, char** argv) {
     collect_keeps_namesakes(root);
     write_cases(root);
     backup_cases(root);
+    midi_button_case(root);
     std::cout << "FILE_SAFETY_PASS: load asks, save never replaces unasked, no paste into itself, "
-                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes, save backups\n";
+                 "rename case, fast A after a move, preset file names, collect namesakes, synced writes, save backups, midi export\n";
 }

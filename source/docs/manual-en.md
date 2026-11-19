@@ -1523,6 +1523,7 @@ Navigate here: **R+UP** from SONG or CHAIN.
 | COLLECT | Copy the song and every sample and SoundFont it plays into `<home>/Songs/ProjectName/`. Move or share that folder and the song opens anywhere. If the folder is already there, choose REPLACE, NEW COPY (`ProjectName_2`) or CANCEL. |
 | EXPORT — MIX | Open the RENDER panel, set to a stereo WAV (offline, faster than real-time). |
 | EXPORT — STEMS | Open the RENDER panel, set to one stereo WAV stem per active track, plus reverb and delay send returns. |
+| EXPORT — MIDI | Write the song as a Standard MIDI File to `Renders/ProjectName_0001.mid` at once (no panel): tempo, one MIDI track per audible track on its own channel, notes with the chain and project transpose, the step volume as velocity and the project swing. The tracker's effect commands, grooves and sounds are not in the file; the message says so when steps had effects. |
 | CLEAN SEQ | Remove unused chains and phrases (with confirmation dialog). |
 | CLEAN INST | Remove unused instruments (with confirmation dialog). |
 | SETTINGS | Open the SETTINGS screen (press A). |

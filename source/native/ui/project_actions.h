@@ -43,6 +43,10 @@ bool save_replaces_other(const songcore::SongcoreHost& host, FileSystem& fs, con
 // when none up to 999.
 std::string free_project_name(FileSystem& fs, const std::string& name);
 
+// EXPORT > MIDI: the song as `<Renders>/<NAME>_NNNN.mid` (songcore/midi_export.h), a note sketch for a
+// DAW: effects, grooves and sounds are not in it. The message says how many notes and tracks.
+ActionResult export_midi(const songcore::SongcoreHost& host, FileSystem& fs);
+
 // ─── COLLECT: the song and every file it plays, copied into one folder under Songs/ ──────────────
 
 // The folder COLLECT writes: the project's file name.
