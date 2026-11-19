@@ -101,7 +101,7 @@ public:
             out[i] = limit(.9f * amp * sum);
         }
         for (int q = 0; q < 3; ++q)
-            if (!std::isfinite(ic1_[q]) || !std::isfinite(ic2_[q])) ic1_[q] = ic2_[q] = 0.f;
+            if (!std::isfinite(ic1_[q]) || !std::isfinite(ic2_[q]) || (std::fabs(ic1_[q]) < 1e-15f && std::fabs(ic2_[q]) < 1e-15f)) ic1_[q] = ic2_[q] = 0.f;
     }
 
 private:

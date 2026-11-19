@@ -45,6 +45,7 @@ public:
         t_ = 0;
         vib_ = 0.f;
         croakPhase_ = 0.f;
+        tilt_ = 0.f;
         for (int i = 0; i < 4; ++i) ic1_[i] = ic2_[i] = 0.f;
         nic1_ = nic2_ = 0.f;
         noise_ = 0x1234ABCDu;
@@ -103,6 +104,7 @@ public:
         const bool frog = s.voice == 0;
         const float croakAmt = std::clamp(s.croak, 0.f, 1.f) * (frog ? 1.f : .5f);
         const float oq = frog ? .72f : s.voice == 1 ? .6f : .64f;
+        const float tiltCoef = frog ? .42f : s.voice == 1 ? .5f : s.voice == 2 ? .6f : .7f;
 
         for (int i = 0; i < frames; ++i) {
             vib_ += 5.4f / kRate;
@@ -120,8 +122,11 @@ public:
                 shimmer_ = 1.f + .03f * next_random();
             }
             const float g = flow(phase_, oq);
-            const float src = (g - gPrev_) / std::max(dt, 1e-4f) * .22f * shimmer_;
+            const float rawSrc = (g - gPrev_) / std::max(dt, 1e-4f) * .22f * shimmer_;
             gPrev_ = g;
+            // spectral tilt: the sharp closing edge is softened, more for the frog and the man, less for the child
+            tilt_ += (rawSrc - tilt_) * tiltCoef;
+            const float src = tilt_;
             const float chop = 1.f - croakAmt * .75f * (1.f - hump) * (1.f - hump);
             const float n = next_random();
             const float x = voiced_ * src + asp_ * n * .6f;
@@ -147,6 +152,12 @@ public:
         for (int q = 0; q < 4; ++q)
             if (!std::isfinite(ic1_[q]) || !std::isfinite(ic2_[q])) ic1_[q] = ic2_[q] = 0.f;
         if (!std::isfinite(nic1_) || !std::isfinite(nic2_)) nic1_ = nic2_ = 0.f;
+        for (int q = 0; q < 4; ++q) {   // flush denormals: they cost an ARM core many times the normal price
+            if (std::fabs(ic1_[q]) < 1e-15f) ic1_[q] = 0.f;
+            if (std::fabs(ic2_[q]) < 1e-15f) ic2_[q] = 0.f;
+        }
+        if (std::fabs(nic1_) < 1e-15f) nic1_ = 0.f;
+        if (std::fabs(nic2_) < 1e-15f) nic2_ = 0.f;
     }
 
     // Plan length in samples until the last sound ends (0 if the vowel is held for ever).
@@ -336,7 +347,7 @@ private:
     Seg seg_[8];
     int nseg_ = 0;
     uint32_t vowelStart_ = 0, codaStart_ = 0, planEnd_ = 0, t_ = 0;
-    float phase_ = 0.f, gPrev_ = 0.f, vib_ = 0.f, croakPhase_ = 0.f, shimmer_ = 1.f;
+    float phase_ = 0.f, gPrev_ = 0.f, vib_ = 0.f, croakPhase_ = 0.f, shimmer_ = 1.f, tilt_ = 0.f;
     float f_[3] = {0, 0, 0}, amp_ = 0.f, voiced_ = 0.f, asp_ = 0.f, nz_ = 0.f, nzHz_ = 5000.f, nasalGain_ = 1.f;
     float ic1_[4] = {0, 0, 0, 0}, ic2_[4] = {0, 0, 0, 0}, nic1_ = 0.f, nic2_ = 0.f;
     uint32_t noise_ = 0x1234ABCDu;

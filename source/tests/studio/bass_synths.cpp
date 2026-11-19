@@ -150,6 +150,36 @@ int main() {
         std::printf("reese beating, sub, cutoff ok\n");
     }
 
+    // Clean signal: no DC offset, and little that is not a harmonic of the note (aliasing folds a saw's upper
+    // harmonics back between the real ones). Measured on a 1.76 kHz saw with the filter wide open.
+    {
+        for (int m : {kAcidBoxModel, kReeseBassModel}) {
+            const auto x = m == kAcidBoxModel ? note(m, 255, 40, 0, {{2, 32}, {3, 0}}, 1760.f, 16384) : note(m, 60, 255, 0, {{2, 64}, {3, 0}}, 1760.f, 16384);
+            double mean = 0;
+            for (size_t i = 4096; i < x.size(); ++i) mean += x[i];
+            mean /= double(x.size() - 4096);
+            const auto p = spectrum(x, 8000);
+            double total = 0, harmonic = 0;
+            for (size_t k = 1; k < p.size(); ++k) total += p[k];
+            for (int n = 1; n * 1760.f < 23000.f; ++n) harmonic += range(p, n * 1760.f - 40.f, n * 1760.f + 40.f);
+            // the reese has three detuned voices: its lines sit up to 40 cents apart, so allow a wider window
+            if (m == kReeseBassModel) { harmonic = 0; for (int n = 1; n * 1760.f < 23000.f; ++n) harmonic += range(p, n * 1760.f * .975f, n * 1760.f * 1.025f); }
+            {   // where is the off-harmonic energy? (debug aid, printed once per model)
+                double best = 0; int bestBin = 0;
+                for (size_t k = 5; k < p.size(); ++k) {
+                    const float hz = float(k) * kRate / kFft;
+                    const float ratio = hz / 1760.f;
+                    if (std::fabs(ratio - std::round(ratio)) * 1760.f < 40.f) continue;
+                    if (p[k] > best) { best = p[k]; bestBin = int(k); }
+                }
+                std::printf("  strongest off-harmonic bin %.0f Hz (%.1f dB below total)\n", float(bestBin) * kRate / kFft, db(total / best));
+            }
+            std::printf("%s: DC %.5f, off-harmonic energy %.1f dB below the total\n", model_name(m), mean, db(total / std::max(total - harmonic, 1e-30)));
+            assert(std::fabs(mean) < .004);
+            assert(db(total / std::max(total - harmonic, 1e-30)) > 22.0);
+        }
+    }
+
     // Every named sound plays, stays bounded, and none is silent or far louder than the rest.
     for (int m : {kAcidBoxModel, kReeseBassModel}) {
         double quietest = 1, loudest = 0;

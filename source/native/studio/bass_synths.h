@@ -18,6 +18,36 @@
 namespace studio {
 
 namespace bass_detail {
+// A rational tanh, good to about 2 % up to |x| = 3 and cheap on the handhelds' small cores.
+inline float fast_tanh(float x) {
+    x = std::clamp(x, -3.f, 3.f);
+    return x * (27.f + x * x) / (27.f + 9.f * x * x);
+}
+// Soft clipper with first-order antiderivative anti-aliasing (ADAA): the saturation of a saw would otherwise fold its
+// own harmonics back into the audible range. f(x) = 1.5x - 0.5x^3 inside +-1, then flat; F is its integral, so the
+// output is the average of f over the step between two samples: no oversampling, one division per sample.
+struct SoftClipAdaa {
+    float xp = 0.f;
+    void reset() { xp = 0.f; }
+    static float f(float x) { x = std::clamp(x, -1.f, 1.f); return x * (1.5f - .5f * x * x) * (2.f / 3.f) * 1.f; }
+    static float integral(float x) {
+        const float a = std::fabs(x);
+        const float v = a <= 1.f ? (.75f * a * a - .125f * a * a * a * a) * (2.f / 3.f) : (a - .375f) * (2.f / 3.f);
+        return v;
+    }
+    float process(float x) {
+        const float d = x - xp;
+        const float y = std::fabs(d) < 1e-5f ? f(.5f * (x + xp)) : (integral(x) - integral(xp)) / d;
+        xp = x;
+        return y * 1.5f;   // unity gain for small signals, a ceiling of 1
+    }
+};
+// DC blocker (about 4 Hz): a bass note must not carry an offset into the limiter and the mix.
+struct DcBlock {
+    float x1 = 0.f, y1 = 0.f;
+    void reset() { x1 = y1 = 0.f; }
+    float process(float x) { const float y = x - x1 + .9995f * y1; x1 = x; y1 = y; return y; }
+};
 inline float blep(float t, float dt) {
     if (t < dt) { t /= dt; return t + t - t * t - 1.f; }
     if (t > 1.f - dt) { t = (t - 1.f) / dt; return t * t + t + t + 1.f; }
@@ -41,7 +71,13 @@ struct Svf {
         ic2 = 2.f * v2 - ic2;
         return v2;
     }
-    void scrub() { if (!std::isfinite(ic1) || !std::isfinite(ic2)) ic1 = ic2 = 0.f; }
+    // NaN guard and denormal flush: a decaying state that falls into the denormal range costs an ARM core
+    // many times the normal price per operation.
+    void scrub() {
+        if (!std::isfinite(ic1) || !std::isfinite(ic2)) ic1 = ic2 = 0.f;
+        if (std::fabs(ic1) < 1e-15f) ic1 = 0.f;
+        if (std::fabs(ic2) < 1e-15f) ic2 = 0.f;
+    }
 };
 }  // namespace bass_detail
 
@@ -56,13 +92,14 @@ public:
     static float decay_seconds(float v01) { return .06f * std::exp2(5.f * std::clamp(v01, 0.f, 1.f)); }   // 0.06 … 1.9 s
 
     AcidBox() { start(); }
-    void start() { phase_ = 0.f; env_ = 1.f; f1_.reset(); f2_.reset(); }
+    void start() { phase_ = 0.f; env_ = 1.f; f1_.reset(); f2_.reset(); dc_.reset(); clip_.reset(); }
 
     void render(float* out, int frames, float hz, float cutoff01, float res01, float mod01, const Settings& s) {
         using namespace bass_detail;
         hz = std::clamp(hz, 20.f, 4000.f);
         const float dt = std::min(hz / kRate, .45f);
         const float k = 2.f - 1.9f * std::clamp(res01, 0.f, 1.f);
+        const float k1 = 1.414f;   // the first pole pair is plain; only the second one resonates
         const float accent = std::clamp(s.accent, 0.f, 1.f);
         const float envDecay = std::exp(-float(frames) / (decay_seconds(s.decay) * kRate));
         const float base = std::log2(cutoff_hz(cutoff01));
@@ -74,6 +111,7 @@ public:
         env_ *= envDecay;
         const float g = std::tan(3.14159265f * fc / kRate);
         const float a1 = 1.f / (1.f + g * (g + k)), a2 = g * a1, a3 = g * a2;
+        const float b1 = 1.f / (1.f + g * (g + k1)), b2 = g * b1, b3 = g * b2;
         for (int i = 0; i < frames; ++i) {
             phase_ += dt;
             phase_ -= std::floor(phase_);
@@ -85,11 +123,11 @@ public:
                 v = (phase_ < .5f ? 1.f : -1.f) + blep(phase_, dt) - blep(p2, dt);
             }
             if (s.sub > 0.f) v = v * (1.f - .4f * s.sub) + s.sub * .7f * std::sin(3.14159265f * phase_);
-            const float x = std::tanh(driveGain * .6f * v);
-            // four poles: two state-variable stages, the second a little under-damped less than the first
-            const float y1 = f1_.low(x, a1, a2, a3);
+            const float x = clip_.process(driveGain * .6f * v);
+            // four poles: a plain stage, a soft clip (the squelch), then the resonant stage
+            const float y1 = fast_tanh(1.2f * f1_.low(x, b1, b2, b3));
             const float y2 = f2_.low(y1, a1, a2, a3);
-            out[i] = limit(.27f * level * y2 * (1.f + .5f * (2.f - k) / 2.f));
+            out[i] = limit(.27f * level * dc_.process(y2 * (1.f + .5f * (2.f - k) / 2.f)));
         }
         f1_.scrub();
         f2_.scrub();
@@ -98,6 +136,8 @@ public:
 private:
     float phase_ = 0.f, env_ = 1.f;
     bass_detail::Svf f1_, f2_;
+    bass_detail::DcBlock dc_;
+    bass_detail::SoftClipAdaa clip_;
 };
 
 class ReeseBass {
@@ -115,6 +155,8 @@ public:
         lfo_ = 0.f;
         f1_.reset();
         f2_.reset();
+        dc_.reset();
+        clip_.reset();
     }
 
     void render(float* out, int frames, float hz, float detune01, float cutoff01, float move01, const Settings& s) {
@@ -155,9 +197,9 @@ public:
                 a2_ = g * a1_;
                 a3_ = g * a2_;
             }
-            const float x = std::tanh(driveGain * v * .8f);
+            const float x = clip_.process(driveGain * v * .8f);
             const float y = f2_.low(f1_.low(x, a1_, a2_, a3_), a1_, a2_, a3_);
-            out[i] = limit(.3f * y);
+            out[i] = limit(.3f * dc_.process(y));
         }
         f1_.scrub();
         f2_.scrub();
@@ -167,6 +209,8 @@ private:
     float phase_[3] = {0, .31f, .62f}, subPhase_ = 0.f, lfo_ = 0.f;
     float a1_ = .5f, a2_ = .2f, a3_ = .05f;
     bass_detail::Svf f1_, f2_;
+    bass_detail::DcBlock dc_;
+    bass_detail::SoftClipAdaa clip_;
 };
 
 }  // namespace studio
