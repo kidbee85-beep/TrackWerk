@@ -172,10 +172,15 @@ public:
         for (int i = 0; i < frames; ++i) {
             lfo_ += lfoStep;
             lfo_ -= std::floor(lfo_);
-            const float l = std::sin(6.2831853f * lfo_);
-            // the detune breathes with the drift: the beating slows and quickens
-            const float wide = spread * (1.f + .6f * move * l);
-            const float ratios[3] = {std::exp2(-wide), std::exp2(wide), 1.f};
+            // the detune breathes with the drift (the beating slows and quickens): a slow movement, evaluated every 8 samples
+            if ((i & 7) == 0) {
+                l_ = std::sin(6.2831853f * lfo_);
+                const float wide = spread * (1.f + .6f * move * l_);
+                ratio_[0] = std::exp2(-wide);
+                ratio_[1] = std::exp2(wide);
+            }
+            const float l = l_;
+            const float ratios[3] = {ratio_[0], ratio_[1], 1.f};
             float v = 0.f;
             for (int o = 0; o < voices; ++o) {
                 const float f = hz * (o == 2 ? 1.f : ratios[o]);
@@ -206,7 +211,7 @@ public:
     }
 
 private:
-    float phase_[3] = {0, .31f, .62f}, subPhase_ = 0.f, lfo_ = 0.f;
+    float phase_[3] = {0, .31f, .62f}, subPhase_ = 0.f, lfo_ = 0.f, l_ = 0.f, ratio_[2] = {1.f, 1.f};
     float a1_ = .5f, a2_ = .2f, a3_ = .05f;
     bass_detail::Svf f1_, f2_;
     bass_detail::DcBlock dc_;

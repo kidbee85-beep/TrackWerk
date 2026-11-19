@@ -67,21 +67,35 @@ public:
         const float bubble = std::clamp(s.bubble, 0.f, 1.f);
         const float weights[3] = {1.f, .8f, .6f};
 
+        // The hump (a sine) and the pitch dip (an exp2) are slow: evaluated every 8 samples and interpolated between,
+        // which spares the small ARM cores about a third of the work and cannot be heard.
+        float tA = 0.f, tB = 0.f, hA = 0.f, hB = 0.f, mA = 1.f, mB = 1.f;
+        const auto control = [&](float cph, float& target, float& h, float& m) {
+            const float p = cph * float(pulses);
+            const float frac = p - std::floor(p);
+            h = std::sin(3.14159265f * frac);
+            h *= h;
+            const int index = std::min(int(p), pulses - 1);
+            const float rise = pulses == 1 ? 1.f : .72f + .28f * float(index) / float(pulses - 1);
+            target = h * rise;
+            m = std::exp2(-(dipOct + chirpOct) * (1.f - h));
+        };
         for (int i = 0; i < frames; ++i) {
             croakPhase_ += croakStep;
             croakPhase_ -= std::floor(croakPhase_);
-            // One sine-shaped hump per pulse; the last pulse of a croak is the loudest.
-            const float p = croakPhase_ * float(pulses);
-            const float frac = p - std::floor(p);
-            float hump = std::sin(3.14159265f * frac);
-            hump *= hump;
-            const int index = std::min(int(p), pulses - 1);
-            const float rise = pulses == 1 ? 1.f : .72f + .28f * float(index) / float(pulses - 1);
-            const float target = hump * rise;
+            if (i == 0) control(croakPhase_, tB, hB, mB);
+            if ((i & 7) == 0) {
+                tA = tB; hA = hB; mA = mB;
+                float cp = croakPhase_ + 8.f * croakStep;
+                cp -= std::floor(cp);
+                control(cp, tB, hB, mB);
+            }
+            const float tFrac = float(i & 7) * .125f;
+            const float target = tA + (tB - tA) * tFrac;
             env_ += (target - env_) * .02f;
             const float amp = 1.f - depth + depth * env_;
 
-            const float f = std::clamp(hz * std::exp2(-(dipOct + chirpOct) * (1.f - hump)), 20.f, 4000.f);
+            const float f = std::clamp(hz * (mA + (mB - mA) * tFrac), 20.f, 4000.f);
             const float dt = std::min(f / kRate, .45f);
             phase_ += dt;
             phase_ -= std::floor(phase_);

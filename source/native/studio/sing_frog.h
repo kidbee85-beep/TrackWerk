@@ -106,13 +106,28 @@ public:
         const float oq = frog ? .72f : s.voice == 1 ? .6f : .64f;
         const float tiltCoef = frog ? .42f : s.voice == 1 ? .5f : s.voice == 2 ? .6f : .7f;
 
+        // The croak hump and the pitch bend (a cosine, a sine and an exp2) are slow: they are evaluated every 8 samples
+        // and interpolated between, which is inaudible and spares the small ARM cores about a third of the work.
+        float hA = 0.f, hB = 0.f, bA = 1.f, bB = 1.f;
+        const auto control = [&](float cph, float vph, float& h, float& b) {
+            h = .5f - .5f * std::cos(6.2831853f * cph);   // 0..1
+            b = std::exp2(-croakAmt * .35f * (1.f - h) + vibDepth * vibIn * std::sin(6.2831853f * vph));
+        };
         for (int i = 0; i < frames; ++i) {
             vib_ += 5.4f / kRate;
             vib_ -= std::floor(vib_);
             croakPhase_ += 6.f / kRate;
             croakPhase_ -= std::floor(croakPhase_);
-            const float hump = .5f - .5f * std::cos(6.2831853f * croakPhase_);   // 0..1
-            const float bend = std::exp2(-croakAmt * .35f * (1.f - hump) + vibDepth * vibIn * std::sin(6.2831853f * vib_));
+            if (i == 0) control(croakPhase_, vib_, hB, bB);
+            if ((i & 7) == 0) {
+                hA = hB; bA = bB;
+                float cp = croakPhase_ + 8.f * 6.f / kRate, vp = vib_ + 8.f * 5.4f / kRate;
+                cp -= std::floor(cp); vp -= std::floor(vp);
+                control(cp, vp, hB, bB);
+            }
+            const float tFrac = float(i & 7) * .125f;
+            const float hump = hA + (hB - hA) * tFrac;
+            const float bend = bA + (bB - bA) * tFrac;
             const float f = std::clamp(hz * bend, 20.f, 3000.f);
             float dt = std::min(f / kRate, .4f);
             // jitter (small random walk of the period) and shimmer (level of each period)
