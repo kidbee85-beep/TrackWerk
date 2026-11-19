@@ -128,7 +128,8 @@ const char* gravity_description(int model){
  default:return "Independent drops trigger tuned impacts";
  }
 }
-void synth_diagram(Canvas& c,int model,int x,int y,Argb color){
+// `live`: the AppState for diagrams that draw the sound's own settings and move (DUB SIREN); null elsewhere.
+void synth_diagram(Canvas& c,int model,int x,int y,Argb color,const AppState* live=nullptr){
  if(model==studio::kFmSysexModel){
   // FM SYSEX: six operators, a stack of three modulating a carrier beside a second stack.
   const auto dim=with_alpha(color,.38f);
@@ -138,29 +139,41 @@ void synth_diagram(Canvas& c,int model,int x,int y,Argb color){
   return;
  }
  if(model==studio::kDcoPolyModel){
-  // DCO POLY: a resonant low-pass response, flat, a peak at the cutoff, then the four-pole fall.
+  // DCO POLY: the filter's response, from the sound's own macros when live: the cutoff sets where the peak
+  // sits, the resonance how tall it stands, then the four-pole fall.
   const auto dim=with_alpha(color,.38f);
+  const float cutoff=live?live->studioHarmonics/255.f:.55f,resonance=live?live->studioTimbre/255.f:.3f;
+  const int fc=8+int(cutoff*58.f),peakHeight=2+int(resonance*9.f);
   c.line(x,y+18,x+76,y+18,dim);
   int previous=y+8;
   for(int px=1;px<=76;++px){
-   const float t=(px-44)/6.f;
-   const int py=px<44?y+8-int(6.f/(1.f+t*t)):y+8-int(6.f/(1.f+t*t))+(px-44)*(px-44)/80;
-   c.line(x+px-1,previous,x+px,std::min(py,y+18),px<44?color:dim);
-   previous=std::min(py,y+18);
+   const float t=(px-fc)/5.f;
+   const int bump=int(float(peakHeight)/(1.f+t*t));
+   const int fall=px>fc?(px-fc)*(px-fc)/60:0;
+   const int py=std::min(y+8-bump+fall,y+18);
+   c.line(x+px-1,previous,x+px,py,px<=fc?color:dim);
+   previous=py;
   }
   return;
  }
  if(model==studio::kDubSirenModel){
-  // DUB SIREN: the wail - a pitch curve swinging up and down while it drifts upward (LFO plus sweep).
+  // DUB SIREN: the pitch curve the note will draw - the LFO's swing (rate: how many waves, depth: how tall)
+  // riding on the sweep (a slope up or down). With a live state it is the sound's own macros, and with
+  // motion on a bright point travels along it and leaves a short trail, like a sonar sweep.
   const auto dim=with_alpha(color,.38f);
-  c.line(x,y+18,x+76,y+18,dim);
-  int previous=y+13;
-  for(int px=1;px<=76;++px){
-   const float t=float(px)/76.f;
-   const int py=y+13-int(5.f*std::sin(t*6.2831853f*3.f))-int(4.f*t);
-   c.line(x+px-1,previous,x+px,std::clamp(py,y,y+18),px<38?color:dim);
-   previous=std::clamp(py,y,y+18);
+  const float rate=live?live->studioHarmonics/255.f:.45f,depth=live?live->studioTimbre/255.f:.6f,sweep=live?live->studioMorph/255.f:.5f;
+  const float waves=1.f+rate*4.f,amp=1.5f+depth*6.5f,slope=(std::fabs(sweep-.5f)<.012f?0.f:(sweep-.5f)*2.f)*7.f;
+  c.line(x,y+19,x+76,y+19,dim);   // the note's own pitch
+  const auto at=[&](int px){const float t=float(px)/76.f;return std::clamp(y+10-int(std::lround(amp*std::sin(t*6.2831853f*waves)+slope*t)),y,y+19);};
+  int previous=at(0);
+  for(int px=1;px<=76;++px){const int py=at(px);c.line(x+px-1,previous,x+px,py,dim);previous=py;}
+  const bool moving=live&&live->settings.sceneMotion;
+  const int head=moving?int((live->animationMs/38)%77):38;
+  for(int trail=7;trail>=0;--trail){
+   const int px=head-trail;if(px<1||px>76)continue;
+   c.line(x+px-1,at(px-1),x+px,at(px),with_alpha(color,trail==0?1.f:.9f-trail*.1f));
   }
+  c.fill_rect(x+head-1,at(head)-1,3,3,color);
   return;
  }
  const int kind=model-studio::kGravityFirstModel;
@@ -313,7 +326,7 @@ void synth_page(Canvas& c,const AppState& s){
  label(c,"A: Choose",527,108,s.studioRow==1?t.rowCursor:t.textParam,86);
  label(c,studio::model_name(s.studioModel),194,128,t.textValue,322,20);
  label(c,studio::is_gravity_model(s.studioModel)?gravity_description(s.studioModel):group.name,194,153,t.textParam,316);
- synth_diagram(c,s.studioModel,526,134,t.rowCursor);
+ synth_diagram(c,s.studioModel,526,134,t.rowCursor,&s);
 
  studio_card(c,16,178,608,42,t,s.studioRow==2);
  label(c,"PRESET",28,191,t.textParam,75);
