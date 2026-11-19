@@ -12,6 +12,7 @@
 #ifndef TRACKWERK_MIDI_EXPORT_H
 #define TRACKWERK_MIDI_EXPORT_H
 
+#include "effects.h"   // step_plays_on_pass (NTH, PRB)
 #include "model.h"
 #include "render.h"   // find_song_bounds
 #include "timing.h"
@@ -91,6 +92,8 @@ inline std::vector<MidiEvent> track_events(const Project& p, int trackIndex, con
                 const PhraseStep empty;
                 const PhraseStep& step = i < static_cast<int>(phrase.steps.size()) ? phrase.steps[static_cast<size_t>(i)] : empty;
                 if (step.fx1Type || step.fx2Type || step.fx3Type) ++stepsWithFx;
+                // A row its NTH or PRB holds back on the first pass is not in the sketch (the same draw as in playback).
+                if (!step_plays_on_pass(step, 1, prb_salt(trackIndex, ref, i))) { tick += static_cast<uint32_t>(swing_step_duration(kMidiStepTicks, swing, (i & 1) != 0)); continue; }
                 if (note_is_off(step.note)) {
                     close_note(tick);
                 } else if (note_is_pitch(step.note)) {
