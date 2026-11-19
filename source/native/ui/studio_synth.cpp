@@ -36,6 +36,39 @@ songcore::ModSlot* edit_envelope(songcore::Instrument& ins){
  for(auto& m:ins.modSlots)if(m.type==songcore::ModType::NONE){m=songcore::ModSlot{};m.type=songcore::ModType::ADSR;m.dest=songcore::ModDest::VOLUME;return &m;}
  return nullptr;
 }
+// FROGGY's lyric templates: the .txt files of Presets/Lyrics, by name. The first look at an empty folder writes a few
+// starter lines (public domain or our own); nothing is ever overwritten. A file's first 120 characters count.
+struct LyricTemplate{std::string name,text;};
+std::vector<LyricTemplate> lyric_templates(FileSystem* fs){
+ std::vector<LyricTemplate> out;
+ if(!fs)return out;
+ const std::string dir=fs->make_app_folder("Presets/Lyrics");
+ if(dir.empty())return out;
+ auto entries=fs->list_files(dir);
+ const auto is_txt=[](const FileInfo& f){
+  if(f.isDirectory||f.isAction||f.isRoot)return false;
+  std::string e=f.extension;for(auto& ch:e)ch=char(std::tolower(static_cast<unsigned char>(ch)));
+  return e=="txt";};
+ bool any=false;for(const auto& e:entries)if(is_txt(e))any=true;
+ if(!any){
+  static const char* starters[][2]={{"Pond Song","la la ribbit ribbit quack la la"},{"Hello Frog","hello hello i am a frog"},
+   {"Counting","one two three four five six seven eight"},{"Do Re Mi","do re mi fa so la ti do"},
+   {"Row Boat","row row row your boat gently down the stream"},{"Rain","rain rain go away come again another day"}};
+  for(const auto& st:starters)fs->write_file(dir+"/"+st[0]+".txt",std::string(st[1])+"\n");
+  entries=fs->list_files(dir);
+ }
+ for(const auto& e:entries){
+  if(!is_txt(e)||e.size>4096)continue;
+  std::string content;if(!fs->read_file(e.path,content))continue;
+  for(auto& ch:content)if(ch=='\n'||ch=='\r'||ch=='\t')ch=' ';
+  while(!content.empty()&&content.back()==' ')content.pop_back();
+  size_t first=content.find_first_not_of(' ');if(first==std::string::npos)continue;
+  content=content.substr(first);if(content.size()>size_t(studio::sing::kMaxTextChars))content.resize(size_t(studio::sing::kMaxTextChars));
+  out.push_back({e.name_without_extension(),content});
+ }
+ std::sort(out.begin(),out.end(),[](const LyricTemplate& a,const LyricTemplate& b){return a.name<b.name;});
+ return out;
+}
 // FM SYSEX: the bank and voice the draft plays — its parameters, else its named sound's.
 std::array<int,2> fm_selection(const AppState& s){
  const auto& p=s.studioDraft.studioSynthParams;
@@ -670,6 +703,16 @@ void studio_synth_edit(AppState& s,songcore::SongcoreHost& host,AudioEngine& eng
  if(k==0){int* v[]={&s.studioHarmonics,&s.studioTimbre,&s.studioMorph};value=v[i];s.studioSynthCustom=true;}
  else if(k==1&&s.studioModel==studio::kFmSysexModel&&(extra_index(s,i)==studio::kFmBankParam||extra_index(s,i)==studio::kFmVoiceParam)){
   fm_step(s,fs,extra_index(s,i),direction,coarse);publish(s,host,engine,false);return;}
+ else if(k==1&&s.studioModel==studio::kSingFrogModel&&extra_index(s,i)==studio::kSingLyricParam&&coarse){
+  // A + Up / Down: the next or previous template of Presets/Lyrics replaces the words.
+  const auto templates=lyric_templates(fs);
+  if(templates.empty()){s.studioMessage="No lyric templates: put .txt files in Presets/Lyrics";return;}
+  int at=-1;for(size_t n=0;n<templates.size();++n)if(templates[n].text==s.studioDraft.lyric)at=int(n);
+  const int count=int(templates.size());
+  const int next=at<0?(direction>0?0:count-1):((at+direction)%count+count)%count;
+  s.studioDraft.lyric=templates[size_t(next)].text;
+  publish(s,host,engine,false);
+  s.studioMessage="Lyrics: "+templates[size_t(next)].name+"   ("+std::to_string(next+1)+" / "+std::to_string(count)+")";return;}
  else if(k==1&&s.studioModel==studio::kSingFrogModel&&extra_index(s,i)==studio::kSingLyricParam){
   // The words are typed on the keyboard; A+D-pad on this row opens it with the current text.
   auto& k2=s.qwerty;k2=QwertyKeyboardState{};k2.isOpen=true;

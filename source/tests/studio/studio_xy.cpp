@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 
 using namespace pt::ui;
@@ -103,4 +104,46 @@ int main(int argc, char** argv) {
     r.tap(Button::DPAD_RIGHT, held);
     assert(r.s.studioHarmonics == 100);
     std::printf("STUDIO_XY_PASS\n");
+
+    // The frog models show the stage and move the firefly on the FIRST page too.
+    for (int model : {studio::kFrogVoiceModel, studio::kSingFrogModel}) {
+        Rig f(dir / ("frog" + std::to_string(model)));
+        f.s.studioModel = model;
+        f.s.studioSynthPage = 0;
+        assert(studio_synth_xy_page(f.s) && studio_synth_frog_model(f.s));
+        f.s.studioRow = 3;
+        f.tap(Button::DPAD_RIGHT, held);
+        assert(f.s.studioHarmonics == 104 && f.s.studioRow == 3);
+        f.s.studioSynthPage = 1;
+        assert(!studio_synth_xy_page(f.s));   // the engine pages are plain
+    }
+
+    // FROGGY's lyric templates: A + Up / Down on the Lyrics row steps through Presets/Lyrics, starters included.
+    {
+        Rig f(dir / "froggy");
+        f.s.studioModel = studio::kSingFrogModel;
+        f.s.studioSynthPage = 1;
+        assert(studio_synth_control_label(f.s, 2) == "Lyrics");
+        studio_synth_edit(f.s, f.host, *f.engine, 5, +1, true, &f.sfs);
+        const std::string first = f.s.studioDraft.lyric;
+        assert(!first.empty() && f.s.studioMessage.rfind("Lyrics: ", 0) == 0);
+        assert(fs::exists(dir / "froggy/data/Presets/Lyrics/Pond Song.txt"));
+        studio_synth_edit(f.s, f.host, *f.engine, 5, +1, true, &f.sfs);
+        assert(f.s.studioDraft.lyric != first);
+        studio_synth_edit(f.s, f.host, *f.engine, 5, -1, true, &f.sfs);
+        assert(f.s.studioDraft.lyric == first);
+        // a template of our own is listed too (and a long one is cut to the limit)
+        {
+            std::ofstream out(dir / "froggy/data/Presets/Lyrics/AAA Mine.txt");
+            out << std::string(300, 'a') << "\n";
+        }
+        studio_synth_edit(f.s, f.host, *f.engine, 5, +1, true, &f.sfs);
+        studio_synth_edit(f.s, f.host, *f.engine, 5, -1, true, &f.sfs);
+        studio_synth_edit(f.s, f.host, *f.engine, 5, -1, true, &f.sfs);
+        assert(f.s.studioDraft.lyric.size() == size_t(studio::sing::kMaxTextChars) && f.s.studioDraft.lyric[0] == 'a');
+        // without A + Up / Down the keyboard opens with the current words
+        studio_synth_edit(f.s, f.host, *f.engine, 5, +1, false, &f.sfs);
+        assert(f.s.qwerty.isOpen && f.s.qwerty.context == QwertyContext::LYRIC_EDIT);
+        std::printf("lyric templates ok\n");
+    }
 }
