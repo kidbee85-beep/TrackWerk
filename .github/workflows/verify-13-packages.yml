@@ -59,6 +59,8 @@ jobs:
           SDL_AUDIODRIVER=dummy xvfb-run -a timeout --signal=TERM 10s trackwerk > evidence/first-start.txt 2>&1
           rc=$?
           set -e
+          set -x
+          printf 'startup exit=%s\n' "$rc"
           test "$rc" = 124 -o "$rc" = 0
           grep -q 'startup: video first SDL_RenderPresent returned' evidence/first-start.txt
           test "$(find evidence/data/Samples -name '*.wav' | wc -l)" -eq 1529
@@ -73,5 +75,5 @@ jobs:
         if: always()
         with:
           name: debian-package-${{ matrix.arch }}-acceptance
-          path: evidence/
+          path: evidence/*.txt
           if-no-files-found: warn
