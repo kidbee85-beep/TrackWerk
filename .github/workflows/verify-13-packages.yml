@@ -18,10 +18,10 @@ jobs:
         include:
           - arch: amd64
             runner: ubuntu-24.04
-            sha256: 0b9045adee2b57b562df080a916413d0a2d190c2554dc014a8cccd1ccb766647
+            sha256: 7a995177f706061c6c18d6f42adc36be2e8d02454add2871cfc938d678ee96f3
           - arch: arm64
             runner: ubuntu-24.04-arm
-            sha256: d0d423f753f1da7b15938c26b46ebd84a43dbd1eb22532645dd3012d9bfa4946
+            sha256: 04979f4a6fa262e22c1c739e0d8f2c3490ab5deb9ee119d4ab3473474f07b291
     runs-on: ${{ matrix.runner }}
     container: debian:13-slim
     steps:

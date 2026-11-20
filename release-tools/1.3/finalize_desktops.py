@@ -64,6 +64,11 @@ for arch in ['amd64','arm64']:
  def tar(items):
   b=io.BytesIO()
   with tarfile.open(fileobj=b,mode='w',format=tarfile.GNU_FORMAT) as t:
+   parents=set()
+   for rel,_,_ in items:
+    parents.update(str(x) for x in Path(rel).parents if str(x)!='.')
+   for rel in sorted(parents,key=lambda x:(len(Path(x).parts),x)):
+    i=tarfile.TarInfo('./'+rel+'/');i.type=tarfile.DIRTYPE;i.mode=0o755;i.uid=i.gid=0;i.uname=i.gname='root';i.mtime=EPOCH;t.addfile(i)
    for rel,data,mode in items:
     i=tarfile.TarInfo(rel);i.uid=i.gid=0;i.uname=i.gname='root';i.mtime=EPOCH;i.mode=mode;i.size=len(data);t.addfile(i,io.BytesIO(data))
   return gzip.compress(b.getvalue(),compresslevel=6,mtime=EPOCH)
