@@ -1,6 +1,6 @@
-# TrackWerk 1.1 Reference Manual
+# TrackWerk 1.3 Reference Manual
 
-**Manual revision:** TrackWerk 1.1 core reference  
+**Manual revision:** TrackWerk 1.3 core reference  
 **Covers:** the inherited PocketTracker core. For current TrackWerk Studio, design, sampling and installation workflows, use the [illustrated handbook](https://kidbee85-beep.github.io/TrackWerk/guide.html).
 
 ---
@@ -35,6 +35,7 @@
 26. [Workflow Tips](#26-workflow-tips)
 27. [Configuration File (config.json)](#27-configuration-file-configjson)
 28. [Appendix: Controls Cheat Sheet](#appendix-controls-cheat-sheet)
+29. [Appendix: Studio additions in 1.3](#appendix-studio-additions-in-13)
 
 ---
 
@@ -3345,3 +3346,29 @@ Note offsets:  C   C#  D   D#  E   F   F#  G   G#  A   A#  B
 ---
 
 *PocketTracker is open-source (GPL-3.0). Contributions and bug reports welcome.*
+
+---
+
+## Appendix: Studio additions in 1.3
+
+This appendix lists the keys of the 1.3 Studio additions. The illustrated update guide (`docs/site/update-1.3.html`) shows them with pictures.
+
+**Studio > Synth, model picker.** Models are sorted by purpose into tabs (Voices and Frogs, Vintage Chips, Low End and Sirens, Plaits: Macro, Braids: Digital, Rings: Strings, Elements: Modal, Grain Oscillators, Studio DSP, Gravity, Spectral). LEFT/RIGHT changes the tab, UP/DOWN the model, A chooses. The preset row shows the position (for example `4 / 16`).
+
+**Froggy (Voices and Frogs).** Each note sings the next syllable of the instrument's lyrics; PLAY starts again at the first syllable.
+
+| Key | Where | Does |
+| --- | --- | --- |
+| A + RIGHT | Words page, Lyrics row | Opens the on-screen keyboard with the current words (up to 120 characters) |
+| D-pad, A, B, START | Keyboard | Choose a key, type it, delete, keep the text |
+| R + LEFT/RIGHT | Keyboard | Move the text cursor |
+| A + UP/DOWN | Words page, Lyrics row | Next/previous template from `Presets/Lyrics` (`.txt` files, six starter lines on first use) |
+| A + LEFT/RIGHT | Any row | Edit the value (UP/DOWN steps by larger amounts) |
+| L (hold) + D-pad | Stage page and XY pad page (Froggy, Croaker) | Move the firefly: X is the first macro, Y the second |
+| Finger drag | Same pages, touch screens | Moves the firefly |
+
+Rows: Lyrics, Voice (frog, man, woman, child), Croak, Vibrato, Glide, Coda (0 = off), Syllable (Auto or a fixed number), Pitch source (Note or Mic; Mic on Linux builds only, while the recorder listens). Macros: Mouth, Breath, Throat. Spell words the way they should sound. The lyrics belong to the instrument and are saved with the project and with the instrument preset.
+
+**Control sheets.** Each family draws its values its own way: dials (Rings, Elements, Low End and Sirens), an LCD (Braids, Vintage Chips), a bar graph (Gravity, Spectral) and plain blocks elsewhere. The values and keys are the same everywhere.
+
+**Sample Pack.** The TrackWerk Sample Pack and the Drum Machines Samples are ordinary WAV folders. Copy them into the Samples folder and load them from the sample browser or the Sample Editor.

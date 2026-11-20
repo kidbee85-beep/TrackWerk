@@ -180,4 +180,19 @@ int main(int argc, char** argv) {
         assert(!studio_touch_canvas(f.s, f.host, *f.engine, 304 + 10, 254 + 8, 0));
         std::printf("touch pad ok\n");
     }
+
+    // The lyric travels with the project and with the instrument preset, and a text with a multi-byte character survives.
+    {
+        Rig q(dir / "roundtrip");
+        auto project = songcore::make_default_project();
+        project.instruments[2].lyric = "la la ribbit \xC3\xBC";
+        const std::string text = songcore::serialize_project(project);
+        assert(text.find("\"lyric\":") != std::string::npos);
+        assert(q.host.push_project(text));
+        assert(q.host.project().instruments[2].lyric == "la la ribbit \xC3\xBC");
+        songcore::InstrumentPreset preset;
+        preset.instrument = project.instruments[2];
+        assert(songcore::serialize_instrument_preset(preset).find("la la ribbit") != std::string::npos);
+        std::printf("lyric roundtrip ok\n");
+    }
 }

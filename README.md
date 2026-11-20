@@ -1,18 +1,19 @@
-# TrackWerk 1.2.0
+# TrackWerk 1.3.0
 
 **Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.2.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.2.0) · [New 1.2 update film](https://youtu.be/8DiovzmRM6w) · [YouTube Short](https://www.youtube.com/shorts/w2DIKKX_xjc) · [Instagram Reel](https://www.instagram.com/reel/Df0bTJlR86j/) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.3.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.3.0) · [New 1.2 update film](https://youtu.be/8DiovzmRM6w) · [YouTube Short](https://www.youtube.com/shorts/w2DIKKX_xjc) · [Instagram Reel](https://www.instagram.com/reel/Df0bTJlR86j/) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
 ![TrackWerk / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
 
-## New in 1.2.0
+## New in 1.3.0
 
-- Twelve-tab sound browser: 2,048 instrument presets, independent preview, favourites, recent sounds and protected replacement.
-- Interactive First Beat tutorial and contextual help.
-- Clearer source/provider/genre selection and progressive preview for supported MP3 downloads.
-- Targeted MIDI Panic and USB output-selection reliability fixes. Direct iPhone capture still needs physical validation.
-- Native Linux desktop packages for ARM64 and x86-64, with separate user data. Read the [1.2 guide and exact test limits](https://kidbee85-beep.github.io/TrackWerk/update-1.2.html).
+- **Froggy sings the words you type.** Studio > Synth > Voices and Frogs > Froggy. Type the lyrics on the on-screen keyboard (Lyrics row, A + Right) or step through templates in `Presets/Lyrics` (A + Up/Down); every note sings the next syllable. Four voices, croak, vibrato, glide, a coda for the last consonants, and on Linux a **Mic pitch** source that sings the pitch you hum into the recorder. Spelling-to-sound rules and vowel data come from [Chimera Vocal Synth](https://github.com/jamesondh/chimera-vocal-synth) by Jameson Hodge (MIT); the voice itself is our own light formant engine ([credits](docs/THIRD-PARTY-CHIMERA.md)).
+- **A frog stage.** Froggy and Croaker show a neon frog beside the controls: its mouth and throat follow the real sound, it hops with each note, flicks its tongue at the firefly (the XY pad's dot, moved with L + D-pad or a finger on touch screens) and shows the sung word karaoke-style. Motion can be switched off.
+- **128 synth models.** New: Croaker, Acid Box, Reese Bass and the Dub Siren, sixteen sounds each.
+- **Synth tabs sorted by purpose**: Voices and Frogs, Vintage Chips, Low End and Sirens, Plaits: Macro, Braids: Digital, Rings: Strings, Elements: Modal and more. Every family has its own control sheet (dials, an LCD, a bar graph), every new model a one-line description and every preset list its position.
+- **TrackWerk Sample Pack 1.3.** 800 hand-picked one-shots and breaks by Kid Bunka (100 each of kicks, snares, hi-hats, claps, bongos and congas, extras, toms and cymbals, plus 100 breaks) and 728 classic drum-machine sounds as a separate Drum Machines folder. Included in the First Install packages; existing users download the two ZIPs separately.
+- **Also new:** EXPORT > MIDI, a preset inbox, the PRB step-probability command, the last five versions of a project kept on SAVE, durable saves that survive a power cut, an AUDIO DRIVERS overlay and input monitoring (by @ozkaoz), an Anbernic R36 Ultra launcher, a PortMaster package and a community test package for Anbernic H700 handhelds.
 
 ## A demo party in your pocket
 
@@ -30,16 +31,16 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 | Device | Package / operating system | Notes |
 | --- | --- | --- |
 | TrimUI Brick | KNULLI | Native ARM64 profile |
-| Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.2.0 |
+| Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.3.0 |
 | Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
 | Powkiddy RGB20S | AmberELEC | Games-card package, preserving projects and settings |
 | Anbernic R36 Ultra | dArkOSRE (Debian 13 arm64) | Official arm64 .deb plus a Ports launcher; controls verified on hardware |
 | Linux desktop | Debian 13 .deb / SDL 2.32.4+ | ARM64 and x86-64; final desktop UI acceptance remains open |
-| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 102000; same app ID and signer as 1.0 |
+| Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 103000; same app ID and signer as 1.0 |
 
-Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises the previous public and known development binaries, using canonical or legacy folders without a rename. Complete the metadata step in START-HERE-1.2.0 so the menu/version labels match. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
+Use First Install for a new card and Program Update for an existing installation. Back up the data folder and follow START-HERE inside the matching ZIP. The Miyoo updater recognises the previous public and known development binaries, using canonical or legacy folders without a rename. Complete the metadata step in START-HERE-1.3.0 so the menu/version labels match. Install the Android APK over the existing app to retain its data. Do not uninstall just to update.
 
-The factory library remains the same 2,432-preset collection; its unchanged 1.0 archive is included in the 1.2 release. Five public demo projects use internal synth engines. Sample-based soundtrack compositions are mixed audio; commercial raw sample-library files are excluded.
+The factory library remains the same 2,432-preset collection; its unchanged 1.0 archive is included in the release. The Sample Pack and the Drum Machines folder are separate ZIPs for existing installations (copy the folder into your Samples folder). Five public demo projects use internal synth engines. Sample-based soundtrack compositions are mixed audio; commercial raw sample-library files are excluded.
 
 Networking, MIDI and external audio inputs depend on the platform and hardware. YouTube is off by default and requires an explicit opt-in. Check the actual recording's reuse terms before releasing sampled music. There is no universal polyphony or CPU claim: the workload depends on the project and device.
 
