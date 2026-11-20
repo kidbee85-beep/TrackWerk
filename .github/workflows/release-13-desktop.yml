@@ -1,5 +1,8 @@
 name: TrackWerk 1.3 desktop release verification
 on:
+  push:
+    branches: [codex/release-1.3.0]
+    paths: ['.github/workflows/release-13-desktop.yml', 'source/native/**', 'source/shell/**']
   workflow_dispatch:
 permissions:
   contents: read
