@@ -8,8 +8,8 @@ import argparse,hashlib,json,os,shutil,stat,subprocess,sys,zipfile
 from pathlib import Path,PurePosixPath
 STAMP=(2026,11,20,0,0,0);VERSION='1.3.0';COMMIT='c9e3f5ac11740ebf949de394915f3333322efa9e'
 HERE=Path(__file__).resolve().parent;SOURCE=HERE.parents[1];WORK=SOURCE.parent
-DEFAULT_CLAUDE=Path('/Users/christophlink/Developer/Codex/2026-11-12/kid-bunka-claude-code-uebergabe/outputs/Kid-Bunka-Entwicklung/Claude-Arbeitsordner')
-DEFAULT_TEMPLATES=Path('/Users/christophlink/Developer/Codex/2026-11-12/kid-bunka-claude-code-uebergabe/work/trackwerk-1.2.1-20261117/Rebuild-d2e56aa/packages')
+DEFAULT_CLAUDE=Path(os.environ.get('TRACKWERK_RELEASE_INPUTS',str(WORK/'release-inputs')))
+DEFAULT_TEMPLATES=Path(os.environ.get('TRACKWERK_RELEASE_TEMPLATES',str(WORK/'previous-packages')))
 
 def sha(data):return hashlib.sha256(data).hexdigest()
 def jb(value):return (json.dumps(value,indent=2,ensure_ascii=False)+'\n').encode()

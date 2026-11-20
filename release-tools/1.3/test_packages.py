@@ -3,7 +3,7 @@
 import hashlib,importlib.util,json,os,shutil,subprocess,sys,uuid,zipfile
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[2];OUT=ROOT/'packages';REPORT=ROOT/'reports';FIX=REPORT/'package-simulation'
-OLD=Path('/Users/christophlink/Developer/Codex/2026-11-12/kid-bunka-claude-code-uebergabe/work/trackwerk-1.2.1-20261117/Rebuild-d2e56aa/packages')
+OLD=Path(os.environ.get('TRACKWERK_PREVIOUS_PACKAGES',str(ROOT/'previous-packages')))
 results=[]
 def sha(b):return hashlib.sha256(b).hexdigest()
 def check(name,fn):
