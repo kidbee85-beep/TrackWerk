@@ -80,7 +80,7 @@ def additions(claude,manual_dir):
     return files
 
 def origin(profile,programs,template=None,physical=False):
-    return {'product':'TrackWerk','version':VERSION,'profile':profile,'production':'deterministic repackaging of verified prebuilt programs; not an independent program rebuild','programs':programs,'program_hardware_run_reported_by':'Kid Bunka, 20 November 2026' if physical else None,'new_package_layout_hardware_tested':False,'community_test':not physical,'template':template,'published':False}
+    return {'product':'TrackWerk','version':VERSION,'profile':profile,'production':'independently rebuilt programs with verified release packaging' if programs and all(v.get('independently_rebuilt') for v in programs.values()) else 'verified release packaging','programs':programs,'base_program_hardware_run_reported_by':'Kid Bunka, 20 November 2026' if physical else None,'final_program_hardware_tested':False,'base_program_source_commit':COMMIT,'new_package_layout_hardware_tested':False,'community_test':not physical,'template':template,'published':False}
 
 def notice(files,prefix):
     for rel in ['LICENSE','CREDITS.md']:
@@ -94,7 +94,7 @@ def notice(files,prefix):
     if p.exists():files[prefix+'licenses/THIRD-PARTY-CHIMERA.md']=p.read_bytes()
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--claude-root',type=Path,default=DEFAULT_CLAUDE);parser.add_argument('--templates',type=Path,default=DEFAULT_TEMPLATES);parser.add_argument('--output',type=Path,default=WORK/'packages');parser.add_argument('--manual-dir',type=Path);parser.add_argument('--programs-json',type=Path);parser.add_argument('--r36ultra-deb-json',type=Path);parser.add_argument('--only',nargs='*');a=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--claude-root',type=Path,default=DEFAULT_CLAUDE);parser.add_argument('--templates',type=Path,default=DEFAULT_TEMPLATES);parser.add_argument('--output',type=Path,default=WORK/'packages');parser.add_argument('--manual-dir',type=Path);parser.add_argument('--programs-json',type=Path);parser.add_argument('--android-apk-json',type=Path);parser.add_argument('--r36ultra-deb-json',type=Path);parser.add_argument('--only',nargs='*');a=parser.parse_args()
     claude=safe(a.claude_root);templates=safe(a.templates);out=safe(a.output);out.mkdir(parents=True,exist_ok=True)
     base,get,updates=verified_inputs(claude)
     programs={'brick':updates['brick'][0]['trackwerk.aarch64'],'rgb20s':updates['rgb20s'][0]['trackwerk.aarch64'],'miyoo-mini':updates['miyoo'][0]['trackwerk-offline.armv7'],'miyoo-plus':updates['miyoo'][0]['trackwerk-plus-online.armv7']}
@@ -118,7 +118,7 @@ def main():
     def emit(name,files,modes,profile,keys,template=None,physical=False):
         entries.append(pack(out/name,files,modes,origin(profile,{k:program_meta[k] for k in keys},template,physical)))
     def common(files,readme,mode='first'):
-        files['START-HERE.txt']=readme.encode();files['SOURCE.txt']=('TrackWerk 1.3.0 corresponding source: TrackWerk-1.3.0-Source.zip\nProgram code: '+program_sources+'\nRepackaged from Claude-verified program artifacts, not independently rebuilt. New install layout tested on simulated directories only.\n').encode()
+        files['START-HERE.txt']=readme.encode();files['SOURCE.txt']=('TrackWerk 1.3.0 corresponding source: TrackWerk-1.3.0-Source.zip\nProgram code: '+program_sources+'\nPrograms independently rebuilt when marked in PROVENANCE.json. Previous base programs were device-tested by Kid Bunka; final FM-bounds correction and new install layout were software-tested only.\n').encode()
         files['release_metadata.py']=helper;files['RELEASE-METADATA.json']=spec;files['menu-cover-trackwerk-1.3.0.png']=cover;files['boxart-miyoo-1.3.0.png']=box
     # Reuse the existing robust program transaction and fresh volume attestation.
     mfiles,mmodes=updates['miyoo'];mfiles=dict(mfiles);mmodes=dict(mmodes)
@@ -248,8 +248,11 @@ def main():
         files['START-HERE.txt']=('TrackWerk 1.3.0 samples and EN/DE manuals\nSafe computer-side installation: unzip the complete package, run python3 install_samples.py --data-home /absolute/PATH/TO/YOUR/EXISTING/DATA\nThe command only shows a plan. Repeat with --apply to add missing files; existing samples/projects/preferences are NEVER overwritten.\nAndroid: select the existing folder granted to the app, or copy missing files from '+prefix+'/ on the phone. APK updates in place; do not uninstall.\nMiyoo: current installs use /TrackWerk; legacy cards may still use /PocketTrackerExtreme. Use the existing data home.\nRGB20S: an existing roms/ports/trackwerk/data shared home takes precedence over ports/trackwerk-amberelec/data.\n800 TrackWerk samples + 728 drum-machine samples. Music use, commercial or noncommercial, is allowed; no sample-pack resale. Full licence in each folder. German reference manual machine translated.\n').encode()
         emit('TrackWerk-1.3.0-'+name+'.zip',files,{},key,[],physical=True)
     if wanted('android'):
-        data=get('TrackWerk-1.3.0-Android-Update.apk');target=out/'TrackWerk-1.3.0-Android-Update.apk';target.write_bytes(data)
-        entries.append({'file':target.name,'bytes':len(data),'sha256':sha(data),'origin':{'production':'unchanged verified signed APK','source_commit':COMMIT,'reported_hardware_test':True,'version_code':103000}})
+        value=json.loads(safe(a.android_apk_json).read_text()) if a.android_apk_json else None
+        data=safe(value['path']).read_bytes() if value else get('TrackWerk-1.3.0-Android-Update.apk')
+        if value and (sha(data)!=value['sha256'] or not value['signer_matches_previous']):raise RuntimeError('APK signature provenance mismatch')
+        target=out/'TrackWerk-1.3.0-Android-Update.apk';target.write_bytes(data)
+        entries.append({'file':target.name,'bytes':len(data),'sha256':sha(data),'origin':{'production':'independently rebuilt, signed and verified APK' if value else 'unchanged verified signed APK','source_commit':value['source_commit'] if value else COMMIT,'base_hardware_test_reported':True,'final_program_hardware_tested':False if value else True,'version_code':103000}})
     if wanted('samples'):
         for name in ['TrackWerk-Sample-Pack-1.3.zip','TrackWerk-Drum-Machines-Samples.zip']:
             data=(claude/'sample-pack/ausgabe'/name).read_bytes();target=out/name;target.write_bytes(data);entries.append({'file':name,'bytes':len(data),'sha256':sha(data),'origin':{'production':'unchanged Kid Bunka sample pack'}})
