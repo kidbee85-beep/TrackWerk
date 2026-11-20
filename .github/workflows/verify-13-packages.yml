@@ -8,6 +8,10 @@ permissions:
   contents: read
 jobs:
   install:
+    # Explicitly approved by Kid Bunka for exact draft-package acceptance.
+    # This job only reads SHA256-pinned draft assets and tests disposable containers.
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
