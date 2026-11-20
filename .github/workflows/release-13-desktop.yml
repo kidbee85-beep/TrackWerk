@@ -44,7 +44,7 @@ jobs:
           chmod +x evidence/trackwerk.bin
           ldd evidence/trackwerk.bin > evidence/ldd.txt
           test -z "$(grep 'not found' evidence/ldd.txt)"
-          git rev-parse HEAD > evidence/SOURCE-COMMIT.txt
+          printf '%s\n' '${{ github.sha }}' > evidence/SOURCE-COMMIT.txt
           printf '%s\n' 'Debian 13 native build; Xvfb window startup; dummy audio, no audible hardware test.' > evidence/TEST-SCOPE.txt
       - uses: actions/upload-artifact@v7.0.2
         with:
