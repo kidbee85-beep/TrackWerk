@@ -9,7 +9,7 @@
 # from inside its own cgroup would kill the port together with the frontend. Every other port on
 # this image (Bully, GTA San Andreas, ...) relies on the same behaviour.
 #
-# Distribution: the official trackwerk_1.2.0-1_arm64.deb, which installs
+# Distribution: the official trackwerk_1.3.0-1_arm64.deb, which installs
 # /usr/lib/trackwerk/trackwerk.bin. Nothing here is copied into the package tree.
 
 PTE_SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
@@ -27,12 +27,12 @@ if [[ "$PTE_LOG_SIZE" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] && [ "$PTE_LOG_SIZE
 fi
 exec >> "$PTE_LOG" 2>&1
 
-printf '\n=== TrackWerk 1.2.0 R36 Ultra / dArkOSRE: shell entered ===\n'
+printf '\n=== TrackWerk 1.3.0 R36 Ultra / dArkOSRE: shell entered ===\n'
 
 if [ ! -x "$PTE_BIN" ]; then
     printf 'TrackWerk: %s is missing.\n' "$PTE_BIN"
     printf 'Install the package first:\n'
-    printf '  sudo env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg -i trackwerk_1.2.0-1_arm64.deb\n'
+    printf '  sudo env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg -i trackwerk_1.3.0-1_arm64.deb\n'
     exit 2
 fi
 

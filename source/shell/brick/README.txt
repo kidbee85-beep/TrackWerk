@@ -40,7 +40,7 @@ https://knulli.org/play/add-games/accessing-sd-card/
 https://knulli.org/play/add-games/game-storage/
 
 3. INSTALL POCKET TRACKER
-Unzip TrackWerk-0.9-Brick-KNULLI.zip into:
+Unzip TrackWerk-1.3.0-Brick-KNULLI-First-Install.zip into:
 SHARE/roms/ports/
 
 After extracting, you should have:
