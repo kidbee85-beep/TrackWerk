@@ -1,17 +1,11 @@
 name: TrackWerk 1.3 Debian package acceptance
 on:
-  push:
-    branches: [codex/release-1.3.0]
-    paths: ['.github/workflows/verify-13-packages.yml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   install:
-    # Explicitly approved by Kid Bunka for exact draft-package acceptance.
-    # This job only reads SHA256-pinned draft assets and tests disposable containers.
-    permissions:
-      contents: write
+    # Draft acceptance passed in run 44746420639. Public assets need read-only access.
     strategy:
       fail-fast: false
       matrix:
