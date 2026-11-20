@@ -50,7 +50,8 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          apt-get install -y ./trackwerk_1.3.0-1_${ARCH}.deb
+          # Debian slim deliberately excludes /usr/share/doc; include our manuals in this acceptance check.
+          apt-get -o Dpkg::Options::="--path-include=/usr/share/doc/trackwerk" -o Dpkg::Options::="--path-include=/usr/share/doc/trackwerk/*" install -y ./trackwerk_1.3.0-1_${ARCH}.deb
           mkdir -p evidence/data/Samples
           printf 'private fixture' > evidence/data/Samples/KEEP.wav
           export TRACKWERK_HOME="$PWD/evidence/data"
