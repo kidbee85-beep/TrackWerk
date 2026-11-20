@@ -94,6 +94,7 @@ def main() -> None:
     out["TrackWerk.sh"] = (HERE / "TrackWerk.sh").read_bytes()
     out["trackwerk/port.json"] = (HERE / "port.json").read_bytes()
     out["trackwerk/gameinfo.xml"] = (HERE / "gameinfo.xml").read_bytes()
+    out["trackwerk/menu-cover-trackwerk-1.3.0.png"] = (HERE / "menu-cover-trackwerk-1.3.0.png").read_bytes()
     out["README-H700.txt"] = (HERE / "README.txt").read_bytes()
     out["START-HERE.txt"] = START_HERE.encode()
     out["SOURCE.txt"] = SOURCE_NOTE.encode()

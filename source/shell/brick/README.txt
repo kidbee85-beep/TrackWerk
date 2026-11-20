@@ -1,5 +1,5 @@
 TRACKWERK — FIRST START ON TRIMUI BRICK
-Public beta 0.2.0-beta.2 · Kid Bunka
+Version 1.3.0 · Kid Bunka
 
 ALREADY RUNNING KNULLI?
 Start at step 3. Do not reflash or format a working card just to install the tracker.
