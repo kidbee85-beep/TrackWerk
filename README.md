@@ -2,7 +2,7 @@
 
 **Small machine. Serious music.** An eight-track music studio for Android and selected Linux handhelds, by **Kid Bunka**.
 
-[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.3.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.3.0) · [New 1.2 update film](https://youtu.be/8DiovzmRM6w) · [YouTube Short](https://www.youtube.com/shorts/w2DIKKX_xjc) · [Instagram Reel](https://www.instagram.com/reel/Df0bTJlR86j/) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
+[Website](https://kidbee85-beep.github.io/TrackWerk/) · [Illustrated English guide](https://kidbee85-beep.github.io/TrackWerk/guide.html) · [Download 1.3.0](https://github.com/kidbee85-beep/TrackWerk/releases/tag/v1.3.0) · [Previous 1.2 update film](https://youtu.be/8DiovzmRM6w) · [YouTube Short](https://www.youtube.com/shorts/w2DIKKX_xjc) · [Instagram Reel](https://www.instagram.com/reel/Df0bTJlR86j/) · [Optional support](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF)
 
 ![TrackWerk / Hardware - Bunka Signal](docs/site/assets/screens/scene-39.png)
 
@@ -13,7 +13,7 @@
 - **128 synth models.** New: Croaker, Acid Box, Reese Bass and the Dub Siren, sixteen sounds each.
 - **Synth tabs sorted by purpose**: Voices and Frogs, Vintage Chips, Low End and Sirens, Plaits: Macro, Braids: Digital, Rings: Strings, Elements: Modal and more. Every family has its own control sheet (dials, an LCD, a bar graph), every new model a one-line description and every preset list its position.
 - **TrackWerk Sample Pack 1.3.** 800 hand-picked one-shots and breaks by Kid Bunka (100 each of kicks, snares, hi-hats, claps, bongos and congas, extras, toms and cymbals, plus 100 breaks) and 728 classic drum-machine sounds as a separate Drum Machines folder. Included in the First Install packages; existing users download the two ZIPs separately.
-- **Also new:** EXPORT > MIDI, a preset inbox, the PRB step-probability command, the last five versions of a project kept on SAVE, durable saves that survive a power cut, an AUDIO DRIVERS overlay and input monitoring (by @ozkaoz), an Anbernic R36 Ultra launcher, a PortMaster package and a community test package for Anbernic H700 handhelds.
+- **Also new:** EXPORT > MIDI, a preset inbox, the PRB step-probability command, the last five versions of a project kept on SAVE, durable saves with atomic replacement and explicit disk flushes, an AUDIO DRIVERS overlay and input monitoring (by @ozkaoz), an Anbernic R36 Ultra launcher, a PortMaster package and a community test package for Anbernic H700 handhelds.
 
 ## A demo party in your pocket
 
@@ -34,7 +34,11 @@ Write sixteen steps, join phrases into chains, then arrange them over eight trac
 | Miyoo Mini | Onion / offline | Local media and synthesis; Apps and Ports label TrackWerk 1.3.0 |
 | Miyoo Mini Plus | Onion / Archive | Supported online sources; optional offline installation is labelled separately |
 | Powkiddy RGB20S | AmberELEC | Games-card package, preserving projects and settings |
-| Anbernic R36 Ultra | dArkOSRE (Debian 13 arm64) | Official arm64 .deb plus a Ports launcher; controls verified on hardware |
+| Anbernic R36 Ultra | dArkOSRE (Debian 13 arm64) | Community test: arm64 .deb plus Ports launcher; not tested on an R36 Ultra |
+| Anbernic H700 | KNULLI | Community test; hardware acceptance open |
+| R36S | 64-bit Linux | Community test; hardware acceptance open |
+| macOS Apple Silicon | macOS 12+ | Local test candidate, ad-hoc signed and not notarised |
+| Windows x64 | MSVC build required | Withheld pending successful build and startup test |
 | Linux desktop | Debian 13 .deb / SDL 2.32.4+ | ARM64 and x86-64; final desktop UI acceptance remains open |
 | Android | Signed APK / Android 8+ | ARM64, ARMv7 and x86_64; versionCode 103000; same app ID and signer as 1.0 |
 
@@ -57,3 +61,7 @@ Selected DSP work uses open Mutable Instruments code by Emilie Gillet and contri
 - [bazillOS](https://kidbee85-beep.github.io/bazillOS/) — independent firmware for the Polyend Tracker Mini.
 
 [Optional donations](https://www.paypal.com/donate/?business=kidbee85%40gmail.com&currency_code=CHF) support firmware updates, new firmware and synthesizer software.
+
+## Request another port
+
+Want TrackWerk on another handheld or operating system? Please [open an issue](https://github.com/kidbee85-beep/TrackWerk/issues/new) with the exact device model, firmware or OS version, processor, and any controls, MIDI or audio hardware you can help test. Community testers and contributors are welcome. Optional donations support continued development; reports and music made with TrackWerk help too.
