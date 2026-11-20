@@ -50,6 +50,14 @@ if [ -d "$PTE_FACTORY" ]; then
     cp -rn -- "$PTE_FACTORY/." "$TRACKWERK_HOME/Presets/" 2>/dev/null
 fi
 
+# Sample Pack, once. The package's own launcher copies it too, but this script starts the program directly,
+# so it does the same here: only when there is no Samples folder yet, and never over an existing one.
+PTE_SAMPLES=/usr/share/trackwerk/samples
+if [ -d "$PTE_SAMPLES" ] && [ ! -e "$TRACKWERK_HOME/Samples" ]; then
+    printf 'copying the TrackWerk Sample Pack to %s/Samples (first start only)\n' "$TRACKWERK_HOME"
+    cp -R -- "$PTE_SAMPLES" "$TRACKWERK_HOME/Samples" 2>/dev/null || printf 'WARNING: sample pack copy incomplete\n'
+fi
+
 # Video: KMS/DRM through the Mali EGL blob, exactly what emulationstation.service exports.
 # Without SDL_VIDEO_EGL_DRIVER the KMSDRM backend fails with
 # "Can't load EGL/GL library on window creation." - the Mesa EGL on this image is not usable
