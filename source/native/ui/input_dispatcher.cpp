@@ -240,8 +240,16 @@ void InputDispatcher::run_due_status_dismiss() {
 bool InputDispatcher::recover_from_autosave() {
     // A full project load, so the same strip and the same cancel.
     const LoadScope recoverScope(*this, now_ms_, "RECOVERED WORK");
+    autosaveTooNew_ = false;
 
     if (!autosave_load(host_, fs_, mediaBaseDir_)) {
+        // A newer TrackWerk's autosave: refused, and true, so the file is never deleted.
+        const std::string newer = load_failed_message(fs_, fs_.autosave_file_path(), songcore::SONG_FORMAT, "");
+        if (!newer.empty()) {
+            autosaveTooNew_ = true;
+            set_status(s_, newer, false);
+            return true;
+        }
         set_status(s_, "RECOVER FAILED", false);
         return false;
     }
@@ -280,8 +288,9 @@ InputDispatcher::BootRecovery InputDispatcher::boot_recovery() {
         return BootRecovery::ASKED;
     }
 
-    // AUTO restores in silence. A corrupt autosave is dropped, or every launch would retry it.
-    if (recover_from_autosave()) return BootRecovery::RESTORED;
+    // AUTO restores in silence. A corrupt autosave is dropped, or every launch would retry it; a newer
+    // TrackWerk's is kept.
+    if (recover_from_autosave()) return autosaveTooNew_ ? BootRecovery::KEPT : BootRecovery::RESTORED;
 
     autosave_clear(fs_);
     return BootRecovery::DROPPED;
