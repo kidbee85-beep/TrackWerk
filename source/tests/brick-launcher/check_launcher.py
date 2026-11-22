@@ -154,11 +154,12 @@ class Launcher(unittest.TestCase):
   self.seed({'A.pti':'A'})
   (self.tools/'prepare_presets.py').write_text("import os,signal,time\nfrom pathlib import Path\nsignal.signal(signal.SIGTERM,signal.SIG_IGN)\nPath(os.environ['PTE_TEST_WORKER_READY']).write_text(str(os.getpid()))\nwhile True:time.sleep(.03)\n")
   ready=self.root/'worker-ready';self.env['PTE_TEST_WORKER_READY']=str(ready)
-  self.launch_wait();deadline=time.monotonic()+4
+  self.env['SHELLOPTS']='errexit';self.launch_wait();deadline=time.monotonic()+4
   while not ready.exists() and time.monotonic()<deadline:time.sleep(.02)
   self.assertTrue(ready.exists(),self.log.read_text());self.assertIn('Native first frame submitted',self.log.read_text());self.assertIsNone(self.proc.poll())
   pid=int(ready.read_text());os.kill(pid,0);started=time.monotonic();self.proc.send_signal(signal.SIGTERM)
-  self.assertEqual(self.proc.wait(timeout=6),143);self.assertLess(time.monotonic()-started,4)
+  time.sleep(.2);self.proc.send_signal(signal.SIGTERM)
+  self.assertEqual(self.proc.wait(timeout=6),143);self.assertLess(time.monotonic()-started,4);self.assertRegex(self.log.read_text(),r'Shell flags: \S*e')
   with self.assertRaises(ProcessLookupError):os.kill(pid,0)
   self.assertFalse((self.data/'.factory-presets-pack.id').exists())
  def test_matching_marker_respects_deleted_and_renamed_user_presets(self):
@@ -184,6 +185,21 @@ class Launcher(unittest.TestCase):
  def test_worker_error_does_not_replace_native_exit_status(self):
   self.seed({'A.pti':'A'});(self.app/'factory/Presets/Instruments/A.pti').write_text('BAD');self.env['PTE_TEST_RC']='17'
   self.assertEqual(self.run_app().returncode,17);self.assertIn('Factory pack verification failed',self.log.read_text());self.assertIn('Status 17',self.log.read_text())
+ def test_errexit_worker_pause_preserves_native_success(self):
+  self.seed({'A.pti':'A'});(self.tools/'prepare_presets.py').write_text('raise SystemExit(75)\n');self.env['SHELLOPTS']='errexit'
+  r=self.run_app();self.assertEqual(r.returncode,0,self.log.read_text());self.assertIn('Background preset preparation exited with status 75',self.log.read_text());self.assertIn('Status 0',self.log.read_text());self.assertRegex(self.log.read_text(),r'Shell flags: \S*e')
+ def test_errexit_native_failure_preserves_status_and_cleanup(self):
+  self.env.update(SHELLOPTS='errexit',PTE_TEST_RC='17')
+  r=self.run_app();self.assertEqual(r.returncode,17,self.log.read_text());self.assertIn('Status 17',self.log.read_text());self.assertRegex(self.log.read_text(),r'Shell flags: \S*e')
+ def test_worker_keeps_running_without_session_copy_budget(self):
+  self.seed({'A.pti':'A'});args=self.root/'worker-args';self.env['PTE_TEST_WORKER_ARGS']=str(args)
+  (self.tools/'prepare_presets.py').write_text("import os,sys,json\nfrom pathlib import Path\nPath(os.environ['PTE_TEST_WORKER_ARGS']).write_text(json.dumps(sys.argv[1:]))\n")
+  self.assertEqual(self.run_app().returncode,0)
+  values=json.loads(args.read_text());self.assertIn('--background',values);self.assertIn('--library',values);self.assertNotIn('--time-budget',values)
+ def test_errexit_startup_timeout_and_native_kill(self):
+  for mode in ['no-frame','hang']:
+   self.env.update(SHELLOPTS='errexit',PTE_TEST_MODE=mode,PTE_STARTUP_TIMEOUT_SECONDS='1')
+   self.assertEqual(self.run_app(timeout=14).returncode,124,self.log.read_text());self.assertRegex(self.log.read_text(),r'Shell flags: \S*e')
  def test_real_first_frame_disarms_watchdog(self):
   self.env.update(PTE_TEST_MODE='long-ready',PTE_STARTUP_TIMEOUT_SECONDS='1');self.assertEqual(self.run_app().returncode,0,self.log.read_text());self.assertIn('first frame submitted',self.log.read_text())
  def test_invalid_marker_does_not_disable_watchdog(self):

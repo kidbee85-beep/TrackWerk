@@ -65,9 +65,10 @@ Existing projects, samples and edited presets are kept. An interrupted setup
 resumes from private staging on the next app start. A completed library marker
 also preserves intentional deletion, renaming and rearrangement of presets.
 
-Setup runs only after the app is visible, at lower CPU priority and with a
-60-second work budget per session. The native first-frame watchdog remains
-independent. Logs are in roms/ports/trackwerk/log.txt.
+Setup runs only after the app is visible, at lower CPU priority. It keeps
+working while the app is open until the library is complete. Closing the app
+stops the worker safely; the next launch resumes any remaining work. The native
+first-frame watchdog is independent. Logs are in roms/ports/trackwerk/log.txt.
 
 Optional computer preparation, with Python 3 already installed:
 python3 "/media/YOUR_CARD/roms/ports/trackwerk/tools/prepare_presets.py" --library
