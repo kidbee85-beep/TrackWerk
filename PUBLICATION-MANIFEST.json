@@ -129,6 +129,14 @@
     "SHA256SUMS-Brick-Startup-Fix.txt": {
       "bytes": 453,
       "sha256": "1f3dea316ace1707d7457ffd5d7880b1f6ea697df30e59e28a09fba0841410e6"
+    },
+    "TrackWerk-1.3.0-Brick-KNULLI-Startup-Fix-First-Install-r2.zip": {
+      "bytes": 194563909,
+      "sha256": "d8e683d7feaf21849924a65ce1077670b873c7620c0e548a6c045d5b6caeab6b"
+    },
+    "SHA256SUMS-Brick-Startup-Fix-r2.txt": {
+      "bytes": 456,
+      "sha256": "b96ae501612814f2d606c0ca869ea3bd46b469d05d1526cac19bdfcb9c1ddee8"
     }
   },
   "source_archive": "TrackWerk-1.3.0-Source.zip is generated from the final tagged commit; its hash is in SHA256SUMS.txt",
@@ -137,9 +145,12 @@
     "date": "2026-11-22",
     "source_commit": "da19fe5c16fc8a79f0f2a74d6d686cf0bc89ab14",
     "repair": "https://github.com/kidbee85-beep/TrackWerk/releases/download/v1.3.0/TrackWerk-1.3.0-Brick-Startup-Fix.zip",
-    "first_install": "https://github.com/kidbee85-beep/TrackWerk/releases/download/v1.3.0/TrackWerk-1.3.0-Brick-KNULLI-Startup-Fix-First-Install.zip",
+    "first_install": "https://github.com/kidbee85-beep/TrackWerk/releases/download/v1.3.0/TrackWerk-1.3.0-Brick-KNULLI-Startup-Fix-First-Install-r2.zip",
     "verification": "https://github.com/kidbee85-beep/TrackWerk/releases/download/v1.3.0/TrackWerk-1.3.0-Brick-Startup-Fix-Verification.json",
     "native_program_unchanged": true,
-    "physical_brick_startup_and_complete_factory_library_verified": true
+    "physical_brick_startup_and_complete_factory_library_verified": true,
+    "checksums": "https://github.com/kidbee85-beep/TrackWerk/releases/download/v1.3.0/SHA256SUMS-Brick-Startup-Fix-r2.txt",
+    "metadata_revision": 2,
+    "native_source_commit": "028619182cf79d5f59c7718da8b71756d8512e3b"
   }
 }
