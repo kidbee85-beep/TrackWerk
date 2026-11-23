@@ -402,7 +402,7 @@ inline std::vector<T> parse_pool(const json& j, const char* k, F&& parse_elem) {
 
 }  // namespace detail
 
-// ─── File versions (specs/refuse-newer-files.md) ────────────────────────────────────────────────
+// ─── File versions ──────────────────────────────────────────────────────────────────────────
 // `version` is the format that wrote a file, `minReader` the oldest format that can open it safely.
 // ⚠️ The rule for every later format change: raise minReader with version whenever losing the new
 // data would change how the file sounds, plays or is arranged (notes, commands, instruments, mixing,
