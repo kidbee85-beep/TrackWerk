@@ -1532,6 +1532,8 @@ Navigate here: **R+UP** from SONG or CHAIN.
 
 A song whose files have gone missing from their own folders plays the copies in its `Songs/` folder, and a collected song whose copies are gone plays the originals.
 
+**Songs from a newer TrackWerk.** A song saved by a newer TrackWerk that holds things this version doesn't know is not loaded, because saving it here would lose them. The status says `MADE WITH TRACKWERK 1.3.0 - UPDATE TO OPEN` (the version that saved it), or `MADE WITH A NEWER TRACKWERK` when the file doesn't say. The open song stays as it was, and the file is never changed. Update TrackWerk to open it. The same happens to a recovery file from a newer TrackWerk at RESUME: it isn't loaded and isn't deleted.
+
 WAV exports are saved to `<home>/Renders/` — `<home>` being PocketTracker's home folder (section 2) — with auto-incremented filenames (`ProjectName_0001.wav`). Stems are written to a per-project subfolder — `Renders/ProjectName/ProjectName_1.wav`, `_2.wav`, … — plus `_reverb.wav` / `_delay.wav` when those sends are in use.
 
 ### The RENDER panel
@@ -2647,6 +2649,9 @@ Two details worth knowing:
 ### Project files
 
 - Format: `.ptp` (JSON with version field; old projects are migrated automatically on load)
+- Every song, instrument, scale, groove and Studio or Grain preset records the TrackWerk version that
+  saved it. A file from a newer TrackWerk that this version can't open safely is refused with
+  `MADE WITH TRACKWERK <version> - UPDATE TO OPEN` (or `MADE WITH A NEWER TRACKWERK`), and is left as it was.
 - Location: `<home>/Projects/`
 - Save: PROJECT screen → SAVE
 - Load: PROJECT screen → LOAD
